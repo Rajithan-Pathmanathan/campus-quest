@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="wrap_content"
+    android:layout_marginHorizontal="@dimen/spacing_s"
+    android:layout_marginVertical="@dimen/spacing_xs"
+    app:cardCornerRadius="@dimen/card_corner_radius">
+
+    <LinearLayout
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="horizontal"
+        android:padding="@dimen/spacing_m"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/tv_rank"
+            android:layoutWidth="36dp"
+            android:layoutHeight="wrap_content"
+            android:text="#1"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/secondary_amber" />
+
+        <LinearLayout
+            android:layoutWidth="0dp"
+            android:layoutHeight="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_player_name"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Explorer_Alex"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/tv_time_score"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Completed in 14m 20s"
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_points"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="500 pts"
+            android:textStyle="bold"
+            android:textColor="@color/primary_emerald" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

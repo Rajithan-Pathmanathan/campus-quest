@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="match_parent"
+    android:fillViewport="true"
+    android:background="@color/background_light">
+
+    <LinearLayout
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_m">
+
+        <TextView
+            android:id="@+id/tv_welcome"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Welcome, Explorer"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tv_stats"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Score: 0 pts | Relics Found: 0"
+            android:textColor="@color/primary_emerald"
+            android:textStyle="bold"
+            android:layout_marginTop="@dimen/spacing_xs" />
+
+        <!-- Quick Action Cards -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_explore_quests"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:layout_marginTop="@dimen/spacing_l"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:strokeColor="@color/primary_emerald"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_m">
+
+                <TextView
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="🗺️ Explore Campus Quests"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="Discover published quests created by campus clubs and professors."
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="@dimen/spacing_xs" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_browse_quests"
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="Browse Quests"
+                    android:backgroundTint="@color/primary_emerald"
+                    android:layout_marginTop="@dimen/spacing_m" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_creator_mode"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:layout_marginTop="@dimen/spacing_m"
+            app:cardCornerRadius="@dimen/card_corner_radius">
+
+            <LinearLayout
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_m">
+
+                <TextView
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="🛠️ Creator Studio"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="Design, customize, and publish your own campus quests."
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="@dimen/spacing_xs" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_switch_creator"
+                    android:layoutWidth="wrap_content"
+                    android:layoutHeight="wrap_content"
+                    android:text="Open Creator Studio"
+                    style="@style/Widget.Material3.Button.TonalButton"
+                    android:layout_marginTop="@dimen/spacing_m" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

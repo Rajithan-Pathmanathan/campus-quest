@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary Emerald Theme -->
+    <color name="primary_emerald">#00897B</color>
+    <color name="primary_emerald_dark">#005B4F</color>
+    <color name="primary_emerald_light">#4EBAAA</color>
+    <color name="primary_emerald_container">#A7F3D0</color>
+    <color name="on_primary_emerald">#FFFFFF</color>
+
+    <!-- Secondary Amber / Gold Accent Theme -->
+    <color name="secondary_amber">#FFB300</color>
+    <color name="secondary_amber_dark">#C68400</color>
+    <color name="secondary_amber_light">#FFE54C</color>
+    <color name="secondary_amber_container">#FEF3C7</color>
+    <color name="on_secondary_amber">#1F2937</color>
+
+    <!-- Semantic / Status Colors -->
+    <color name="rarity_common">#9CA3AF</color>
+    <color name="rarity_rare">#3B82F6</color>
+    <color name="rarity_epic">#8B5CF6</color>
+    <color name="rarity_legendary">#F59E0B</color>
+
+    <color name="status_draft">#6B7280</color>
+    <color name="status_published">#10B981</color>
+    <color name="status_closed">#EF4444</color>
+
+    <!-- Surface and Background Neutrals -->
+    <color name="background_light">#F9FAFB</color>
+    <color name="surface_light">#FFFFFF</color>
+    <color name="surface_variant_light">#F3F4F6</color>
+    <color name="text_primary">#111827</color>
+    <color name="text_secondary">#4B5563</color>
+    <color name="text_hint">#9CA3AF</color>
+    <color name="divider">#E5E7EB</color>
+
+    <!-- HUD / Dark Overlays -->
+    <color name="hud_background_transparent">#CC0F172A</color>
+    <color name="hud_text_glow">#00E676</color>
+    <color name="hud_border">#334155</color>
+</resources>

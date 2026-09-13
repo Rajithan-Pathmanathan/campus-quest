@@ -1,0 +1,42 @@
+<resources>
+    <string name="app_name">Campus Quest</string>
+    <string name="tagline">Explore, Discover, and Master Your Campus</string>
+
+    <!-- Navigation / General -->
+    <string name="nav_player_dashboard">Player Dashboard</string>
+    <string name="nav_creator_dashboard">Creator Studio</string>
+    <string name="nav_explore_games">Explore Quests</string>
+    <string name="nav_campus_map">Campus Map</string>
+    <string name="nav_scan_checkpoint">Scan Checkpoint</string>
+    <string name="nav_leaderboard">Leaderboard</string>
+
+    <!-- Auth -->
+    <string name="login_title">Sign in to Campus Quest</string>
+    <string name="login_email_hint">Student / Staff Email</string>
+    <string name="login_password_hint">Password</string>
+    <string name="login_button">Sign In</string>
+    <string name="anonymous_login_button">Continue as Guest Explorer</string>
+    <string name="logout_button">Sign Out</string>
+
+    <!-- Creator Wizard -->
+    <string name="creator_create_game_title">Create New Quest</string>
+    <string name="creator_game_title_hint">Quest Title (e.g. Heritage Trail)</string>
+    <string name="creator_game_desc_hint">Quest Description and Lore</string>
+    <string name="creator_add_checkpoint">Add Dynamic Checkpoint</string>
+    <string name="creator_save_draft">Save Draft</string>
+    <string name="creator_publish_quest">Publish Quest to Campus</string>
+
+    <!-- Gameplay & HUD -->
+    <string name="hud_radar_searching">Calibrating Environmental Sensors…</string>
+    <string name="hud_radar_locked">Checkpoint Geofence Locked</string>
+    <string name="hud_sensor_shake_prompt">Perform physical motion scan to resonate relic</string>
+    <string name="hud_sensor_lux_prompt">Match ambient light signature</string>
+    <string name="hud_sensor_proximity_prompt">Align device near landmark marker</string>
+    <string name="checkpoint_unlocked_title">Checkpoint Discovered!</string>
+    <string name="checkpoint_unlocked_btn">Claim Relic &amp; Continue</string>
+
+    <!-- Error Messages -->
+    <string name="error_location_permission_required">Location permission is required to detect campus checkpoints.</string>
+    <string name="error_camera_permission_required">Camera permission is required for the AR discovery HUD.</string>
+    <string name="error_network_offline">Operating in Offline Mode. Actions queued for sync.</string>
+</resources>

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="wrap_content"
+    android:layout_margin="@dimen/spacing_xs"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/elevation_standard">
+
+    <LinearLayout
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_m">
+
+        <TextView
+            android:id="@+id/tv_game_title"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Campus Heritage Quest"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/tv_game_creator"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="By Prof. Alan Turing"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="2dp" />
+
+        <TextView
+            android:id="@+id/tv_game_description"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Discover historical relics and hidden secrets across engineering quad."
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:maxLines="2"
+            android:ellipsize="end" />
+
+        <LinearLayout
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="@dimen/spacing_m"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_checkpoint_count"
+                android:layoutWidth="0dp"
+                android:layoutHeight="wrap_content"
+                android:layout_weight="1"
+                android:text="📍 5 Checkpoints"
+                android:textColor="@color/primary_emerald"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_view_details"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="View Quest"
+                android:backgroundTint="@color/primary_emerald" />
+        </LinearLayout>
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

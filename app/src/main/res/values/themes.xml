@@ -1,0 +1,18 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme -->
+    <style name="Theme.CampusQuest" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Primary Brand Colors -->
+        <item name="colorPrimary">@color/primary_emerald</item>
+        <item name="colorOnPrimary">@color/on_primary_emerald</item>
+        <item name="colorPrimaryContainer">@color/primary_emerald_container</item>
+
+        <!-- Secondary Brand Colors -->
+        <item name="colorSecondary">@color/secondary_amber</item>
+        <item name="colorOnSecondary">@color/on_secondary_amber</item>
+        <item name="colorSecondaryContainer">@color/secondary_amber_container</item>
+
+        <!-- Status & Navigation Bar -->
+        <item name="android:statusBarColor">@color/primary_emerald_dark</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

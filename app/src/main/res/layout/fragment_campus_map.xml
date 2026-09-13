@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="match_parent">
+
+    <!-- Google Map View / Fragment Container -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/map_container"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="match_parent" />
+
+    <!-- Top Status Overlay -->
+    <com.google.android.material.card.MaterialCardView
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:layout_margin="@dimen/spacing_m"
+        android:layout_gravity="top"
+        app:cardCornerRadius="@dimen/card_corner_radius"
+        app:cardElevation="@dimen/elevation_standard">
+
+        <LinearLayout
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_m">
+
+            <TextView
+                android:id="@+id/tv_target_cp_title"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Target: Old Clock Tower"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/tv_distance_meters"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Distance: 85m remaining"
+                android:textColor="@color/primary_emerald"
+                android:textStyle="bold"
+                android:layout_marginTop="2dp" />
+
+            <TextView
+                android:id="@+id/tv_clue_hint"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Clue: Where shadows stretch longest at noon..."
+                android:textSize="12sp"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- Bottom Action Floating Button -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/fab_enter_scan"
+        android:layoutWidth="wrap_content"
+        android:layoutHeight="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="@dimen/spacing_l"
+        android:text="Enter Discovery HUD"
+        android:backgroundTint="@color/primary_emerald"
+        android:textColor="@color/on_primary_emerald"
+        app:icon="@android:drawable/ic_menu_camera"
+        app:iconTint="@color/on_primary_emerald" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

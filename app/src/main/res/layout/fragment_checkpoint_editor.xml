@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_light">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:background="@color/primary_emerald"
+        app:title="Edit Checkpoint"
+        app:titleTextColor="@color/on_primary_emerald"
+        app:navigationIcon="@android:drawable/ic_menu_revert" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layoutWidth="match_parent"
+        android:layoutHeight="0dp"
+        android:layout_weight="1"
+        android:padding="@dimen/spacing_m">
+
+        <LinearLayout
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:orientation="vertical">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_cp_name"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:hint="Checkpoint Landmark Name"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_cp_name"
+                    android:layoutWidth="match_parent"
+                    android:layoutHeight="wrap_content" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:orientation="horizontal"
+                android:layout_marginTop="@dimen/spacing_m">
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_lat"
+                    android:layoutWidth="0dp"
+                    android:layoutHeight="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Latitude"
+                    android:layout_marginEnd="@dimen/spacing_xs"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_lat"
+                        android:layoutWidth="match_parent"
+                        android:layoutHeight="wrap_content"
+                        android:inputType="numberDecimal|numberSigned" />
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/til_lng"
+                    android:layoutWidth="0dp"
+                    android:layoutHeight="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Longitude"
+                    android:layout_marginStart="@dimen/spacing_xs"
+                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/et_lng"
+                        android:layoutWidth="match_parent"
+                        android:layoutHeight="wrap_content"
+                        android:inputType="numberDecimal|numberSigned" />
+                </com.google.android.material.textfield.TextInputLayout>
+            </LinearLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_radius"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:hint="Geofence Radius (meters)"
+                android:layout_marginTop="@dimen/spacing_m"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_radius"
+                    android:layoutWidth="match_parent"
+                    android:layoutHeight="wrap_content"
+                    android:inputType="numberDecimal"
+                    android:text="25" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_clue"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:hint="Riddle / Exploration Clue"
+                android:layout_marginTop="@dimen/spacing_m"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_clue"
+                    android:layoutWidth="match_parent"
+                    android:layoutHeight="wrap_content"
+                    android:lines="2" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_lore"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:hint="Unlocked Lore &amp; Educational Story"
+                android:layout_marginTop="@dimen/spacing_m"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_lore"
+                    android:layoutWidth="match_parent"
+                    android:layoutHeight="wrap_content"
+                    android:lines="2" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save_checkpoint"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:text="Save Checkpoint"
+                android:backgroundTint="@color/primary_emerald"
+                android:layout_marginTop="@dimen/spacing_xl" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>

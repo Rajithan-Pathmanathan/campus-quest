@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/loginFragment">
+
+    <!-- Authentication (M1 + M5) -->
+    <fragment
+        android:id="@+id/loginFragment"
+        android:name="com.campusquest.ui.auth.LoginFragment"
+        android:label="Login"
+        tools:layout="@layout/fragment_login">
+        <action
+            android:id="@+id/action_login_to_playerDashboard"
+            app:destination="@id/playerDashboardFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+        <action
+            android:id="@+id/action_login_to_creatorDashboard"
+            app:destination="@id/creatorDashboardFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <!-- Player Experience (M1) -->
+    <fragment
+        android:id="@+id/playerDashboardFragment"
+        android:name="com.campusquest.ui.player.PlayerDashboardFragment"
+        android:label="Player Dashboard"
+        tools:layout="@layout/fragment_player_dashboard">
+        <action
+            android:id="@+id/action_player_to_gamesList"
+            app:destination="@id/gamesListFragment" />
+        <action
+            android:id="@+id/action_player_to_creatorDashboard"
+            app:destination="@id/creatorDashboardFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/gamesListFragment"
+        android:name="com.campusquest.ui.player.GamesListFragment"
+        android:label="Explore Quests"
+        tools:layout="@layout/fragment_games_list">
+        <action
+            android:id="@+id/action_gamesList_to_gameDetail"
+            app:destination="@id/gameDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/gameDetailFragment"
+        android:name="com.campusquest.ui.player.GameDetailFragment"
+        android:label="Quest Details"
+        tools:layout="@layout/fragment_game_detail">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_gameDetail_to_campusMap"
+            app:destination="@id/campusMapFragment" />
+        <action
+            android:id="@+id/action_gameDetail_to_leaderboard"
+            app:destination="@id/leaderboardFragment" />
+    </fragment>
+
+    <!-- Creator Experience (M2) -->
+    <fragment
+        android:id="@+id/creatorDashboardFragment"
+        android:name="com.campusquest.ui.creator.CreatorDashboardFragment"
+        android:label="Creator Studio"
+        tools:layout="@layout/fragment_creator_dashboard">
+        <action
+            android:id="@+id/action_creator_to_createGame"
+            app:destination="@id/createGameFragment" />
+        <action
+            android:id="@+id/action_creator_to_playerDashboard"
+            app:destination="@id/playerDashboardFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/createGameFragment"
+        android:name="com.campusquest.ui.creator.CreateGameFragment"
+        android:label="New Quest Wizard"
+        tools:layout="@layout/fragment_create_game">
+        <argument
+            android:name="gameId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+        <action
+            android:id="@+id/action_createGame_to_checkpointEditor"
+            app:destination="@id/checkpointEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/checkpointEditorFragment"
+        android:name="com.campusquest.ui.creator.CheckpointEditorFragment"
+        android:label="Checkpoint Editor"
+        tools:layout="@layout/fragment_checkpoint_editor">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+        <argument
+            android:name="checkpointId"
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
+    </fragment>
+
+    <!-- Location & Campus Map (M3) -->
+    <fragment
+        android:id="@+id/campusMapFragment"
+        android:name="com.campusquest.ui.map.CampusMapFragment"
+        android:label="Campus Map"
+        tools:layout="@layout/fragment_campus_map">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_campusMap_to_questScan"
+            app:destination="@id/questScanFragment" />
+    </fragment>
+
+    <!-- Live Quest & Scan Gameplay (M4) -->
+    <fragment
+        android:id="@+id/questScanFragment"
+        android:name="com.campusquest.ui.quest.QuestScanFragment"
+        android:label="Scan HUD"
+        tools:layout="@layout/fragment_quest_scan">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+        <argument
+            android:name="checkpointId"
+            app:argType="string" />
+    </fragment>
+
+    <!-- Leaderboard (M1 + M5) -->
+    <fragment
+        android:id="@+id/leaderboardFragment"
+        android:name="com.campusquest.ui.leaderboard.LeaderboardFragment"
+        android:label="Leaderboard"
+        tools:layout="@layout/fragment_leaderboard">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

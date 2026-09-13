@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="match_parent"
+    android:background="@color/text_primary">
+
+    <!-- CameraX Preview View -->
+    <androidx.camera.view.PreviewView
+        android:id="@+id/camera_preview"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="match_parent" />
+
+    <!-- Dark HUD Overlay Top -->
+    <LinearLayout
+        android:id="@+id/hud_top_panel"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_m"
+        android:background="@color/hud_background_transparent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tv_hud_title"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Checkpoint Scan: Relic Detection"
+            android:textColor="@color/hud_text_glow"
+            android:textStyle="bold"
+            android:textSize="16sp" />
+
+        <TextView
+            android:id="@+id/tv_hud_status"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Aligning environmental sensors..."
+            android:textColor="@color/on_primary_emerald"
+            android:textSize="12sp"
+            android:layout_marginTop="2dp" />
+    </LinearLayout>
+
+    <!-- Center Reticle / Scanner Circle -->
+    <ImageView
+        android:id="@+id/iv_reticle"
+        android:layoutWidth="220dp"
+        android:layoutHeight="220dp"
+        android:src="@android:drawable/ic_menu_compass"
+        app:tint="@color/primary_emerald_light"
+        android:contentDescription="Scanning Reticle"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
+
+    <!-- Bottom Sensor Fusion Meter Panel -->
+    <LinearLayout
+        android:id="@+id/hud_bottom_panel"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_m"
+        android:background="@color/hud_background_transparent"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <TextView
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Sensor Fusion Progress"
+            android:textColor="@color/on_primary_emerald"
+            android:textStyle="bold" />
+
+        <ProgressBar
+            android:id="@+id/pb_fusion_meter"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="12dp"
+            android:max="100"
+            android:progress="0"
+            android:progressTint="@color/secondary_amber"
+            android:layout_marginTop="@dimen/spacing_xs" />
+
+        <TextView
+            android:id="@+id/tv_sensor_diagnostics"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Accel: 9.8 m/s² | Lux: 120 | Proximity: Far"
+            android:textColor="@color/text_hint"
+            android:textSize="11sp"
+            android:layout_marginTop="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_simulate_unlock"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:text="Claim Discovery"
+            android:backgroundTint="@color/primary_emerald"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:enabled="false" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

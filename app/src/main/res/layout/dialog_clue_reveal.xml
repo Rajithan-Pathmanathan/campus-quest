@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="wrap_content"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="@dimen/elevation_standard">
+
+    <LinearLayout
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_l"
+        android:gravity="center_horizontal">
+
+        <TextView
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="✨ Checkpoint Unlocked! ✨"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textColor="@color/primary_emerald" />
+
+        <TextView
+            android:id="@+id/tv_dialog_cp_name"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="Landmark Relic Found"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginTop="@dimen/spacing_s" />
+
+        <TextView
+            android:id="@+id/tv_dialog_lore"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:text="History and narrative lore discovered at this physical location..."
+            android:textColor="@color/text_secondary"
+            android:layout_marginTop="@dimen/spacing_m" />
+
+        <TextView
+            android:id="@+id/tv_dialog_points"
+            android:layoutWidth="wrap_content"
+            android:layoutHeight="wrap_content"
+            android:text="+100 XP Earned"
+            android:textColor="@color/secondary_amber_dark"
+            android:textStyle="bold"
+            android:layout_marginTop="@dimen/spacing_m" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_dialog_claim"
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:text="@string/checkpoint_unlocked_btn"
+            android:backgroundTint="@color/primary_emerald"
+            android:layout_marginTop="@dimen/spacing_l" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

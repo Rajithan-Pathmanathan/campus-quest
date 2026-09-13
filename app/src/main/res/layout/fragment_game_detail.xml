@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layoutWidth="match_parent"
+    android:layoutHeight="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_light">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layoutWidth="match_parent"
+        android:layoutHeight="wrap_content"
+        android:background="@color/primary_emerald"
+        app:title="Quest Details"
+        app:titleTextColor="@color/on_primary_emerald"
+        app:navigationIcon="@android:drawable/ic_menu_revert" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layoutWidth="match_parent"
+        android:layoutHeight="0dp"
+        android:layout_weight="1"
+        android:padding="@dimen/spacing_m">
+
+        <LinearLayout
+            android:layoutWidth="match_parent"
+            android:layoutHeight="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_title"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Quest Title"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:textColor="@color/text_primary" />
+
+            <TextView
+                android:id="@+id/tv_creator"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Created by: Professor"
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tv_description"
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Detailed quest backstory and lore..."
+                android:textColor="@color/text_primary"
+                android:layout_marginTop="@dimen/spacing_m" />
+
+            <TextView
+                android:layoutWidth="wrap_content"
+                android:layoutHeight="wrap_content"
+                android:text="Checkpoints to Discover"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:layout_marginTop="@dimen/spacing_l" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_checkpoints"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:nestedScrollingEnabled="false" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_start_quest"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:text="Start Quest Navigation"
+                android:backgroundTint="@color/primary_emerald"
+                android:layout_marginTop="@dimen/spacing_xl" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_view_leaderboard"
+                android:layoutWidth="match_parent"
+                android:layoutHeight="wrap_content"
+                android:text="View Quest Leaderboard"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_marginTop="@dimen/spacing_s" />
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+</LinearLayout>
