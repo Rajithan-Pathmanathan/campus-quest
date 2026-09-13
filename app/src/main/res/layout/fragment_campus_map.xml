@@ -3,58 +3,217 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@color/bg_dark_base">
 
-    <!-- Google Map View / Fragment Container -->
+    <!-- Map View Container / Fragment -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/map_container"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Top Status Overlay -->
-    <com.google.android.material.card.MaterialCardView
+    <!-- Top Overlay HUD Container -->
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="@dimen/spacing_m"
+        android:orientation="vertical"
         android:layout_gravity="top"
-        app:cardCornerRadius="@dimen/card_corner_radius"
-        app:cardElevation="@dimen/elevation_standard">
+        android:padding="@dimen/spacing_m">
 
-        <LinearLayout
+        <!-- Top Quest Header Bar -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="@dimen/spacing_m">
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/elevation_standard"
+            app:cardBackgroundColor="@color/hud_background_transparent"
+            app:strokeColor="@color/border_cyber"
+            app:strokeWidth="1dp">
 
-            <TextView
-                android:id="@+id/tv_target_cp_title"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Target: Old Clock Tower"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="@dimen/spacing_m"
+                android:paddingVertical="@dimen/spacing_s">
 
-            <TextView
-                android:id="@+id/tv_distance_meters"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Distance: 85m remaining"
-                android:textColor="@color/primary_emerald"
-                android:textStyle="bold"
-                android:layout_marginTop="2dp" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tv_clue_hint"
-                android:layout_width="wrap_content"
+                    <TextView
+                        android:id="@+id/tv_map_quest_title"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Colombo Heritage Trail"
+                        android:textColor="@color/primary_cyan"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_gps_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🛰️ GPS Active • Accuracy ±3.5m"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+
+                <!-- Mini Radar Disc with Compass Needle -->
+                <FrameLayout
+                    android:id="@+id/radar_compass_container"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/bg_radar_disc"
+                    android:layout_marginStart="@dimen/spacing_s">
+
+                    <ImageView
+                        android:id="@+id/iv_compass_needle"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_compass_needle"
+                        android:contentDescription="Compass Needle" />
+                </FrameLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Active Checkpoint Target HUD Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_target_hud"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardElevation="@dimen/elevation_standard"
+            app:cardBackgroundColor="@color/hud_background_transparent"
+            app:strokeColor="@color/border_cyber"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Clue: Where shadows stretch longest at noon..."
-                android:textSize="12sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="4dp" />
-        </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_m">
+
+                <!-- Header row: Sequence Order Badge & Geofence State Badge -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:id="@+id/tv_checkpoint_sequence_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="WAYPOINT 1 OF 3"
+                        android:textColor="@color/on_primary_emerald"
+                        android:background="@drawable/bg_badge_emerald"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp" />
+
+                    <View
+                        android:layout_width="0dp"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <TextView
+                        android:id="@+id/tv_geofence_state_badge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="OUTSIDE RADIUS"
+                        android:textColor="@color/on_primary_emerald"
+                        android:background="@drawable/bg_badge_cyan"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="8dp"
+                        android:paddingVertical="3dp" />
+                </LinearLayout>
+
+                <!-- Checkpoint Title -->
+                <TextView
+                    android:id="@+id/tv_target_cp_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Historic Clock Tower"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp" />
+
+                <!-- Telemetry Row: Distance & Bearing -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="4dp">
+
+                    <TextView
+                        android:id="@+id/tv_distance_meters"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="📍 85m remaining"
+                        android:textColor="@color/primary_emerald"
+                        android:textStyle="bold"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/tv_bearing_degrees"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="🧭 45° NE"
+                        android:textColor="@color/primary_cyan"
+                        android:textStyle="bold"
+                        android:textSize="13sp"
+                        android:layout_marginStart="@dimen/spacing_m" />
+                </LinearLayout>
+
+                <!-- Clue Hint -->
+                <TextView
+                    android:id="@+id/tv_clue_hint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Clue: Look skyward where the timekeeper chimes above the quad."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="6dp" />
+
+                <!-- Checkpoint Step Navigation Buttons -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="8dp"
+                    android:gravity="end">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_prev_waypoint"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="◀ Prev"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="11sp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_next_waypoint"
+                        style="@style/Widget.Material3.Button.TextButton"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Next ▶"
+                        android:textColor="@color/primary_cyan"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
 
     <!-- Bottom Action Floating Button -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
@@ -63,7 +222,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="@dimen/spacing_l"
-        android:text="Enter Discovery HUD"
+        android:text="⚡ Enter Discovery HUD"
         android:backgroundTint="@color/primary_emerald"
         android:textColor="@color/on_primary_emerald"
         app:icon="@android:drawable/ic_menu_camera"
