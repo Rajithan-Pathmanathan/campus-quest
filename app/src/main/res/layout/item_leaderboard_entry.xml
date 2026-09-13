@@ -4,9 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_marginHorizontal="@dimen/spacing_s"
+    android:layout_marginHorizontal="@dimen/spacing_m"
     android:layout_marginVertical="@dimen/spacing_xs"
-    app:cardCornerRadius="@dimen/card_corner_radius">
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardElevation="2dp"
+    app:cardBackgroundColor="@color/bg_dark_card"
+    app:strokeColor="@color/border_cyber"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -15,27 +19,30 @@
         android:padding="@dimen/spacing_m"
         android:gravity="center_vertical">
 
+        <!-- Rank Indicator -->
         <TextView
             android:id="@+id/tv_rank"
-            android:layout_width="36dp"
+            android:layout_width="40dp"
             android:layout_height="wrap_content"
-            android:text="#1"
-            android:textSize="18sp"
+            android:text="#4"
+            android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/secondary_amber" />
+            android:textColor="@color/primary_cyan" />
 
+        <!-- Player Details -->
         <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:layout_marginStart="@dimen/spacing_xs">
 
             <TextView
                 android:id="@+id/tv_player_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Explorer_Alex"
-                android:textSize="16sp"
+                android:textSize="15sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary" />
 
@@ -43,17 +50,23 @@
                 android:id="@+id/tv_time_score"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Completed in 14m 20s"
+                android:text="⏱️ 14m 20s"
                 android:textSize="12sp"
-                android:textColor="@color/text_secondary" />
+                android:textColor="@color/text_secondary"
+                android:layout_marginTop="2dp" />
         </LinearLayout>
 
+        <!-- Points Badge -->
         <TextView
             android:id="@+id/tv_points"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="500 pts"
+            android:text="420 pts"
             android:textStyle="bold"
-            android:textColor="@color/primary_emerald" />
+            android:textSize="13sp"
+            android:textColor="@color/on_primary_emerald"
+            android:background="@drawable/bg_badge_emerald"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp" />
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>
