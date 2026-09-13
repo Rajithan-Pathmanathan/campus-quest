@@ -1,2484 +1,2422 @@
-# M6 — ROOM DATA & INTEGRATION WORKPLAN
-## Campus Quest — Mobile Application Development
+# MEMBER 6 — ROOM, REPOSITORY, OFFLINE SYNC & INTEGRATION WORKPLAN
+## Campus Quest — Final Reassigned Team Plan
 
-**Document ID:** M6-ROOM-DATA-INTEGRATION  
-**Owner:** M6 — Data & Integration Developer  
-**Project:** Campus Quest  
-**Primary responsibility:** Room local database (`GameEntity`, `CheckpointEntity`, `GamePlayerEntity`, `DiscoveryEntity`, `PendingSyncEntity`), offline-first game and discovery cache, pending synchronization queue management, repository integration support, build stability, cross-feature integration, and end-to-end validation coordination.
+**Owner:** Member 6 (M6)  
+**Primary responsibility:** Room local data layer, repository orchestration, offline-first persistence, Firebase synchronization, idempotency, migrations, and final cross-feature integration  
+**Branch:** `feature/m6-room-sync-integration`  
+**Architecture:** Android + Kotlin, MVVM + Repository  
+**Status:** Final reassignment version
 
 ---
 
-# 1. Purpose
+# 1. PURPOSE
 
-This document defines M6's implementation responsibilities and the boundaries between local persistence and the other Campus Quest modules.
+M6 owns the **local persistence, repository orchestration, synchronization, and final integration layer** of Campus Quest.
 
-M6 has two connected responsibilities:
+The goal is to make the application reliable when:
+
+- Data is temporarily unavailable from the network.
+- The player discovers checkpoints offline.
+- Creator drafts need local persistence.
+- Firebase operations need retrying.
+- The same operation is submitted more than once.
+- Android recreates a screen/process.
+- Multiple games exist simultaneously.
+- Multiple users use the same application architecture.
+
+M6 connects:
 
 ```text
-1. Local data layer
-2. Integration/build coordination
+UI / ViewModels
+      ↓
+Repository
+      ↓
+Room
+      ↕
+Firebase
 ```
 
-The local data layer provides immediate persistence and offline capability.
+M6 is also the final **integration owner** for cross-member functionality, build stability, contract consistency, and end-to-end testing.
 
-The integration responsibility ensures that the six independently developed features can be combined progressively rather than waiting until the final days.
+---
+
+# 2. IMPORTANT REASSIGNMENT
+
+M6 owns:
+
+- Room entities.
+- Room database.
+- Room DAOs.
+- Local game cache.
+- Local checkpoint cache.
+- Local membership/progress data.
+- Pending synchronization.
+- Sync queue.
+- Retry handling.
+- Idempotency support.
+- Room ↔ Firebase synchronization.
+- Repository orchestration.
+- Transactions.
+- Migrations.
+- Offline behavior.
+- Cross-game/user data isolation.
+- Integration builds.
+- Cross-feature integration testing.
+- Final dependency/contract verification.
+
+M6 does NOT own:
+
+- Creator UI.
+- Player UI.
+- Navigation UI.
+- GPS.
+- Geofencing.
+- Ambient-light sensor.
+- Accelerometer.
+- Proximity sensor.
+- Sensor fusion.
+- Scan HUD.
+- Reveal UI.
+- Firebase security rules as the primary owner.
+- FCM notification implementation as the primary owner.
+
+M2 owns creator management.
+
+M3 owns physical discovery signals.
+
+M4 owns quest/scan gameplay.
+
+M5 owns Firebase cloud/backend.
+
+---
+
+# 3. CORE ARCHITECTURE
 
 The intended architecture is:
 
 ```text
-UI
- ↓
+Presentation
+    ↓
 ViewModel
- ↓
-Repository
- ↓
-┌───────────────┬────────────────┐
-│ Room          │ Firestore      │
-│ local         │ cloud          │
-└───────────────┴────────────────┘
+    ↓
+Use Case / Repository
+    ↓
+┌──────────────────────────────┐
+│ Repository                   │
+│                              │
+│ Local source: Room           │
+│ Remote source: Firebase      │
+│ Sync coordinator             │
+└──────────────────────────────┘
+    ↓                    ↓
+  Room               Firestore
 ```
 
-M6 owns the Room side and helps coordinate the boundary with M5's Firebase implementation.
+The UI should not need to know whether data came from Room or Firebase.
 
 ---
 
-# 2. M6 Role
+# 4. CANONICAL DOMAIN MODEL
 
-## 2.1 Primary responsibility
-
-M6 is responsible for:
-
-1. Designing Room entities.
-2. Creating the Room database.
-3. Creating DAOs.
-4. Implementing local repository operations.
-5. Caching relic configuration locally.
-6. Persisting discovered relics immediately.
-7. Tracking `pendingSync`.
-8. Providing local-first/offline behavior.
-9. Supporting synchronization with M5.
-10. Preventing duplicate local discoveries.
-11. Testing persistence across app restarts.
-12. Coordinating incremental integration.
-13. Maintaining build stability.
-14. Supporting end-to-end testing.
-15. Coordinating shared integration checks.
-16. Tracking merge/build issues across feature branches.
-
-## 2.2 M6 does not own
-
-M6 must not independently own:
-
-- Firebase Authentication.
-- Firestore security rules.
-- Google Maps.
-- Fused Location Provider.
-- Geofencing.
-- SensorManager.
-- Sensor fusion.
-- Scan UI.
-- App-wide visual design.
-
-M6 coordinates integration but does not become the sole implementer of everyone else's features.
-
----
-
-# 3. Why M6 Has an Integration Responsibility
-
-Room alone is not enough work for a six-person, one-month project.
-
-M6 therefore owns:
-
-```text
-Room
-+
-offline persistence
-+
-sync state
-+
-integration coordination
-+
-build verification
-+
-end-to-end testing support
-```
-
-However:
-
-> **Every member remains responsible for integrating and testing their own feature.**
-
-M6 coordinates the process; M6 does not merge broken modules and repair every member's code alone.
-
----
-
-# 4. Architecture
-
-The target architecture is:
-
-```text
-                    UI Layer
-                       ↓
-                   ViewModel
-                       ↓
-                   Repository
-                 /           \
-                ↓             ↓
-              Room         Firestore
-            (local)         (cloud)
-```
-
-This follows the project's MVVM/repository separation.
-
-Room should not be accessed directly from Activities/Fragments where a repository/ViewModel boundary is intended.
-
-Firestore should also remain behind the repository boundary.
-
----
-
-# 5. Local Data Responsibilities
-
-M6 should provide local persistence for:
-
-```text
-Relic
-FoundRelic
-sync status
-```
-
-The local database should support the application's core experience even when the network is unavailable.
-
----
-
-# 6. Room Database
-
-Conceptual database:
+M6 works with the shared domain models.
 
 ```kotlin
-@Database(
-    entities = [
-        RelicEntity::class,
-        FoundRelicEntity::class
-    ],
-    version = 1
+enum class GameStatus {
+    DRAFT,
+    PUBLISHED,
+    CLOSED
+}
+
+data class Game(
+    val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val publishedAt: Long? = null
 )
-abstract class CampusQuestDatabase : RoomDatabase()
+
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusM: Float = 20f,
+    val lightSignature: LightSignature,
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP",
+    val rarity: String = "COMMON"
+)
 ```
 
-The exact annotations/imports depend on the project's Room version.
+M6 must not replace these with a permanent relic-centric architecture.
 
 ---
 
-# 7. RelicEntity
+# 5. CANONICAL FIRESTORE STRUCTURE
 
-Suggested model:
+The cloud side is:
+
+```text
+users
+games/{gameId}
+games/{gameId}/checkpoints/{checkpointId}
+gamePlayers/{gameId}_{uid}
+progress/{uid}/games/{gameId}/checkpoints/{checkpointId}
+leaderboards/{gameId}/entries/{uid}
+/topics/new_games
+```
+
+M6 must map the local Room model to the same logical identity and scope.
+
+---
+
+# 6. ROOM ENTITIES
+
+Target entities:
+
+```text
+GameEntity
+CheckpointEntity
+GamePlayerEntity
+FoundCheckpointEntity
+PendingSyncEntity
+```
+
+Optional additional entities may be introduced only when justified.
+
+Do not keep:
+
+```text
+RelicEntity
+FoundRelicEntity
+```
+
+as the primary production architecture.
+
+---
+
+# 7. GAME ENTITY
+
+Conceptual:
 
 ```kotlin
-@Entity(tableName = "relics")
-data class RelicEntity(
+@Entity(tableName = "games")
+data class GameEntity(
     @PrimaryKey
     val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: String,
+    val checkpointCount: Int,
+    val createdAt: Long,
+    val publishedAt: Long?
+)
+```
+
+The exact schema should follow the project's final Room implementation.
+
+---
+
+# 8. CHECKPOINT ENTITY
+
+Checkpoint identity must be game-scoped.
+
+Recommended composite primary key:
+
+```text
+gameId + id
+```
+
+Conceptually:
+
+```kotlin
+@Entity(
+    tableName = "checkpoints",
+    primaryKeys = ["gameId", "id"]
+)
+data class CheckpointEntity(
+    val id: String,
+    val gameId: String,
     val name: String,
     val lat: Double,
     val lng: Double,
     val radiusM: Float,
-    val lightMin: Float,
-    val lightMax: Float,
-    val rarity: String,
-    val lore: String
+    val minLux: Float,
+    val maxLux: Float,
+    val clue: String,
+    val lore: String,
+    val order: Int,
+    val motionType: String,
+    val rarity: String
 )
 ```
 
-The exact implementation can be adapted to the final shared domain model.
+This prevents identical checkpoint IDs in different games from colliding locally.
 
 ---
 
-# 8. FoundRelicEntity
+# 9. GAME PLAYER ENTITY
 
-Suggested model:
+Conceptual identity:
+
+```text
+gameId + userId
+```
+
+This mirrors the logical cloud membership:
+
+```text
+gamePlayers/{gameId}_{uid}
+```
+
+Possible fields:
+
+```text
+gameId
+userId
+joinedAt
+status
+```
+
+---
+
+# 10. FOUND CHECKPOINT ENTITY
+
+Discovery identity must include:
+
+```text
+gameId
+userId
+checkpointId
+```
+
+Recommended composite primary key:
+
+```text
+gameId + userId + checkpointId
+```
+
+Possible fields:
+
+```text
+foundAt
+pendingSync
+```
+
+This prevents a discovery in one game from being mistaken for a discovery in another.
+
+---
+
+# 11. PENDING SYNC ENTITY
+
+A pending operation can contain:
+
+```text
+operationId
+userId
+gameId
+checkpointId
+operationType
+payload/reference
+createdAt
+retryCount
+lastAttemptAt
+status
+```
+
+The exact design can use a normalized queue or operation-specific pending flags.
+
+The important requirements are:
+
+- Retry-safe.
+- Idempotent.
+- Traceable.
+- Game/user scoped.
+
+---
+
+# 12. ROOM DATABASE
+
+M6 owns the Room database configuration.
+
+Conceptually:
 
 ```kotlin
-@Entity(
-    tableName = "found_relics"
+@Database(
+    entities = [
+        GameEntity::class,
+        CheckpointEntity::class,
+        GamePlayerEntity::class,
+        FoundCheckpointEntity::class,
+        PendingSyncEntity::class
+    ],
+    version = CURRENT_VERSION
 )
-data class FoundRelicEntity(
-    @PrimaryKey
-    val relicId: String,
-    val foundAt: Long,
-    val pendingSync: Boolean
-)
+abstract class CampusQuestDatabase : RoomDatabase()
 ```
 
-Important:
-
-```text
-pendingSync = local state
-```
-
-It should not be confused with a Firestore field.
+The final entity list must match the actual implementation.
 
 ---
 
-# 9. Local Schema Principle
-
-The project uses:
-
-```text
-Room → immediate/local state
-Firestore → shared/cloud state
-```
-
-Therefore:
-
-```text
-Room FoundRelicEntity
-    relicId
-    foundAt
-    pendingSync
-```
-
-can contain synchronization information that does not belong in the cloud document.
-
----
-
-# 10. Canonical Local Relic Data
-
-M6 should support the same six canonical relics used by the rest of the team:
-
-| ID | Name | Latitude | Longitude | Radius | Light |
-|---|---|---:|---:|---:|---:|
-| R001 | Founder’s Bell | 6.974850 | 79.915300 | 25m | 180–320 |
-| R002 | Scholar’s Compass | 6.975420 | 79.914750 | 25m | 250–450 |
-| R003 | Heritage Key | 6.975900 | 79.915650 | 20m | 80–180 |
-| R004 | Old Library Seal | 6.976300 | 79.914900 | 30m | 400–650 |
-| R005 | Garden Chronicle | 6.974300 | 79.916100 | 25m | 120–250 |
-| R006 | Clock Tower Relic | 6.976750 | 79.915700 | 20m | 300–500 |
-
-These values are development values and must be physically validated before final demonstration.
-
-M6 must not create a conflicting second relic catalog.
-
----
-
-# 11. DAO Responsibilities
+# 13. DAOS
 
 Suggested DAOs:
 
 ```text
-RelicDao
-FoundRelicDao
+GameDao
+CheckpointDao
+GamePlayerDao
+FoundCheckpointDao
+PendingSyncDao
 ```
 
-## RelicDao
-
-Operations:
-
-```text
-insert/replace relics
-get all relics
-get relic by ID
-delete/clear cache if required
-```
-
-## FoundRelicDao
-
-Operations:
-
-```text
-insert discovery
-check whether found
-observe found relics
-get pending sync records
-mark synced
-```
+Each DAO should expose only the operations needed by the repository.
 
 ---
 
-# 12. RelicDao Conceptual Interface
+# 14. GAME DAO
+
+Potential operations:
 
 ```kotlin
-@Dao
-interface RelicDao {
-
-    @Query("SELECT * FROM relics")
-    fun observeRelics(): Flow<List<RelicEntity>>
-
-    @Query("SELECT * FROM relics WHERE id = :id")
-    suspend fun getRelic(id: String): RelicEntity?
-
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertAll(relics: List<RelicEntity>)
-}
+observeGames()
+getGame(gameId)
+getCreatorGames(creatorId)
+insertGame(game)
+updateGame(game)
+deleteGame(game)
 ```
 
-The exact DAO API can be adjusted to the chosen architecture.
+Use `Flow` for reactive UI data where appropriate.
 
 ---
 
-# 13. FoundRelicDao Conceptual Interface
+# 15. CHECKPOINT DAO
+
+Potential operations:
 
 ```kotlin
-@Dao
-interface FoundRelicDao {
-
-    @Query("SELECT * FROM found_relics")
-    fun observeFound(): Flow<List<FoundRelicEntity>>
-
-    @Query(
-        "SELECT * FROM found_relics WHERE relicId = :relicId"
-    )
-    suspend fun getFound(
-        relicId: String
-    ): FoundRelicEntity?
-
-    @Query(
-        "SELECT * FROM found_relics WHERE pendingSync = 1"
-    )
-    suspend fun getPendingSync(): List<FoundRelicEntity>
-
-    @Insert(onConflict = OnConflictStrategy.IGNORE)
-    suspend fun insert(
-        entity: FoundRelicEntity
-    )
-
-    @Query(
-        "UPDATE found_relics SET pendingSync = 0 WHERE relicId = :relicId"
-    )
-    suspend fun markSynced(relicId: String)
-}
+observeCheckpoints(gameId)
+getCheckpoint(gameId, checkpointId)
+insertCheckpoint(checkpoint)
+updateCheckpoint(checkpoint)
+deleteCheckpoint(gameId, checkpointId)
+deleteCheckpointsForGame(gameId)
 ```
 
-This is a conceptual starting point.
+Every query must preserve:
+
+```text
+gameId
+```
+
+scope.
 
 ---
 
-# 14. Duplicate Local Discovery
+# 16. MEMBERSHIP DAO
 
-The primary key:
-
-```text
-relicId
-```
-
-prevents duplicate local records.
-
-Example:
-
-```text
-R001 discovered
- ↓
-insert R001
-```
-
-Then:
-
-```text
-R001 discovered again
- ↓
-existing R001
- ↓
-do not create another unique record
-```
-
-This is important because the leaderboard counts unique relics.
-
----
-
-# 15. Repository Boundary
-
-A conceptual shared interface is:
+Potential operations:
 
 ```kotlin
-interface QuestRepository {
+getMembership(gameId, userId)
+observeMemberships(userId)
+insertMembership(...)
+```
 
-    suspend fun getRelics(): List<Relic>
+The membership key must prevent duplicate logical joins.
 
+---
+
+# 17. FOUND CHECKPOINT DAO
+
+Potential operations:
+
+```kotlin
+getFoundCheckpoint(userId, gameId, checkpointId)
+observeFoundCheckpoints(userId, gameId)
+insertDiscovery(...)
+updateSyncStatus(...)
+```
+
+The primary key should make repeated insertion of the same logical discovery safe.
+
+---
+
+# 18. PENDING SYNC DAO
+
+Potential operations:
+
+```kotlin
+insertPending(...)
+getPendingOperations(...)
+markCompleted(...)
+incrementRetry(...)
+removeCompleted(...)
+```
+
+The exact schema can be simplified if pending state is stored directly on operation entities.
+
+---
+
+# 19. ROOM RELATIONSHIPS
+
+The local database should preserve:
+
+```text
+Game
+  └── Checkpoints
+
+User
+  └── GameMembership
+
+User
+  └── Game
+       └── FoundCheckpoint
+```
+
+The exact Room relation implementation is optional.
+
+Correct scoping is mandatory.
+
+---
+
+# 20. REPOSITORY ROLE
+
+M6 owns the repository orchestration layer.
+
+The repository should provide a stable domain-level API:
+
+```kotlin
+interface GameRepository {
+    suspend fun getAvailableGames(): List<Game>
+    suspend fun getGameDetails(gameId: String): Game?
+    suspend fun createGame(game: Game): Result<Game>
+    suspend fun createCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Checkpoint>
+    suspend fun updateCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Unit>
+    suspend fun publishGame(gameId: String): Result<Unit>
+    suspend fun joinGame(gameId: String): Result<Unit>
+    suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
     suspend fun getFusionSignature(
-        relicId: String
+        gameId: String,
+        checkpointId: String
     ): LightSignature
-
-    suspend fun recordReveal(
-        relicId: String
-    )
-
-    fun observeLeaderboard():
-        Flow<List<LeaderboardEntry>>
-
+    suspend fun recordDiscovery(
+        gameId: String,
+        checkpointId: String,
+        foundAt: Long
+    ): Result<Unit>
+    fun observeGameLeaderboard(
+        gameId: String
+    ): Flow<List<GameLeaderboardEntry>>
     suspend fun syncPending()
 }
 ```
 
-M6's local implementation should support the local side without leaking Room entities into UI code.
+The exact interface may evolve through shared team agreement.
 
 ---
 
-# 16. Local Repository
+# 21. REPOSITORY SOURCE SELECTION
 
-Conceptual:
-
-```kotlin
-class LocalQuestRepository(
-    private val relicDao: RelicDao,
-    private val foundRelicDao: FoundRelicDao
-)
-```
-
-Responsibilities:
+For read operations, the repository may follow:
 
 ```text
-Room read/write
-domain/entity mapping
-local discovery
-pending sync retrieval
-sync state updates
+UI
+ ↓
+Room/local cache
+ ↓
+Firebase refresh when required
+ ↓
+Room updated
+ ↓
+UI observes Room
 ```
+
+or another documented strategy.
+
+The selected strategy must be consistent across the application.
 
 ---
 
-# 17. Entity-to-Domain Mapping
+# 22. OFFLINE-FIRST PRINCIPLE
 
-Avoid exposing:
+Where the product supports offline operation:
 
 ```text
-RelicEntity
-FoundRelicEntity
+Local Room
 ```
 
-to M1/M2 UI code.
+should remain useful without network access.
+
+Examples:
+
+- Previously loaded published games.
+- Joined-game checkpoint data.
+- Creator drafts where supported.
+- Discovery progress.
+- Pending operations.
+
+---
+
+# 23. CACHE PUBLISHED GAMES
+
+When a player retrieves published games:
+
+```text
+Firebase
+   ↓
+Room cache
+   ↓
+Player UI
+```
+
+If network is unavailable later, Room can provide the cached list according to the offline contract.
+
+---
+
+# 24. CACHE CHECKPOINTS
+
+When a player joins a game, checkpoint configuration should be locally available for gameplay.
+
+This is particularly important because M3 may need:
+
+```text
+lat
+lng
+radiusM
+minLux
+maxLux
+motionType
+```
+
+during offline gameplay.
+
+---
+
+# 25. CACHE GAME-SCOPED DATA
+
+Do not cache checkpoints only by:
+
+```text
+checkpointId
+```
+
+because the same ID could exist in another game.
 
 Use:
 
 ```text
-Room Entity
-     ↓
-Mapper
-     ↓
-Domain model
-```
-
-Example:
-
-```kotlin
-fun RelicEntity.toDomain(): Relic =
-    Relic(
-        id = id,
-        name = name,
-        lat = lat,
-        lng = lng,
-        radiusM = radiusM,
-        lightSignature = LightSignature(
-            minLux = lightMin,
-            maxLux = lightMax
-        ),
-        rarity = rarity,
-        lore = lore
-    )
+gameId + checkpointId
 ```
 
 ---
 
-# 18. Local-First Relic Loading
+# 26. CREATOR DRAFTS
 
-A practical flow:
+If offline creator drafting is supported:
 
 ```text
+M2 Creator UI
+      ↓
 Repository
- ↓
-Room relic cache
- ↓
-if available → return local
- ↓
-if missing/stale → request cloud
- ↓
-M5 Firebase implementation
- ↓
-update Room
- ↓
-return domain relics
-```
-
-M6 controls the local cache.
-
-M5 controls the cloud source.
-
----
-
-# 19. Cache Refresh
-
-M6 should support:
-
-```text
-refresh relic cache
-```
-
-after M5 successfully retrieves cloud configuration.
-
-For the six-relic MVP, complexity should remain low.
-
-A simple strategy is enough:
-
-```text
-replace/update local relic cache
-```
-
-The team does not need a sophisticated cache invalidation framework.
-
----
-
-# 20. Offline Mode
-
-The app should still allow locally available data to be used when offline.
-
-Example:
-
-```text
-Internet available
- ↓
-relics cached
- ↓
-internet lost
- ↓
-Room supplies relics
- ↓
-user completes scan
- ↓
-Room stores discovery
- ↓
-pendingSync = true
-```
-
-The discovery should not be lost merely because the network disappears.
-
----
-
-# 21. Discovery Persistence Flow
-
-Successful reveal:
-
-```text
-M2 / ViewModel
-      ↓
-Repository.recordReveal(R001)
       ↓
 Room
       ↓
-FoundRelicEntity(
-    relicId = R001,
-    foundAt = now,
-    pendingSync = true
-)
+Draft
+      ↓
+Pending sync
+      ↓
+Firebase
 ```
 
-Then synchronization occurs.
+M6 owns the persistence/sync behavior.
+
+M2 only consumes the repository API.
 
 ---
 
-# 22. Sync Flow
+# 27. DISCOVERY OFFLINE
 
-Conceptual:
+For player discovery:
 
 ```text
+M4 successful scan
+      ↓
+recordDiscovery()
+      ↓
 Room
- ↓
-pending records
- ↓
-M5 cloud repository
- ↓
-Firestore
- ↓
+      ↓
+pendingSync
+      ↓
+Reveal
+```
+
+When connectivity returns:
+
+```text
+pendingSync
+      ↓
+Firebase
+      ↓
 success
- ↓
-Room markSynced()
-```
-
-If cloud upload fails:
-
-```text
-Room pendingSync remains true
-```
-
-The next sync attempt can retry.
-
----
-
-# 23. Sync Must Be Idempotent
-
-Example failure:
-
-```text
-upload R001
- ↓
-Firestore write succeeds
- ↓
-network drops before local markSynced
-```
-
-Next attempt:
-
-```text
-upload R001 again
-```
-
-must not create another unique discovery.
-
-Use:
-
-```text
-progress/{uid}/found/{relicId}
-```
-
-as the deterministic cloud document identity.
-
----
-
-# 24. Sync Algorithm
-
-Conceptual:
-
-```text
-for each pending record:
-
-    send record to cloud
-
-    if successful:
-        mark local record synced
-
-    else:
-        keep pending
-```
-
-Do not mark:
-
-```text
-pendingSync = false
-```
-
-before receiving successful cloud acknowledgement.
-
----
-
-# 25. Sync Failure Handling
-
-Potential failures:
-
-```text
-No internet
-Timeout
-Permission denied
-Firebase unavailable
-Malformed cloud response
-```
-
-Behavior:
-
-```text
-do not delete local discovery
-do not mark synced
-keep pending
-retry later
-```
-
-A permission/security error should be surfaced for debugging rather than endlessly retried.
-
----
-
-# 26. Sync Retry Strategy
-
-The MVP does not require a complex background synchronization framework unless the team chooses to add one.
-
-A practical approach:
-
-```text
-app startup
-foreground transition
-manual refresh
-after successful network recovery
-```
-
-trigger:
-
-```text
-syncPending()
-```
-
-The exact trigger schedule can be refined during integration.
-
----
-
-# 27. M6 and Firebase
-
-M6 must not duplicate M5's Firebase implementation.
-
-Correct:
-
-```text
-M6 local repository
       ↓
-shared cloud interface
-      ↓
-M5 Firebase repository
+pendingSync removed
 ```
-
-Incorrect:
-
-```text
-M6 Room
-+
-M6 independent Firestore code
-+
-M5 independent Firestore code
-```
-
-There must be one agreed cloud implementation.
 
 ---
 
-# 28. M6 and Authentication
+# 28. DISCOVERY IDEMPOTENCY
 
-M5 owns Firebase Auth.
-
-M6 may need:
+The logical key:
 
 ```text
-current authenticated UID
+userId + gameId + checkpointId
 ```
 
-for sync.
+must uniquely identify a discovery.
 
-M6 should receive that identity through the agreed repository/auth boundary rather than directly depending on Firebase SDK calls throughout Room code.
+If the same operation is submitted:
+
+```text
+once
+twice
+five times
+```
+
+the final state should still represent one discovery.
 
 ---
 
-# 29. User-Specific Progress
+# 29. SYNC ENGINE
 
-Found relics belong to a user.
-
-Therefore the cloud path is:
-
-```text
-progress/{uid}/found/{relicId}
-```
-
-The local database can use:
-
-```text
-userId
-```
-
-if the team supports multiple authenticated users on one physical device.
-
-For a simple MVP where one app installation normally corresponds to one active user, the schema may omit userId from local records, but this decision must be documented.
-
----
-
-# 30. Important Multi-User Decision
-
-If users can log out and another user can log in on the same device, local progress isolation becomes important.
-
-Safer conceptual model:
-
-```kotlin
-FoundRelicEntity(
-    userId,
-    relicId,
-    foundAt,
-    pendingSync
-)
-```
-
-with:
-
-```text
-PrimaryKey(userId, relicId)
-```
-
-However, if the project assumes one active local user at a time and clears user-specific data on logout, a simpler schema can be used.
-
-**M6 must agree this decision with M5 and M1 before final implementation.**
-
----
-
-# 31. Recommended MVP Choice
-
-For robustness, use:
-
-```text
-userId + relicId
-```
-
-as the composite identity for local discovered relics.
+M6 owns the synchronization coordinator.
 
 Conceptually:
 
-```kotlin
-@Entity(
-    tableName = "found_relics",
-    primaryKeys = ["userId", "relicId"]
-)
-data class FoundRelicEntity(
-    val userId: String,
-    val relicId: String,
-    val foundAt: Long,
-    val pendingSync: Boolean
-)
-```
-
-This prevents User A's local discoveries from appearing for User B.
-
----
-
-# 32. Room Database Versioning
-
-M6 must treat schema changes carefully.
-
-If:
-
 ```text
-version 1
-```
-
-is already deployed locally and entities change, increase the version and provide a migration or explicitly recreate the development database where acceptable.
-
-Do not casually delete user data in a final build.
-
----
-
-# 33. MVP Migration Policy
-
-During early development:
-
-```text
-destructive recreation
-```
-
-may be acceptable if the database is disposable.
-
-Before final testing:
-
-```text
-use controlled schema version
-```
-
-and verify upgrade behavior.
-
----
-
-# 34. Room Threading
-
-Room database operations should not block the UI thread.
-
-Use:
-
-```text
-suspend functions
-Flow
-appropriate coroutine context
-```
-
-The exact dispatcher strategy should follow the project's existing architecture.
-
----
-
-# 35. Flow Usage
-
-For reactive local state:
-
-```kotlin
-fun observeFoundRelics():
-    Flow<List<FoundRelic>>
-```
-
-This allows:
-
-```text
-Room change
- ↓
-Flow emission
- ↓
-ViewModel
- ↓
-Progress UI
-```
-
-M2 can observe progress without manually polling the database.
-
----
-
-# 36. Integration Coordinator Responsibilities
-
-M6 should maintain an integration board containing:
-
-```text
-Feature
-Owner
-Branch
-Status
-Dependency
-Last tested commit
-Known issue
-```
-
-Example:
-
-| Feature | Owner | Status |
-|---|---|---|
-| Navigation | M1 | ready |
-| Scan UI | M2 | ready |
-| Location | M3 | integration |
-| Sensor fusion | M4 | integration |
-| Firebase | M5 | ready |
-| Room | M6 | ready |
-
----
-
-# 37. Integration Rule
-
-Never wait until September 27 to combine everything.
-
-The team should integrate incrementally:
-
-```text
-M1 + M2
- ↓
-M3
- ↓
-M4
- ↓
-M6
- ↓
-M5
- ↓
-full application
-```
-
-This is not a strict order; features should be integrated as soon as their contracts are usable.
-
----
-
-# 38. First Integration Target
-
-The first meaningful integrated flow should be:
-
-```text
-Login
- ↓
-Map
- ↓
-Select R001
- ↓
-Scan
- ↓
-Fake/real fusion
- ↓
-Reveal
- ↓
-Room persistence
-```
-
-Firebase can initially be mocked.
-
-This gives the team a working vertical slice early.
-
----
-
-# 39. Second Integration Target
-
-Then:
-
-```text
-Login
- ↓
-Map
- ↓
-R001
- ↓
-M3 location
- ↓
-M4 sensor fusion
- ↓
-M2 reveal
- ↓
-M6 Room
-```
-
-This is the physical MVP path.
-
----
-
-# 40. Third Integration Target
-
-Finally:
-
-```text
-Login
- ↓
-Firebase Auth
- ↓
-Relic from Firestore
- ↓
-M3 geofence
- ↓
-M4 fusion
- ↓
-M2 reveal
- ↓
-Room
- ↓
-Firestore progress
- ↓
-Leaderboard
-```
-
-This is the complete cloud-backed path.
-
----
-
-# 41. Build Stability
-
-M6 should verify the project after major merges.
-
-Minimum checks:
-
-```text
-Gradle sync
-compile
-unit tests
-assemble debug
-launch
-basic navigation
-```
-
-Do not wait until final submission to discover that the combined project no longer builds.
-
----
-
-# 42. Integration Build Checklist
-
-After each major integration:
-
-- [ ] Gradle sync passes.
-- [ ] Kotlin compilation passes.
-- [ ] Resources compile.
-- [ ] Manifest is valid.
-- [ ] Navigation works.
-- [ ] App launches.
-- [ ] No obvious runtime crash.
-- [ ] Core screen opens.
-- [ ] Feature-specific tests pass.
-
----
-
-# 43. Branch Coordination
-
-M6 may coordinate:
-
-```text
-main
-feature/ui-navigation
-feature/quest-scan
-feature/location-geofence
-feature/sensor-fusion
-feature/firebase-sync
-feature/room-data
-```
-
-The exact branch names can follow the shared Git agreement.
-
-No one should directly push unfinished changes to `main`.
-
----
-
-# 44. Integration Branch
-
-If the team uses:
-
-```text
-integration
-```
-
-M6 may coordinate it as a temporary staging branch.
-
-Example:
-
-```text
-feature branches
+SyncCoordinator
        ↓
-integration
+PendingSyncDao
        ↓
-testing
+pending operation
        ↓
-main
+Firebase repository
+       ↓
+success/failure
+       ↓
+update local status
 ```
-
-This is optional.
-
-The team's shared Git agreement must define the final workflow.
 
 ---
 
-# 45. Merge Order
+# 30. SYNC TRIGGERS
 
-Merge based on dependency readiness, not member number.
+Sync may occur:
 
-A sensible sequence:
+- On application start.
+- On connectivity restoration.
+- After a successful relevant cloud operation.
+- When the user explicitly refreshes.
+- At another project-approved lifecycle point.
+
+The exact trigger strategy should avoid excessive work.
+
+---
+
+# 31. CONNECTIVITY
+
+M6 may use Android connectivity APIs to determine whether synchronization should be attempted.
+
+Do not repeatedly attempt network operations while clearly offline.
+
+---
+
+# 32. RETRY STRATEGY
+
+Failed operations should be retryable.
+
+Conceptual:
 
 ```text
-shared models/contracts
- ↓
-M1 shell
- ↓
-M2 screens
- ↓
-M6 Room
- ↓
-M3 location
- ↓
-M4 fusion
- ↓
-M5 Firebase
+Attempt 1
+   ↓
+failure
+   ↓
+Pending
+   ↓
+Attempt 2
+   ↓
+failure
+   ↓
+Pending
 ```
 
-However, individual features can be integrated earlier through mocks.
+The implementation should avoid infinite rapid retries.
 
 ---
 
-# 46. Conflict Management
+# 33. BACKOFF
 
-If a merge conflict occurs:
+Use a reasonable retry/backoff strategy.
 
-1. Identify which contract changed.
-2. Ask the relevant feature owners to resolve behavior.
-3. M6 should not silently choose a functional interpretation.
-4. Run affected tests.
-5. Document any contract change.
+For example:
+
+```text
+short delay
+→ longer delay
+→ longer delay
+```
+
+The exact timing is implementation-specific.
+
+The important goal is to avoid battery/network abuse.
 
 ---
 
-# 47. Shared Model Changes
+# 34. PERMANENT FAILURES
 
-Changes to shared models are high-risk.
+Not every failure should be retried forever.
 
 Examples:
 
 ```text
-Relic fields
-FusionResult
-FoundRelic
-LeaderboardEntry
-repository methods
+permission denied
+invalid data
+unauthorized
+deleted game
 ```
 
-Before changing:
+These may require:
 
 ```text
-tell affected members
+FAILED_PERMANENT
 ```
 
-After changing:
+or equivalent handling.
 
-```text
-update shared contract
-update implementations
-run tests
-```
+M6 should preserve enough information to report the failure.
 
 ---
 
-# 48. Room and Repository Mapping
+# 35. IDEMPOTENCY KEY
 
-Recommended:
+Where operation-level IDs are used:
 
 ```text
-Room Entity
-    ↓
-DAO
-    ↓
-Local Repository
-    ↓
-Repository/domain boundary
-    ↓
-ViewModel
+operationId
 ```
 
-M6 should not expose DAO methods directly to M2.
+must remain stable across retries.
+
+Do not generate a new operation identity for every retry.
 
 ---
 
-# 49. Local Progress Queries
+# 36. CLOUD IDEMPOTENCY
 
-Required capabilities:
+M5 must expose cloud operations that are safe to retry.
 
-```text
-is relic found?
-get all found relics
-get count
-get pending sync
-mark synced
-```
-
-This supports:
+Examples:
 
 ```text
-progress screen
-quest state
-leaderboard sync
-offline operation
+joinGame
+recordDiscovery
+updateCheckpoint
 ```
+
+M6 should document assumptions about M5's idempotency.
 
 ---
 
-# 50. Progress Count
+# 37. DISCOVERY SYNC ORDER
 
-The local count should be based on unique relics.
+A discovery should not be marked fully synchronized until the cloud operation has succeeded according to the repository contract.
 
 Conceptually:
 
 ```text
-COUNT(DISTINCT relicId)
+local discovery
+      ↓
+pending
+      ↓
+cloud success
+      ↓
+synced
 ```
-
-or the equivalent schema behavior.
-
-Do not count:
-
-```text
-scan attempts
-```
-
-as discoveries.
 
 ---
 
-# 51. Relic Completion State
+# 38. SYNC FAILURE UI
 
-A relic should have a simple local state:
+Where the product exposes sync state:
 
 ```text
-not found
-found/pending sync
-found/synced
+Saved locally
+Waiting for sync
 ```
 
-This is enough for MVP.
+or:
 
-Do not introduce unnecessary complex workflow states.
+```text
+Sync failed
+Retrying later
+```
+
+M4/M1 may present this state.
+
+M6 provides the underlying state.
 
 ---
 
-# 52. Local Cache Freshness
+# 39. TRANSACTIONS
 
-For six relics, M6 can keep the caching policy simple.
+Room transactions should be used when multiple local records must remain consistent.
 
-Possible policy:
+Example:
 
 ```text
-load Room cache
- ↓
-if empty → request cloud
- ↓
-if cloud succeeds → replace/update Room
+insert discovery
++
+insert pending sync
 ```
 
-The project does not need a complicated stale-while-revalidate framework unless required.
+should be atomic if both are required for correct offline behavior.
 
 ---
 
-# 53. Offline Discovery Scenario
+# 40. DISCOVERY TRANSACTION
+
+Conceptually:
+
+```text
+BEGIN TRANSACTION
+    insert FoundCheckpoint
+    insert PendingSync
+COMMIT
+```
+
+If either fails:
+
+```text
+ROLLBACK
+```
+
+This prevents a discovery from existing without a synchronization record when both are required.
+
+---
+
+# 41. GAME CACHE TRANSACTION
+
+When refreshing a game:
+
+```text
+update game
++
+replace/update checkpoints
+```
+
+should be performed consistently.
+
+Avoid a state where:
+
+```text
+new game metadata
++
+old checkpoints
+```
+
+remain unintentionally.
+
+---
+
+# 42. ROOM MIGRATIONS
+
+M6 owns Room migrations.
+
+When the schema changes:
+
+1. Increase database version.
+2. Write migration.
+3. Test migration.
+4. Verify existing data.
+5. Run integration tests.
+
+Do not use destructive fallback casually.
+
+---
+
+# 43. MIGRATION TESTING
 
 Test:
 
 ```text
-1. Login.
-2. Load relic catalog.
-3. Disable network.
-4. Start R001 scan.
-5. Complete scan.
-6. Verify R001 appears in local progress.
-7. Verify pendingSync = true.
-8. Re-enable network.
-9. Run sync.
-10. Verify Firestore progress exists.
-11. Verify pendingSync = false.
+old schema
+    ↓
+migration
+    ↓
+new schema
 ```
 
-This is a critical M6 acceptance test.
+Verify:
+
+- Existing games remain.
+- Checkpoints remain correctly scoped.
+- Progress remains.
+- Pending sync remains.
+- No cross-game data corruption occurs.
 
 ---
 
-# 54. App Restart Scenario
+# 44. DATA CLEANUP
+
+If migrating from the old relic architecture, M6 must carefully remove obsolete local entities/columns.
+
+Do not blindly delete local data during development migrations.
+
+Legacy data should be handled deliberately.
+
+---
+
+# 45. LEGACY RELIC MODEL
+
+The old architecture may contain:
+
+```text
+RelicEntity
+FoundRelicEntity
+R001–R006
+```
+
+These must not remain the primary Room architecture.
+
+The new target is:
+
+```text
+GameEntity
+CheckpointEntity
+FoundCheckpointEntity
+```
+
+with explicit game/user scope.
+
+---
+
+# 46. MULTI-GAME ISOLATION
+
+Local queries must always preserve game boundaries.
+
+Example:
+
+```text
+Game A
+  CP-A1
+  CP-A2
+
+Game B
+  CP-B1
+  CP-B2
+```
+
+A query for Game A must never return:
+
+```text
+CP-B1
+CP-B2
+```
+
+---
+
+# 47. MULTI-USER ISOLATION
+
+Progress queries must preserve user boundaries.
+
+Example:
+
+```text
+User A / Game A
+User B / Game A
+```
+
+must remain separate.
+
+A local query for User A must never return User B's discoveries.
+
+---
+
+# 48. USER SIGN-OUT
+
+On sign-out, M6 must follow the application's data-retention policy.
+
+At minimum:
+
+- Stop user-specific sync work.
+- Do not display another user's private progress.
+- Re-scope repository queries to the new authenticated identity.
+
+Whether cached user data is retained or removed must follow the final security/privacy design.
+
+---
+
+# 49. USER SWITCHING TEST
 
 Test:
 
 ```text
-discover R001
+User A signs in
  ↓
-close app
+Game A progress
  ↓
-reopen app
+Sign out
  ↓
-progress still shows R001
+User B signs in
 ```
-
-This verifies that persistence is actually local rather than only in-memory.
-
----
-
-# 55. User Switch Scenario
-
-If multi-user local support is implemented:
-
-```text
-User A → discovers R001
-logout
-User B → login
-```
-
-Expected:
-
-```text
-B does not inherit A's local progress
-```
-
-Then:
-
-```text
-B discovers R002
-```
-
-Expected:
-
-```text
-A → R001
-B → R002
-```
-
----
-
-# 56. Database Inspection
-
-During development, inspect Room data where practical.
 
 Verify:
 
 ```text
-relics
-found_relics
-pendingSync
-timestamps
-user identity if included
+User A progress
 ```
 
-This helps diagnose integration failures.
+does not appear as:
+
+```text
+User B progress
+```
 
 ---
 
-# 57. Error Handling
-
-M6 should distinguish:
-
-```text
-Local database failure
-Cloud sync failure
-No pending records
-Permission failure
-Invalid local data
-```
-
-Do not delete local records just because cloud synchronization fails.
-
----
-
-# 58. Sync Logging
-
-Development log example:
-
-```text
-SYNC_START pending=1
-SYNC_UPLOAD relic=R001
-SYNC_SUCCESS relic=R001
-ROOM_MARK_SYNCED relic=R001
-SYNC_COMPLETE pending=0
-```
-
-Failure:
-
-```text
-SYNC_UPLOAD_FAILED relic=R001 reason=NETWORK
-ROOM_RETAIN_PENDING relic=R001
-```
-
-Do not log passwords or sensitive authentication data.
-
----
-
-# 59. M6 and M2
-
-M2 needs:
-
-```text
-found state
-progress count
-successful reveal persistence
-```
-
-M6 provides this through repository/domain APIs.
-
-M2 must not directly use Room DAOs.
-
----
-
-# 60. M6 and M3
-
-M3 does not need direct Room access.
-
-M3 provides:
-
-```text
-location events
-distance
-geofence state
-```
-
-M6 persists only data that is part of the application's durable state.
-
-Raw GPS streams should not be stored unnecessarily.
-
----
-
-# 61. M6 and M4
-
-M4 provides:
-
-```text
-successful reveal result
-```
-
-M6 persists:
-
-```text
-relicId
-timestamp
-sync state
-```
-
-M6 should not store every raw accelerometer/light reading.
-
-The project only needs the discovery result for durable progress.
-
----
-
-# 62. M6 and M5
-
-This is M6's most important integration boundary.
-
-```text
-M6:
-Room + pending queue
-
-M5:
-Firebase + cloud write
-
-Shared:
-sync contract
-```
-
-M6 should be able to call the cloud repository without knowing Firestore collection implementation details.
-
----
-
-# 63. M6 and M1
-
-M1 needs:
-
-```text
-application state
-login-aware navigation
-progress information
-```
-
-M6 supplies persistent progress through repository/domain APIs.
-
----
-
-# 64. Testing Strategy
-
-M6 should maintain three levels:
-
-```text
-Unit
-Integration
-End-to-end
-```
-
-## Unit
+# 50. GAME SWITCHING TEST
 
 Test:
 
 ```text
-mappers
-local repository
-duplicate logic
-sync state transitions
+Game A
+ ↓
+Game B
 ```
 
-## Integration
+Verify:
 
-Test:
-
-```text
-DAO
-database
-repository
-cloud sync boundary
-```
-
-## End-to-end
-
-Test:
-
-```text
-login
-map
-scan
-reveal
-save
-sync
-leaderboard
-```
+- Checkpoint cache switches correctly.
+- Progress switches correctly.
+- Pending operations remain correctly scoped.
+- No sensor configuration leaks through repository state.
 
 ---
 
-# 65. Room Unit/Integration Test Cases
+# 51. CREATOR → PLAYER ROLE FLOW
 
-Required:
-
-### Test A
-
-Insert R001.
-
-Expected:
+Where one account can create and play games, ensure:
 
 ```text
-R001 retrievable
+Creator data
 ```
 
-### Test B
-
-Insert R001 twice.
-
-Expected:
+and:
 
 ```text
-one unique record
+Player progress
 ```
 
-### Test C
+remain logically distinct.
 
-Create pending R001.
-
-Expected:
-
-```text
-pending list contains R001
-```
-
-### Test D
-
-Mark R001 synced.
-
-Expected:
-
-```text
-pending list excludes R001
-```
-
-### Test E
-
-Restart database.
-
-Expected:
-
-```text
-data remains
-```
+The same authenticated user can own games while also having player progress in another game.
 
 ---
 
-# 66. Sync Test Cases
+# 52. REPOSITORY THREADING
 
-### Successful sync
+Room and network operations must not block the main thread.
 
-```text
-pending → cloud success → synced
-```
-
-### Failed sync
+Use:
 
 ```text
-pending → network failure → still pending
+suspend
+Flow
+appropriate coroutine dispatching
 ```
 
-### Repeated sync
-
-```text
-pending → success → retry
-```
-
-Expected:
-
-```text
-no duplicate cloud discovery
-```
+according to the project's architecture.
 
 ---
 
-# 67. Build Verification Matrix
+# 53. FLOW / OBSERVABLE DATA
 
-| Check | Frequency |
-|---|---|
-| compile | every significant merge |
-| unit tests | every significant merge |
-| debug build | daily |
-| app launch | daily |
-| integrated smoke test | after feature merge |
-| full end-to-end | Sep 24 onward |
-| final build | Sep 28 |
+Use reactive local data where it improves UI consistency.
+
+For example:
+
+```kotlin
+fun observeGameCheckpoints(
+    gameId: String
+): Flow<List<Checkpoint>>
+```
+
+This allows UI to react automatically after local sync.
 
 ---
 
-# 68. Day-by-Day Execution Schedule
+# 54. SINGLE SOURCE OF DOMAIN MAPPING
 
-## September 13 — Room Foundation
-
-Tasks:
-
-- inspect existing project architecture;
-- add Room dependencies if missing;
-- create database;
-- create entities;
-- create DAOs;
-- create branch.
-
-Deliverable:
+If DTO/entity/domain mapping is used:
 
 ```text
-Room database compiles and initializes
-```
-
----
-
-## September 14 — Relic Cache
-
-Tasks:
-
-- implement `RelicDao`;
-- implement local relic repository;
-- insert canonical relics;
-- test retrieval;
-- map entity → domain.
-
-Deliverable:
-
-```text
-local relic catalog works
-```
-
----
-
-## September 15 — Found Relics
-
-Tasks:
-
-- implement `FoundRelicEntity`;
-- implement discovery DAO;
-- duplicate prevention;
-- progress count;
-- local observe APIs.
-
-Deliverable:
-
-```text
-local progress works
-```
-
----
-
-## September 16 — Pending Sync
-
-Tasks:
-
-- add `pendingSync`;
-- query pending records;
-- mark synced;
-- define cloud acknowledgement boundary.
-
-Deliverable:
-
-```text
-local sync queue works
-```
-
----
-
-## September 17 — Repository Integration
-
-Tasks:
-
-- connect local repository to shared interface;
-- integrate with ViewModel;
-- replace temporary local mocks.
-
-Deliverable:
-
-```text
-Room-backed application data
-```
-
----
-
-## September 18 — M1/M2 Integration
-
-Test:
-
-```text
-screen
-→ repository
-→ Room
-```
-
-Deliverable:
-
-```text
-progress survives screen changes
-```
-
----
-
-## September 19 — M3/M4 Integration
-
-Test:
-
-```text
-location
-→ scan
-→ fusion
-→ successful reveal
-→ Room
-```
-
-Deliverable:
-
-```text
-physical/local vertical slice
-```
-
----
-
-## September 20 — M5 Sync Integration
-
-Connect:
-
-```text
-Room pending
-→ Firebase
-→ mark synced
-```
-
-Deliverable:
-
-```text
-cloud synchronization
-```
-
----
-
-## September 21 — Offline Testing
-
-Test:
-
-```text
-offline discovery
-restart
-network restore
-sync
-```
-
-Deliverable:
-
-```text
-offline-safe progress
-```
-
----
-
-## September 22 — Full Integration
-
-Run:
-
-```text
-Auth
-→ Map
-→ Geofence
-→ Scan
-→ Fusion
-→ Reveal
-→ Room
-→ Firebase
-```
-
-Fix integration blockers.
-
----
-
-## September 23 — Contract Freeze
-
-Confirm:
-
-- entity fields;
-- domain mappings;
-- repository methods;
-- sync semantics;
-- user identity strategy;
-- cloud/local responsibilities.
-
----
-
-## September 24 — End-to-End Test
-
-Test R001 from login through leaderboard.
-
-Deliverable:
-
-```text
-complete vertical slice
-```
-
----
-
-## September 25 — Multi-Relic Testing
-
-Test:
-
-```text
-R001–R006
-```
-
-Verify local progress.
-
----
-
-## September 26 — Multi-User Testing
-
-Test:
-
-```text
-User A
-User B
-```
-
-and local/cloud isolation.
-
----
-
-## September 27 — Build Stabilization
-
-Priorities:
-
-1. compile failures;
-2. crashes;
-3. data loss;
-4. sync errors;
-5. navigation failures;
-6. UI polish.
-
----
-
-## September 28 — Final Build
-
-Confirm:
-
-```text
-clean build
-install
-launch
-login
-scan
-persist
-sync
-leaderboard
-```
-
-Create final build evidence.
-
----
-
-# 69. Integration Smoke Test
-
-After every major integration, run:
-
-```text
-1. Launch
-2. Login
-3. Open map
-4. Open quest
-5. Open Scan Mode
-6. Complete mocked/real scan
-7. Reveal relic
-8. Open progress
-9. Verify relic found
-10. Restart app
-11. Verify relic still found
-```
-
-If Firebase is integrated:
-
-```text
-12. Verify cloud progress
-13. Verify leaderboard
-```
-
----
-
-# 70. Definition of Ready
-
-M6 is ready when:
-
-- Android project builds;
-- Room dependency can be added;
-- shared Relic model is available;
-- repository contract is available;
-- Firebase sync boundary is defined;
-- M1/M2 can use fake local data.
-
----
-
-# 71. Definition of Done
-
-M6 is done when:
-
-- [ ] Room database created;
-- [ ] RelicEntity implemented;
-- [ ] FoundRelicEntity implemented;
-- [ ] DAOs implemented;
-- [ ] local repository implemented;
-- [ ] entity/domain mapping implemented;
-- [ ] duplicate local discovery prevented;
-- [ ] pendingSync implemented;
-- [ ] sync boundary with M5 works;
-- [ ] offline discovery works;
-- [ ] persistence after restart works;
-- [ ] multi-user behavior agreed/tested;
-- [ ] build verification process established;
-- [ ] end-to-end R001 works;
-- [ ] full app builds;
-- [ ] final integration tested;
-- [ ] PR reviewed and merged.
-
----
-
-# 72. Risks
-
-## Risk 1 — Room schema changes late
-
-Mitigation:
-
-```text
-freeze entity contract by Sep 23
-```
-
-## Risk 2 — M6 becomes the only integrator
-
-Mitigation:
-
-```text
-each member integrates their own feature
-```
-
-## Risk 3 — Firebase and Room duplicate responsibilities
-
-Mitigation:
-
-```text
-Room = local
-Firebase = cloud
-```
-
-## Risk 4 — Data lost during offline mode
-
-Mitigation:
-
-```text
-pendingSync retained until cloud acknowledgement
-```
-
-## Risk 5 — Duplicate discoveries
-
-Mitigation:
-
-```text
-deterministic local/cloud IDs
-```
-
-## Risk 6 — Multi-user data leakage
-
-Mitigation:
-
-```text
-use userId + relicId locally
-or explicitly clear/isolate user state
-```
-
-## Risk 7 — Build breaks late
-
-Mitigation:
-
-```text
-daily build verification
-incremental integration
-```
-
----
-
-# 73. If M6 Falls Behind
-
-Priority:
-
-### 1
-
-```text
-FoundRelicEntity + DAO
-```
-
-### 2
-
-```text
-successful discovery persistence
-```
-
-### 3
-
-```text
-restart persistence
-```
-
-### 4
-
-```text
-pendingSync
-```
-
-### 5
-
-```text
-Firebase sync
-```
-
-### 6
-
-```text
-advanced cache refinement
-```
-
-The MVP must never lose a successful relic discovery because the network is unavailable.
-
----
-
-# 74. What M6 Should Not Overbuild
-
-Do not spend the one-month project on:
-
-- complex offline conflict resolution;
-- large-scale cache invalidation;
-- elaborate synchronization frameworks;
-- background services unless necessary;
-- analytics pipelines;
-- raw sensor history storage;
-- storing every GPS point;
-- complicated local event sourcing.
-
-The app has six relics and a small team.
-
-Keep the local data layer reliable and understandable.
-
----
-
-# 75. Data Retention
-
-Store only durable information needed by the application:
-
-```text
-relic configuration
-discovered relics
-timestamps
-sync state
-```
-
-Do not persist:
-
-```text
-every accelerometer event
-every light reading
-every GPS update
-```
-
-unless a separate academic requirement specifically needs them.
-
----
-
-# 76. Final Data Flow
-
-Complete intended flow:
-
-```text
-Firebase Auth
+Firestore DTO
       ↓
-authenticated UID
+Domain
       ↓
-Repository
-      ↓
-Relic data
-      ↓
-Room cache
-      ↓
-M3 map/geofence
-      ↓
-M4 sensor fusion
-      ↓
-M2 reveal
-      ↓
-recordReveal()
-      ↓
-Room FoundRelicEntity
-      ↓
-pendingSync = true
-      ↓
-M5 Firestore
-      ↓
-success
-      ↓
-pendingSync = false
-      ↓
-Leaderboard
+Room Entity
 ```
+
+or:
+
+```text
+Room Entity
+      ↓
+Domain
+```
+
+should be centralized.
+
+Do not duplicate mapping logic across M1/M2/M4.
 
 ---
 
-# 77. R001 Acceptance Scenario
+# 55. REPOSITORY ERROR MODEL
 
-The most important M6 test:
+The repository should expose meaningful results.
+
+Examples:
 
 ```text
-User logs in
-      ↓
-R001 loaded
-      ↓
-R001 scan completed
-      ↓
-relic reveal shown
-      ↓
-Room stores R001
-      ↓
-app restarts
-      ↓
-R001 remains found
-      ↓
-network available
-      ↓
-R001 syncs to Firestore
-      ↓
-leaderboard reflects unique count
+Success
+Unauthenticated
+NotFound
+PermissionDenied
+NetworkUnavailable
+ValidationError
+Conflict
+Unknown
 ```
 
-If this works reliably, the local/integration layer is supporting the core MVP.
+The exact sealed result type can be defined jointly with the team.
 
 ---
 
-# 78. Final Integration Checklist
+# 56. M5 INTEGRATION
 
-## Architecture
+M6 depends on M5 for:
 
-- [ ] UI does not directly use Room.
-- [ ] UI does not directly use Firebase.
-- [ ] Repository boundary is maintained.
-- [ ] M6 does not duplicate M5 cloud code.
+- Firebase repository implementation.
+- Cloud write/read behavior.
+- Idempotency.
+- Security rules.
+- Cloud errors.
 
-## Room
-
-- [ ] Database compiles.
-- [ ] RelicEntity works.
-- [ ] FoundRelicEntity works.
-- [ ] DAOs work.
-- [ ] Mappers work.
-
-## Progress
-
-- [ ] Discovery stored.
-- [ ] Duplicate prevented.
-- [ ] Count correct.
-- [ ] Restart persistence works.
-
-## Offline
-
-- [ ] Relic cache available.
-- [ ] Discovery works offline.
-- [ ] Pending state retained.
-- [ ] Sync succeeds after reconnection.
-
-## Multi-user
-
-- [ ] user identity strategy agreed.
-- [ ] progress isolated.
-- [ ] logout/login tested.
-
-## Integration
-
-- [ ] M1 integrated.
-- [ ] M2 integrated.
-- [ ] M3 integrated.
-- [ ] M4 integrated.
-- [ ] M5 integrated.
-
-## Build
-
-- [ ] debug build works.
-- [ ] install works.
-- [ ] app launches.
-- [ ] smoke test passes.
-- [ ] final build generated.
+M6 should not duplicate Firebase implementation.
 
 ---
 
-# 79. Suggested Package Structure
+# 57. M2 INTEGRATION
 
-Possible structure:
+M6 supports M2 with:
 
-```text
-data/
-├── local/
-│   ├── CampusQuestDatabase.kt
-│   ├── dao/
-│   │   ├── RelicDao.kt
-│   │   └── FoundRelicDao.kt
-│   └── entity/
-│       ├── RelicEntity.kt
-│       └── FoundRelicEntity.kt
-│
-├── repository/
-│   └── LocalQuestRepository.kt
-│
-└── mapper/
-    ├── RelicMapper.kt
-    └── FoundRelicMapper.kt
-```
+- Draft persistence.
+- Local game/checkpoint cache.
+- Repository methods.
+- Sync state.
 
-The exact package organization should follow the existing project structure.
+M2 should only use the repository boundary.
 
 ---
 
-# 80. Testing Device Matrix
+# 58. M3 INTEGRATION
 
-M6 should coordinate final tests across available devices.
+M6 provides M3 with locally cached checkpoint configuration:
 
-| Test | Device A | Device B |
-|---|---|---|
-| Room initialization | ✓ | ✓ |
-| Relic cache | ✓ | ✓ |
-| Discovery persistence | ✓ | ✓ |
-| Restart persistence | ✓ | ✓ |
-| Offline discovery | ✓ | ✓ |
-| Sync after reconnect | ✓ | ✓ |
-| Auth + Room identity | ✓ | ✓ |
-| Full R001 flow | ✓ | ✓ |
+```text
+lat
+lng
+radiusM
+lightSignature
+motionType
+```
 
-Sensor-specific testing remains primarily M4's responsibility.
+M3 should not query Room directly.
 
 ---
 
-# 81. Integration Communication
+# 59. M4 INTEGRATION
 
-M6 should communicate blockers in a structured format:
-
-```text
-BLOCKER:
-R001 completion is not reaching Room.
-
-AFFECTED:
-M2, M4, M6
-
-EXPECTED:
-recordReveal("R001")
-
-ACTUAL:
-no FoundRelicEntity created
-
-LAST WORKING COMMIT:
-<commit>
-
-REQUEST:
-M2 verify ViewModel callback.
-M4 verify reveal event.
-```
-
-Avoid vague messages such as:
+M6 supports M4 with:
 
 ```text
-Room is broken.
+recordDiscovery
+progress
+offline state
 ```
+
+M4 does not write Room directly.
 
 ---
 
-# 82. Daily Integration Check
+# 60. M1 INTEGRATION
 
-At the end of each development day, M6 should check:
+M6 provides repository data for:
 
-```text
-main builds?
-latest integration builds?
-critical branches merged?
-known blocker?
-shared contract changed?
-next dependency?
-```
+- Available games.
+- Game details.
+- Membership.
+- Leaderboard observation through the shared repository.
+- Cached player data.
 
-A short daily status table is sufficient.
+M1 should remain independent of Room implementation details.
 
 ---
 
-# 83. Integration Status Template
+# 61. INTEGRATION OWNER RESPONSIBILITY
+
+M6 should maintain a working integrated branch/build.
+
+The integration process should verify:
 
 ```text
-DATE:
-BUILD:
-LAST VERIFIED:
-
-M1:
-M2:
-M3:
-M4:
-M5:
-M6:
-
-CURRENT BLOCKER:
-NEXT INTEGRATION:
-```
-
-This can be maintained in the shared team documentation.
-
----
-
-# 84. Final Deliverables
-
-M6 must provide:
-
-```text
-1. CampusQuestDatabase
-2. RelicEntity
-3. FoundRelicEntity
-4. RelicDao
-5. FoundRelicDao
-6. Local repository
-7. Entity/domain mappers
-8. Local relic cache
-9. Local discovery persistence
-10. pendingSync handling
-11. Firebase sync integration boundary
-12. Offline/retry testing
-13. Restart persistence testing
-14. Multi-user strategy
-15. Integration smoke-test checklist
-16. Build verification record
-17. End-to-end R001 evidence
-18. Final integrated build verification
-```
-
----
-
-# 85. One-Page M6 Summary
-
-```text
-M6 OWNS
-────────────────────────────────────────
-Room database
-RelicEntity
-FoundRelicEntity
-DAOs
-Local repository
-Local cache
-Offline discovery
-pendingSync
-Sync coordination
-Build stability
-Integration coordination
-End-to-end testing support
-────────────────────────────────────────
-
-M6 RECEIVES
-────────────────────────────────────────
-Relic domain model
-Successful reveal events
-Firebase cloud interface
-Auth identity
-────────────────────────────────────────
-
-M6 RETURNS
-────────────────────────────────────────
-Local relic data
-Found relic state
-Progress count
-Pending sync records
-Cloud sync acknowledgement
-Stable integrated build
-────────────────────────────────────────
-
-IMPORTANT RULES
-────────────────────────────────────────
-Room = local persistence
-Firebase = cloud persistence
-M6 does not duplicate M5 Firebase code
-M6 does not own sensors
-M6 does not own GPS
-M6 does not own UI
-Every member integrates their own feature
-────────────────────────────────────────
-
-CORE OFFLINE RULE
-────────────────────────────────────────
-Successful discovery must never be lost
-just because the network is unavailable.
-────────────────────────────────────────
-
-FIRST PRIORITY IF BEHIND
-────────────────────────────────────────
-Persist R001 locally and make the
-complete R001 flow build reliably.
-────────────────────────────────────────
-```
-
-# 86. Final Handoff Statement
-
-M6 should provide the stable local data foundation that allows Campus Quest to work as an application rather than a collection of independent feature branches.
-
-The intended boundary is:
-
-```text
-M2/M4
-   ↓
-successful reveal
-   ↓
-Repository
-   ↓
-M6 Room
-   ↓
-local progress
-   ↓
-pendingSync
-   ↓
+M1 UI
++
+M2 Creator
++
+M3 Sensors
++
+M4 Gameplay
++
 M5 Firebase
-   ↓
-cloud progress / leaderboard
++
+M6 Room/Sync
 ```
 
-At the same time, M6's integration responsibility must remain coordination rather than ownership of every feature.
+work together rather than only compiling individually.
 
-The project should integrate incrementally, test the combined application repeatedly, and prioritize a reliable R001 vertical slice before optional refinements.
+---
 
-The local database schema, repository contract, user identity strategy, and synchronization semantics should be frozen by September 23 after all affected members review them.
+# 62. INTEGRATION ORDER
+
+Recommended:
+
+```text
+1. Shared models/contracts
+2. M6 Room foundation
+3. M5 Firebase foundation
+4. Repository integration
+5. M1 player game discovery
+6. M2 creator game creation
+7. M2 checkpoint creation
+8. M3 dynamic checkpoint consumption
+9. M4 scan gameplay
+10. Discovery recording
+11. Offline sync
+12. Leaderboard
+13. FCM
+14. Full end-to-end test
+```
+
+---
+
+# 63. INTEGRATION BUILD CHECK
+
+Before merging member branches:
+
+```text
+./gradlew assembleDebug
+```
+
+or the project's configured build command.
+
+Also run:
+
+```text
+unit tests
+instrumentation/UI tests
+```
+
+as applicable.
+
+---
+
+# 64. SHARED CONTRACT CHECK
+
+Before integration, verify consistency for:
+
+```text
+Game
+Checkpoint
+GameStatus
+LightSignature
+GameLeaderboardEntry
+GameRepository
+navigation arguments
+discovery result
+notification payload
+```
+
+---
+
+# 65. CONTRACT DRIFT
+
+Contract drift occurs when two members implement different versions of the same model.
+
+Examples:
+
+```text
+M2 uses checkpointId
+M5 uses relicId
+```
+
+or:
+
+```text
+M3 expects minLux/maxLux
+M2 stores a single lightValue
+```
+
+M6 should identify these conflicts before integration.
+
+---
+
+# 66. FINAL INTEGRATION MATRIX
+
+| Feature | Owner | M6 Integration Responsibility |
+|---|---|---|
+| Player UI | M1 | Repository data contract |
+| Navigation | M1 | Argument/data consistency |
+| Creator UI | M2 | Draft persistence |
+| Game creation | M2 | Repository + Room |
+| Checkpoint configuration | M2 | Entity mapping |
+| Location | M3 | Cached checkpoint data |
+| Geofencing | M3 | Dynamic checkpoint data |
+| Sensor fusion | M3 | No direct persistence coupling |
+| Scan UI | M4 | Discovery repository |
+| Reveal | M4 | Progress persistence |
+| Firebase | M5 | Cloud source |
+| Room | M6 | Primary owner |
+| Sync | M6 | Primary owner |
+| Leaderboard | M5 | Repository integration |
+| FCM | M5 | Notification/navigation integration |
+
+---
+
+# 67. END-TO-END TEST — CREATOR TO PLAYER
+
+Full flow:
+
+```text
+Creator login
+ ↓
+Create game
+ ↓
+Save draft
+ ↓
+Add checkpoint
+ ↓
+Configure location
+ ↓
+Configure radius
+ ↓
+Configure light
+ ↓
+Add clue/lore
+ ↓
+Publish
+ ↓
+FCM notification
+ ↓
+Player opens game
+ ↓
+Player joins
+ ↓
+Checkpoint cached locally
+ ↓
+Player approaches
+ ↓
+M3 detects signals
+ ↓
+M4 scan
+ ↓
+Fusion threshold
+ ↓
+Proximity gate
+ ↓
+Reveal
+ ↓
+Discovery recorded locally
+ ↓
+Sync to Firebase
+ ↓
+Leaderboard updated
+```
+
+M6 should help verify the complete chain.
+
+---
+
+# 68. END-TO-END TEST — OFFLINE DISCOVERY
+
+```text
+Player has joined game
+ ↓
+Checkpoint configuration cached
+ ↓
+Network disabled
+ ↓
+Player performs valid scan
+ ↓
+Discovery recorded locally
+ ↓
+Reveal shown
+ ↓
+Network restored
+ ↓
+Pending sync executes
+ ↓
+Firebase progress updated
+ ↓
+Leaderboard updated
+```
+
+---
+
+# 69. END-TO-END TEST — OFFLINE CREATOR DRAFT
+
+If offline creator drafts are supported:
+
+```text
+Creator
+ ↓
+Create/edit draft offline
+ ↓
+Room
+ ↓
+Network restored
+ ↓
+Sync
+ ↓
+Firebase
+ ↓
+Draft available
+```
+
+---
+
+# 70. END-TO-END TEST — MULTI-GAME
+
+Create:
+
+```text
+Game A
+  CP-A1
+  CP-A2
+
+Game B
+  CP-B1
+  CP-B2
+```
+
+Verify:
+
+```text
+Room isolation
+Firebase isolation
+progress isolation
+leaderboard isolation
+geofence configuration isolation
+scan state isolation
+```
+
+---
+
+# 71. END-TO-END TEST — MULTI-USER
+
+Test:
+
+```text
+Creator A
+Creator B
+Player A
+Player B
+```
+
+Verify:
+
+```text
+ownership
+membership
+progress
+leaderboard
+cached data
+```
+
+remain correctly scoped.
+
+---
+
+# 72. SYNC DUPLICATE TEST
+
+Simulate:
+
+```text
+same discovery
+sent multiple times
+```
+
+Verify:
+
+```text
+one logical discovery
+```
+
+and:
+
+```text
+no duplicate leaderboard points
+```
+
+---
+
+# 73. SYNC INTERRUPTION TEST
+
+Test:
+
+```text
+sync starts
+ ↓
+network lost
+ ↓
+operation remains pending
+ ↓
+network restored
+ ↓
+operation retries
+ ↓
+success
+```
+
+---
+
+# 74. PROCESS DEATH TEST
+
+Test where practical:
+
+```text
+operation pending
+ ↓
+app process killed
+ ↓
+app reopened
+ ↓
+pending operation restored
+ ↓
+sync
+```
+
+The exact support level depends on the MVP lifecycle requirements.
+
+---
+
+# 75. ROOM CORRUPTION / INVALID DATA
+
+The application should handle unexpected local data safely.
+
+Do not allow malformed cached data to crash the UI.
+
+Repository mapping should validate where necessary.
+
+---
+
+# 76. STALE CACHE TEST
+
+Test:
+
+```text
+cached game
+   ↓
+cloud game updated
+   ↓
+refresh
+   ↓
+local cache updated
+```
+
+Verify the final local representation matches the agreed source-of-truth policy.
+
+---
+
+# 77. DELETED / CLOSED GAME TEST
+
+If cloud game becomes unavailable or closed:
+
+```text
+Room cached game
+        ↓
+Firebase refresh
+        ↓
+updated lifecycle state
+```
+
+The repository should expose the new state.
+
+Do not silently keep presenting a stale active game if the contract requires refresh.
+
+---
+
+# 78. REPOSITORY TEST MATRIX
+
+| Operation | Online | Offline | Retry |
+|---|---|---|---|
+| Get games | Yes | Cache | Refresh |
+| Get details | Yes | Cache | Refresh |
+| Create game | Yes | Local if supported | Yes |
+| Create checkpoint | Yes | Local if supported | Yes |
+| Update checkpoint | Yes | Local if supported | Yes |
+| Publish | Yes | Usually blocked/pending per contract | Yes |
+| Join | Yes | Local/pending if supported | Yes |
+| Record discovery | Yes | Local + pending | Yes |
+| Leaderboard | Yes | Cached if supported | Refresh |
+| Sync pending | Yes | No | Yes |
+
+The final offline policy must follow the canonical product/technical contract.
+
+---
+
+# 79. ROOM UNIT TESTS
+
+Test:
+
+```text
+insert
+update
+delete
+query
+composite key
+game filtering
+user filtering
+ordering
+```
+
+---
+
+# 80. ROOM INTEGRATION TESTS
+
+Verify:
+
+```text
+Game A + CP-A1
+Game B + CP-B1
+```
+
+do not collide.
+
+Verify:
+
+```text
+User A + Game A
+User B + Game A
+```
+
+do not collide.
+
+---
+
+# 81. DAO TESTS
+
+At minimum:
+
+```text
+GameDao
+CheckpointDao
+GamePlayerDao
+FoundCheckpointDao
+PendingSyncDao
+```
+
+should have meaningful tests for their critical queries.
+
+---
+
+# 82. MIGRATION TESTS
+
+For every schema migration:
+
+```text
+old database
+ ↓
+migration
+ ↓
+new database
+```
+
+verify that important data survives.
+
+---
+
+# 83. SYNC TESTS
+
+Test:
+
+```text
+success
+network failure
+permission failure
+duplicate operation
+conflict
+retry
+permanent failure
+```
+
+---
+
+# 84. REPOSITORY INTEGRATION TESTS
+
+Verify the repository does not leak implementation details.
+
+For example:
+
+```text
+M4 calls recordDiscovery()
+```
+
+without knowing whether the data goes to:
+
+```text
+Room
+Firebase
+both
+```
+
+---
+
+# 85. OFFLINE ACCEPTANCE CRITERIA
+
+The application is considered offline-ready only if:
+
+- Required cached game/checkpoint data is available.
+- Discovery can be recorded locally where supported.
+- Pending work survives expected lifecycle events.
+- Synchronization retries.
+- Duplicate operations do not create duplicate records.
+- User/game scope remains correct.
+
+---
+
+# 86. PERFORMANCE
+
+M6 should avoid:
+
+- Loading the entire database for one checkpoint.
+- Repeatedly downloading unchanged data.
+- Blocking the main thread.
+- Excessive sync loops.
+- Unbounded pending queues.
+
+Use targeted queries and incremental synchronization.
+
+---
+
+# 87. STORAGE MANAGEMENT
+
+Cached data should have a clear retention policy.
+
+Potential categories:
+
+```text
+Active joined games
+Creator drafts
+Completed games
+Old cached games
+Pending sync operations
+```
+
+The final cleanup policy should be agreed before implementation.
+
+---
+
+# 88. SYNC OBSERVABILITY
+
+During development, provide enough logging to determine:
+
+```text
+operation ID
+operation type
+game ID
+checkpoint ID
+attempt count
+success/failure
+```
+
+Do not log sensitive information unnecessarily.
+
+---
+
+# 89. DEBUGGING SUPPORT
+
+M6 should be able to answer:
+
+```text
+Why was this discovery not synced?
+Why does this checkpoint not appear?
+Why is an old game still cached?
+Why did a duplicate request not create a duplicate?
+```
+
+A small structured debug log is useful.
+
+---
+
+# 90. NO DIRECT ROOM ACCESS FROM UI
+
+Avoid:
+
+```kotlin
+checkpointDao.get(...)
+```
+
+inside M1/M2/M4 ViewModels.
+
+Use:
+
+```text
+Repository
+```
+
+instead.
+
+---
+
+# 91. NO DIRECT FIREBASE ACCESS FROM UI
+
+Similarly avoid:
+
+```kotlin
+FirebaseFirestore.getInstance()
+```
+
+inside UI/ViewModels.
+
+The repository boundary must remain intact.
+
+---
+
+# 92. DATA MAPPING
+
+Suggested:
+
+```text
+Room Entity
+    ↓
+Mapper
+    ↓
+Domain Model
+```
+
+and:
+
+```text
+Firebase DTO
+    ↓
+Mapper
+    ↓
+Domain Model
+```
+
+This prevents infrastructure details from spreading across the app.
+
+---
+
+# 93. TEST DATA
+
+M6 should maintain test data covering:
+
+```text
+demo-campus-quest
+demo-science-trail
+draft game
+multiple players
+multiple memberships
+multiple discoveries
+multiple leaderboard entries
+pending sync operations
+```
+
+---
+
+# 94. LEGACY TEST DATA
+
+R001–R006 may remain as sample records.
+
+But integration tests should also use arbitrary IDs:
+
+```text
+cp-alpha-001
+cp-beta-001
+```
+
+to prove the architecture is dynamic.
+
+---
+
+# 95. GIT WORKFLOW
+
+Branch:
+
+```text
+feature/m6-room-sync-integration
+```
+
+Commit examples:
+
+```text
+feat(room): add game entity and dao
+feat(room): add checkpoint entity and dao
+feat(room): add game player entity
+feat(room): add found checkpoint entity
+feat(room): add pending sync queue
+feat(repository): add local data source
+feat(sync): add pending operation coordinator
+feat(sync): add retry handling
+feat(repository): integrate firebase and room
+test(room): add isolation tests
+test(sync): add idempotency tests
+test(integration): add end-to-end flow
+```
+
+Avoid implementing unrelated UI or sensor features in M6 commits.
+
+---
+
+# 96. INTEGRATION BRANCH
+
+M6 should maintain or coordinate an integration branch according to the team's Git workflow.
+
+Recommended conceptual structure:
+
+```text
+main
+ ├── feature/m1-player-ui
+ ├── feature/m2-creator-game-management
+ ├── feature/m3-location-sensors-fusion
+ ├── feature/m4-quest-scan-gameplay
+ ├── feature/m5-firebase-backend
+ └── feature/m6-room-sync-integration
+```
+
+M6 validates merged combinations before final delivery.
+
+---
+
+# 97. MERGE ORDER
+
+A practical merge sequence is:
+
+```text
+shared contracts
+ ↓
+M6 Room foundation
+ ↓
+M5 Firebase
+ ↓
+repository integration
+ ↓
+M1/M2/M3/M4 feature integration
+ ↓
+full tests
+```
+
+The exact order can change if dependencies require it.
+
+---
+
+# 98. BUILD BREAK MANAGEMENT
+
+If a member's merge breaks the build:
+
+1. Identify the failing contract.
+2. Reproduce.
+3. Notify the responsible member.
+4. Fix with the smallest compatible change.
+5. Update tests.
+6. Re-run integration.
+
+Do not hide failures by deleting tests or bypassing architecture boundaries.
+
+---
+
+# 99. SHARED CONTRACT CHANGES
+
+M6 should monitor changes to:
+
+```text
+Game
+Checkpoint
+GameStatus
+LightSignature
+GameRepository
+GameLeaderboardEntry
+navigation arguments
+discovery contracts
+```
+
+If a change affects multiple members, update the shared contracts document.
+
+---
+
+# 100. FINAL INTEGRATION CHECKLIST
+
+```text
+[ ] Project builds
+[ ] Authentication works
+[ ] Player game discovery works
+[ ] Creator game creation works
+[ ] Creator checkpoint creation works
+[ ] Dynamic checkpoints load
+[ ] Room cache works
+[ ] Firebase works
+[ ] Repository boundary works
+[ ] Join works
+[ ] M3 receives checkpoint configuration
+[ ] M4 receives M3 signal state
+[ ] Discovery is recorded
+[ ] Offline discovery works if supported
+[ ] Pending sync works
+[ ] Leaderboard updates
+[ ] FCM notification works
+[ ] Notification deep link works
+[ ] Multi-game isolation works
+[ ] Multi-user isolation works
+[ ] Security tests pass
+[ ] Room tests pass
+[ ] Sync tests pass
+[ ] End-to-end tests pass
+```
+
+---
+
+# 101. DEFINITION OF DONE — ROOM
+
+M6 is complete for Room when:
+
+- All required entities exist.
+- Composite keys enforce required scopes.
+- DAOs provide required operations.
+- Queries are game/user scoped.
+- Critical operations are tested.
+- Migrations are defined.
+- No obsolete relic entity is the primary model.
+
+---
+
+# 102. DEFINITION OF DONE — REPOSITORY
+
+M6 is complete for the repository when:
+
+- UI/ViewModels use domain-level methods.
+- Room and Firebase are hidden behind boundaries.
+- Read strategy is documented.
+- Write strategy is documented.
+- Errors are mapped.
+- Offline behavior is defined.
+- Duplicate operations are safe.
+
+---
+
+# 103. DEFINITION OF DONE — SYNC
+
+M6 is complete for synchronization when:
+
+- Pending operations are persisted.
+- Retry works.
+- Backoff is implemented where required.
+- Idempotency is supported.
+- Permanent failures are handled.
+- Sync state survives expected lifecycle events.
+- Cross-user/game scope is preserved.
+
+---
+
+# 104. DEFINITION OF DONE — INTEGRATION
+
+M6 is complete for integration when:
+
+- All six members' features build together.
+- Shared contracts are consistent.
+- End-to-end creator-to-player flow works.
+- Offline flow works according to the final contract.
+- Multi-game isolation works.
+- Multi-user isolation works.
+- Critical tests pass.
+- Demo build is reproducible.
+
+---
+
+# 105. FINAL M6 ARCHITECTURE
+
+The final data path is:
+
+```text
+                 UI / ViewModels
+                        ↓
+                  GameRepository
+                        ↓
+             ┌──────────┴──────────┐
+             ↓                     ↓
+           Room                 Firebase
+             ↓                     ↓
+       Local cache            Cloud source
+             │                     │
+             └──────────┬──────────┘
+                        ↓
+                 Sync Coordinator
+                        ↓
+                  Pending Queue
+                        ↓
+                 Retry / Idempotency
+```
+
+For discovery:
+
+```text
+M3 Physical Evidence
+        ↓
+M4 Scan Success
+        ↓
+recordDiscovery()
+        ↓
+M6 Repository
+        ↓
+Room transaction
+   ├─ FoundCheckpoint
+   └─ PendingSync
+        ↓
+M5 Firebase
+        ↓
+Cloud Progress
+        ↓
+Game Leaderboard
+```
+
+---
+
+# 106. CORE DESIGN PRINCIPLE
+
+M6 provides the **reliability layer** between the application and the cloud.
+
+The application should behave consistently whether:
+
+```text
+online
+offline
+reconnecting
+retrying
+recreated
+switching games
+switching users
+```
+
+The most important data-isolation rule is:
+
+```text
+User + Game + Checkpoint
+```
+
+for discovery/progress.
+
+The most important local checkpoint rule is:
+
+```text
+Game + Checkpoint
+```
+
+for checkpoint identity.
+
+The most important architecture rule is:
+
+```text
+UI → Repository → Room/Firebase
+```
+
+not:
+
+```text
+UI → Room
+```
+
+or:
+
+```text
+UI → Firebase
+```
+
+---
+
+# 107. M6 QUICK CHECKLIST
+
+```text
+[ ] GameEntity
+[ ] CheckpointEntity
+[ ] GamePlayerEntity
+[ ] FoundCheckpointEntity
+[ ] PendingSyncEntity
+[ ] Room database
+[ ] GameDao
+[ ] CheckpointDao
+[ ] GamePlayerDao
+[ ] FoundCheckpointDao
+[ ] PendingSyncDao
+[ ] Composite keys
+[ ] Game isolation
+[ ] User isolation
+[ ] Repository
+[ ] Room data source
+[ ] Firebase data source integration
+[ ] Offline cache
+[ ] Creator draft persistence
+[ ] Offline discovery
+[ ] Pending sync
+[ ] Retry
+[ ] Backoff
+[ ] Idempotency
+[ ] Transactions
+[ ] Migrations
+[ ] Sign-out isolation
+[ ] Multi-game testing
+[ ] Multi-user testing
+[ ] Repository tests
+[ ] Room tests
+[ ] Sync tests
+[ ] Integration tests
+[ ] Full end-to-end test
+[ ] Build verification
+[ ] Legacy cleanup
+```
+
+---
+
+# 108. FINAL HANDOFF PACKAGE
+
+M6 should provide:
+
+1. Room database.
+2. Room entities.
+3. Room DAOs.
+4. Room migrations.
+5. Local data source.
+6. Repository orchestration.
+7. Firebase repository integration.
+8. Offline cache.
+9. Pending sync mechanism.
+10. Retry/backoff logic.
+11. Idempotency handling.
+12. Transaction handling.
+13. Cross-game/user isolation.
+14. Integration branch/build.
+15. End-to-end tests.
+16. Sync debugging/logging guidance.
+17. Migration notes.
+18. Final integration report.
+19. Any shared-contract changes.
+
+---
+
+# 109. DOCUMENTS M6 SHOULD KEEP IN SYNC
+
+When M6 changes architecture or data behavior, review:
+
+- `00_MASTER_DEVELOPMENT_PLAN_UPDATED.md`
+- `SHARED_CONTRACTS_AND_INTEGRATION_INTERFACES.md`
+- `TRD_CAMPUS_QUEST.md`
+- `PRD_CAMPUS_QUEST.md`
+- `APP_FLOW_DOCUMENT_CAMPUS_QUEST.md`
+- `MOCK_DATA_CATALOG_AND_SEED_DATA_SPECIFICATION.md`
+- `TESTING_AND_ACCEPTANCE_STRATEGY.md`
+- `GIT_CHANGE_CONTROL_AND_TEAM_DEVELOPMENT_WORKFLOW.md`
+- `INTEGRATION_HANDOFF_AND_MILESTONE_PLAN.md`
+
+Product documents should only be changed when actual product behavior changes.
+
+---
+
+# 110. FINAL TEAM ARCHITECTURE AFTER ALL REASSIGNMENTS
+
+```text
+M1
+Player UI + Navigation
+        │
+        ▼
+M2
+Creator + Game Management
+        │
+        ▼
+Shared Game/Checkpoint Contracts
+        │
+ ┌──────┴─────────┐
+ ▼                ▼
+M3               M4
+Location/        Quest/
+Sensors/Fusion   Scan Gameplay
+ │                │
+ └──────┬─────────┘
+        ▼
+       M6
+Room + Repository + Sync
+        │
+        ▼
+       M5
+Firebase + Firestore + FCM
+```
+
+The actual runtime dependency is better represented as:
+
+```text
+                 ┌─────────────────┐
+                 │ M1 Player UI    │
+                 └────────┬────────┘
+                          │
+                 ┌────────▼────────┐
+                 │ M2 Creator UI    │
+                 └────────┬────────┘
+                          │
+                    Repository
+                          │
+             ┌────────────┴────────────┐
+             ▼                         ▼
+           M6 Room                  M5 Cloud
+             │                         │
+             └────────────┬────────────┘
+                          │
+                    Shared Domain
+                          │
+                ┌─────────┴─────────┐
+                ▼                   ▼
+              M3                    M4
+       Physical Signals       Scan Gameplay
+```
+
+This keeps the implementation responsibilities separated while allowing all six members to work in parallel.
+
+---
+
+**END OF MEMBER 6 ROOM, REPOSITORY, OFFLINE SYNC & INTEGRATION WORKPLAN**

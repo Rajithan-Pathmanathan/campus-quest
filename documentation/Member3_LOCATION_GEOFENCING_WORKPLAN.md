@@ -1,497 +1,114 @@
-# Campus Quest — M3 Workplan: Location & Geofencing
+# MEMBER 3 — LOCATION, GEOFENCING, SENSORS & FUSION WORKPLAN
+## Campus Quest — Final Reassigned Team Plan
 
-**Document ID:** CQ-M3  
-**Role:** M3 — Device Developer: Location & Maps  
-**Project:** Campus Quest  
-**Development window:** 13 September 2026 – 28 September 2026  
-**Primary responsibility:** Google Maps, Fused Location Provider, location permissions, distance calculation, relic markers, geofence registration, geofence ENTER/EXIT handling, and battery-conscious location behaviour  
-**Primary dependencies:** M1 app shell/navigation, M4 sensor fusion, M5/M6 relic data
-
----
-
-# 1. Role Objective
-
-M3 owns the spatial and geographic layer of Campus Quest.
-
-Rather than relying on fixed or hard-coded coordinates in source code, M3 operates dynamically on checkpoints loaded for the active game, and provides an interactive map location picker for the Creator wizard.
-
-The target technical flow is:
-
-```text
-Relic coordinates
-+
-Device location
- ↓
-Distance calculation
- ↓
-Map presentation
- ↓
-Geofence
- ↓
-ENTER event
- ↓
-Scan Mode becomes available
-```
-
-M3 does not reveal relics and does not calculate the sensor-fusion score.
+**Owner:** Member 3 (M3)  
+**Primary responsibility:** Location, geofencing, sensor collection, proximity detection, and sensor-fusion engine  
+**Branch:** `feature/m3-location-sensors-fusion`  
+**Architecture:** Android + Kotlin, MVVM + Repository  
+**Status:** Final reassignment version
 
 ---
 
-# 2. Primary Deliverables
+# 1. PURPOSE
 
-M3 must deliver:
+M3 owns the **hardware and location intelligence layer** of Campus Quest.
 
-- Google Maps integration
-- Map screen integration
-- Location permission handling
-- Fused Location Provider integration
-- Current-location handling
-- Location accuracy handling
-- Distance calculation
-- Relic markers
-- Selected relic/location state
-- Geofence registration
-- Geofence ENTER handling
-- Geofence EXIT handling
-- Duplicate-event protection
-- Battery-conscious location lifecycle
-- Mock location support for development
-- Physical GPS validation
-- Handoff to M4 and M2
+The purpose of this layer is to determine whether the player is physically approaching and interacting with the correct checkpoint using:
+
+1. GPS/location.
+2. Geofencing.
+3. Ambient light.
+4. Accelerometer/motion.
+5. Proximity.
+6. Weighted sensor fusion.
+
+The canonical gameplay model is:
+
+```text
+Dynamic checkpoint configuration
+        ↓
+Location/geofence detection
+        ↓
+GPS distance
+        ↓
+Ambient-light matching
+        ↓
+Accelerometer/sweep detection
+        ↓
+Weighted fusion score
+        ↓
+Fusion threshold
+        ↓
+Proximity final gate
+        ↓
+M4 reveal/gameplay state
+```
+
+**Important:** proximity is **not** a fourth weighted fusion input. It is a separate final physical confirmation gate.
 
 ---
 
-# 3. Ownership Boundary
+# 2. IMPORTANT REASSIGNMENT
 
-M3 owns:
+The previous separate ownership of location/geofencing and sensor fusion has now been combined under M3.
 
-```text
-Maps
-GPS/location
-permissions
-distance
-geofencing
-location lifecycle
-location accuracy
-```
+M3 therefore owns:
 
-M3 provides:
+- Fused Location Provider integration.
+- Runtime location permissions.
+- Location updates.
+- Distance calculation.
+- Dynamic checkpoint geofences.
+- Geofence ENTER detection.
+- Map markers required by gameplay.
+- Battery/lifecycle handling for location.
+- Ambient-light sensor access.
+- Accelerometer access.
+- Proximity sensor access.
+- Motion/sweep detection.
+- Light-signature matching.
+- GPS normalization.
+- Motion normalization.
+- Weighted fusion.
+- Fusion threshold evaluation.
+- Proximity final gate.
+- Sensor availability/degradation handling.
+- Sensor/location unit tests and integration tests.
 
-```text
-LocationResult
-DistanceResult
-GeofenceEvent
-```
+M3 does NOT own:
 
-conceptually.
-
----
-
-# 4. Non-Ownership Boundary
-
-M3 does not own:
-
-```text
-light sensor
-accelerometer
-proximity sensor
-fusion mathematics
-reveal logic
-Room
-Firestore
-Firebase Auth
-quest presentation
-```
+- Creator checkpoint configuration UI.
+- Player scan/reveal UI.
+- Firebase/Firestore implementation.
+- Room implementation.
+- Offline synchronization.
+- Game-specific leaderboard implementation.
+- FCM implementation.
 
 ---
 
-# 5. Architecture
+# 3. CANONICAL DOMAIN MODEL
 
-Recommended boundary:
-
-```text
-UI
- ↓
-ViewModel
- ↓
-Location/Repository abstraction
- ↓
-Fused Location Provider
-```
-
-The UI should not directly manage complex location operations.
-
-The architecture materials emphasize separation of concerns and lifecycle-aware application structure. fileciteturn11file0L66-L70
-
----
-
-# 6. Google Maps
-
-M3 integrates the map into the screen provided by M1.
-
-M1 owns:
-
-```text
-navigation
-screen shell
-theme
-```
-
-M3 owns:
-
-```text
-map
-markers
-location display
-```
-
----
-
-# 7. Map Requirements
-
-The map should support:
-
-```text
-campus area
-current location
-relic markers
-selected relic
-```
-
-The exact map visual design follows the approved application UI.
-
----
-
-# 8. Map Initial State
-
-When location is not yet available:
-
-```text
-show map
-show appropriate loading/location state
-```
-
-Do not fabricate a real current position.
-
----
-
-# 9. Location Permission
-
-The application must request the location permission required by the final Android implementation.
-
-Handle:
-
-```text
-not requested
-granted
-denied
-revoked
-```
-
----
-
-# 10. Permission Denied
-
-If the user denies location permission:
-
-```text
-no crash
-```
-
-Provide a readable explanation.
-
-Example:
-
-```text
-Location permission is required to find nearby relics.
-```
-
-Exact wording may follow M1's UX design.
-
----
-
-# 11. Permission Revoked
-
-If permission is later revoked through Android settings:
-
-```text
-detect state on returning to app
-```
-
-Do not assume a previously granted permission remains granted forever.
-
----
-
-# 12. Permission Test
-
-Test:
-
-```text
-fresh install
- ↓
-launch
- ↓
-location permission denied
-```
-
-Expected:
-
-```text
-safe limited state
-```
-
-Then:
-
-```text
-grant permission
-```
-
-Expected:
-
-```text
-location features become available
-```
-
----
-
-# 13. Fused Location Provider
-
-Use Android's fused location approach for location acquisition rather than implementing separate GPS/network providers unnecessarily.
-
-The objective is:
-
-```text
-usable location
-+
-reasonable battery behaviour
-```
-
----
-
-# 14. Location Result
-
-Conceptual result:
+M3 consumes dynamic checkpoint configuration.
 
 ```kotlin
-data class LocationResult(
-    val latitude: Double,
-    val longitude: Double,
-    val accuracyM: Float,
-    val timestamp: Long
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusM: Float = 20f,
+    val lightSignature: LightSignature,
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP",
+    val rarity: String = "COMMON"
 )
 ```
 
-The final implementation may use a different model.
-
----
-
-# 15. Location Accuracy
-
-Always consider:
-
-```text
-accuracyM
-```
-
-alongside:
-
-```text
-latitude
-longitude
-```
-
-Example:
-
-```text
-distance = 18 m
-accuracy = 40 m
-```
-
-does not provide strong confidence that the device is actually 18 m from the relic.
-
----
-
-# 16. Poor Accuracy State
-
-When accuracy is poor:
-
-```text
-do not present false precision
-```
-
-The UI may show:
-
-```text
-GPS accuracy is low.
-Move to an open area.
-```
-
-according to the final UX.
-
----
-
-# 17. Distance Calculation
-
-Distance is calculated between:
-
-```text
-device location
-```
-
-and:
-
-```text
-relic coordinates
-```
-
-Result:
-
-```text
-metres
-```
-
----
-
-# 18. Distance Result
-
-Conceptual:
-
-```kotlin
-data class DistanceResult(
-    val relicId: String,
-    val distanceM: Float,
-    val accuracyM: Float
-)
-```
-
-The exact final model may differ.
-
----
-
-# 19. Distance Test Values
-
-Use canonical development scenarios.
-
-Example:
-
-```text
-R001 radius = 25 m
-```
-
-Test:
-
-```text
-150 m
-55 m
-26 m
-18 m
-```
-
----
-
-# 20. Distance Interpretation
-
-Example:
-
-```text
-150 m
-```
-
-→ Far
-
-```text
-55 m
-```
-
-→ Approaching
-
-```text
-26 m
-```
-
-→ Outside 25 m radius
-
-```text
-18 m
-```
-
-→ Inside 25 m radius
-
-These are test scenarios, not claims about actual campus distance.
-
----
-
-# 21. Distance Boundary
-
-Always test just outside and just inside the radius.
-
-For R001:
-
-```text
-24 m
-25 m
-26 m
-```
-
-This catches boundary mistakes.
-
----
-
-# 22. Accuracy Boundary
-
-Test combinations such as:
-
-```text
-distance = 18 m
-accuracy = 5 m
-```
-
-and:
-
-```text
-distance = 18 m
-accuracy = 45 m
-```
-
-The second should be treated as low-confidence.
-
----
-
-# 23. Relic Coordinates
-
-Use the canonical mock dataset:
-
-```text
-R001 — 6.974850, 79.915300
-R002 — 6.975420, 79.914750
-R003 — 6.975900, 79.915650
-R004 — 6.976300, 79.914900
-R005 — 6.974300, 79.916100
-R006 — 6.976750, 79.915700
-```
-
-These coordinates are development data and must be physically validated before the final campus demonstration.
-
----
-
-# 24. Relic Radii
-
-Canonical development radii:
-
-| Relic | Radius |
-|---|---:|
-| R001 | 25 m |
-| R002 | 25 m |
-| R003 | 20 m |
-| R004 | 30 m |
-| R005 | 25 m |
-| R006 | 20 m |
-
----
-
-# 25. Relic Markers
-
-Display markers for:
+The location/sensor layer must never assume:
 
 ```text
 R001
@@ -502,1456 +119,1946 @@ R005
 R006
 ```
 
-The marker data should come from the agreed repository/data model rather than being duplicated in the map code.
+are the permanent checkpoints.
+
+Those IDs are sample/seed data only.
 
 ---
 
-# 26. Marker Selection
+# 4. RESPONSIBILITY BOUNDARY
 
-When a user selects a marker:
+M3 answers:
+
+> "What is the current physical evidence around the player's device?"
+
+M4 answers:
+
+> "How should that evidence and the current scan state be presented to the player?"
+
+M5 answers:
+
+> "How is the authoritative game/progress data stored in Firebase?"
+
+M6 answers:
+
+> "How is the local data cached and synchronized?"
+
+This separation is essential.
+
+---
+
+# 5. LOCATION STACK
+
+The preferred Android location mechanism is the **Fused Location Provider**.
+
+Conceptual flow:
 
 ```text
-selectedRelicId
+Android location services
+        ↓
+Fused Location Provider
+        ↓
+LocationProvider wrapper
+        ↓
+M3 location state
+        ↓
+Distance / geofence logic
+        ↓
+Fusion engine
 ```
 
-should be passed to the appropriate quest/detail flow.
-
-Do not use marker screen position as identity.
+M3 should isolate Android-specific APIs behind a testable interface.
 
 ---
 
-# 27. Current Location Marker
+# 6. LOCATION PROVIDER CONTRACT
 
-If permission and location are available:
+Suggested abstraction:
+
+```kotlin
+interface LocationProvider {
+    suspend fun getCurrentLocation(): Location?
+    fun observeLocationUpdates(): Flow<Location>
+    fun startUpdates()
+    fun stopUpdates()
+}
+```
+
+The exact interface may be adjusted to the project's shared contracts.
+
+The important principle is:
+
+**Gameplay logic must not be tightly coupled to the Android location SDK.**
+
+---
+
+# 7. LOCATION PERMISSIONS
+
+M3 owns location permission handling required for gameplay.
+
+The implementation should distinguish:
+
+- Permission not requested.
+- Permission granted.
+- Permission denied.
+- Permission denied permanently/restricted.
+- Location services disabled.
+- Location temporarily unavailable.
+
+The UI-facing state should be explicit.
+
+Example:
+
+```kotlin
+sealed interface LocationPermissionState {
+    data object Unknown : LocationPermissionState
+    data object Granted : LocationPermissionState
+    data object Denied : LocationPermissionState
+    data object PermanentlyDenied : LocationPermissionState
+}
+```
+
+M1/M4 consume the state for presentation.
+
+---
+
+# 8. PERMISSION PRINCIPLE
+
+Request permissions when the feature needs them.
+
+Do not request unrelated permissions simply when the application starts.
+
+The player should understand why location access is required for checkpoint discovery.
+
+---
+
+# 9. LOCATION SERVICES STATE
+
+Permission being granted does not guarantee location availability.
+
+M3 must also handle:
 
 ```text
-show current location
+Permission granted
++
+Location services enabled
++
+Location fix available
 ```
 
-Use Android/Google Maps-supported behaviour where appropriate.
+as separate conditions.
+
+Possible state:
+
+```kotlin
+data class LocationState(
+    val permissionGranted: Boolean = false,
+    val servicesEnabled: Boolean = false,
+    val location: Location? = null,
+    val accuracyM: Float? = null,
+    val isUpdating: Boolean = false,
+    val error: String? = null
+)
+```
 
 ---
 
-# 28. Location Lifecycle
+# 10. LOCATION ACCURACY
 
-Location updates should not run unnecessarily.
+M3 should expose location accuracy to gameplay.
 
-Conceptual:
+For example:
 
 ```text
-Map visible + location needed
- ↓
-location active
- ↓
-leave map / no longer needed
- ↓
-location reduced/stopped
+GPS accuracy: 7 m
 ```
 
-The final lifecycle must match the app's actual navigation requirements.
+This allows the application to communicate uncertainty rather than pretending every GPS reading is exact.
+
+M3 should define the project's accepted accuracy/degradation rules with the team.
 
 ---
 
-# 29. Battery-Conscious Principle
+# 11. CURRENT DISTANCE
 
-Do not continuously poll high-frequency location across the entire app.
-
-The project specifically aims for battery-conscious location behaviour.
-
-Preferred concept:
+For the active checkpoint:
 
 ```text
-normal exploration
- ↓
-geofence handles entry detection
- ↓
-ENTER
- ↓
-Scan Mode
- ↓
-more active location/sensor work if required
- ↓
-scan ends
- ↓
-stop unnecessary active work
+player location
+       +
+checkpoint coordinate
+       ↓
+distance in metres
 ```
+
+The distance should be calculated using a geospatial distance method appropriate for latitude/longitude.
+
+Example output:
+
+```kotlin
+distanceM: Float
+```
+
+The calculation should not depend on a hard-coded checkpoint.
 
 ---
 
-# 30. Geofencing
+# 12. DISTANCE CONTRACT
 
-A geofence represents a region around a relic.
+Suggested:
+
+```kotlin
+interface DistanceCalculator {
+    fun distanceMeters(
+        from: LatLng,
+        to: LatLng
+    ): Float
+}
+```
+
+This makes distance calculation independently testable.
+
+---
+
+# 13. GEOFENCE PURPOSE
+
+Geofencing is used to detect that the player has entered the configured physical area around a checkpoint.
 
 Conceptually:
 
 ```text
-Relic
- ↓
-latitude
-longitude
-radius
- ↓
-Geofence
+Checkpoint
+   ●
+  (   )
+ (     )  radiusM
+  (   )
 ```
+
+When the player enters the configured area:
+
+```text
+GEOFENCE_ENTER
+```
+
+the scan phase can become available.
 
 ---
 
-# 31. Geofence Registration
+# 14. DYNAMIC GEOFENCING
 
-For each required relic:
+Geofences must be created dynamically from game data.
 
-```text
-request geofence
-```
-
-with:
+Conceptual flow:
 
 ```text
-relicId
-latitude
-longitude
-radius
-transition types
+Joined game
+   ↓
+Load game checkpoints
+   ↓
+For each relevant checkpoint
+   ↓
+Create geofence using:
+    latitude
+    longitude
+    radiusM
+   ↓
+Register geofences
 ```
 
-The exact Android API configuration should follow the final implementation.
+Do not hard-code geofences for `R001–R006`.
 
 ---
 
-# 32. Geofence Transition
+# 15. GAME-SCOPED GEOFENCES
 
-Core event:
-
-```text
-ENTER
-```
-
-This is the important trigger.
-
-The purpose is:
+Geofence registrations must be associated with:
 
 ```text
-user is close enough
- ↓
-enable Scan Mode
+gameId
+checkpointId
 ```
+
+Example internal identifier:
+
+```text
+gameId: demo-campus-quest
+checkpointId: cp-001
+```
+
+This prevents a checkpoint from another game being treated as active.
 
 ---
 
-# 33. Geofence ENTER Does Not Reveal
+# 16. GEOFENCE REGISTRATION STRATEGY
 
-Critical rule:
+M3 should register only the geofences required by the current gameplay context where practical.
 
-```text
-ENTER ≠ DISCOVERED
-```
-
-ENTER only means:
+The exact strategy may be:
 
 ```text
-Scan can begin.
+all checkpoints in a manageable game
 ```
 
-The scan still requires:
+or:
 
 ```text
-GPS
-+
-Light
-+
-Accelerometer
- ↓
-Fusion threshold
- ↓
-Proximity
- ↓
-Reveal
+nearby/upcoming checkpoints
 ```
+
+depending on platform constraints and project implementation.
+
+The chosen strategy must remain game-scoped and dynamically derived.
 
 ---
 
-# 34. Geofence EXIT
+# 17. GEOFENCE ENTER FLOW
+
+Expected behavior:
+
+```text
+Player approaches checkpoint
+        ↓
+Geofence ENTER event
+        ↓
+Validate gameId/checkpointId
+        ↓
+Mark checkpoint as scan-eligible
+        ↓
+M4 receives scan availability
+```
+
+Geofence ENTER should not itself reveal the relic.
+
+It is an **eligibility/proximity-area signal**.
+
+---
+
+# 18. GEOFENCE EXIT
+
+Exit events may be useful for state management.
+
+Example:
+
+```text
+GEOFENCE_EXIT
+```
+
+may cause the scan state to return to:
+
+```text
+OUTSIDE_AREA
+```
+
+depending on the agreed gameplay state machine.
+
+Do not automatically erase valid discovery progress merely because the user later exits the area.
+
+---
+
+# 19. GEOFENCE FAILURE
 
 Handle:
 
-```text
-EXIT
-```
+- Permission denied.
+- Registration failure.
+- Platform limitations.
+- Location disabled.
+- Invalid coordinates.
+- Invalid radius.
+- App/device restrictions.
 
-without corrupting progress.
+A geofence failure should not crash the application.
 
-If a user leaves the area:
-
-```text
-previously discovered relic remains discovered
-```
-
----
-
-# 35. Duplicate ENTER
-
-The same event may be received more than once.
-
-Protect against:
-
-```text
-ENTER R001
-ENTER R001
-```
-
-creating:
-
-```text
-two discoveries
-```
-
-The final discovery idempotency is handled through M6/M5, but M3 should avoid unnecessary duplicate UI events.
+Where possible, continuous location distance can provide a graceful fallback signal, subject to the final project contract.
 
 ---
 
-# 36. Wrong Relic Event
+# 20. LIFECYCLE MANAGEMENT
 
-If:
+Location updates and sensors consume battery.
 
-```text
-selected = R001
-```
+M3 must tie active collection to gameplay/lifecycle state.
 
-and:
+Conceptually:
 
 ```text
-ENTER R002
+Scan screen active
+    ↓
+Start required sensors/location
+    ↓
+Scan completed / screen left
+    ↓
+Stop unnecessary updates
 ```
 
-is received, do not reveal R001.
-
-The event must retain the relic identity.
+Avoid leaving high-frequency sensors running throughout the entire application session.
 
 ---
 
-# 37. Geofence Event Model
+# 21. LOCATION UPDATE RATE
 
-Conceptual:
+The update frequency should be selected based on gameplay needs rather than using the fastest possible rate.
+
+Consider:
+
+- Battery.
+- Required responsiveness.
+- GPS accuracy.
+- Device behavior.
+
+Do not continuously request maximum-frequency updates without a gameplay reason.
+
+---
+
+# 22. AMBIENT LIGHT SENSOR
+
+M3 owns Android ambient-light sensor access.
+
+Conceptual flow:
+
+```text
+SensorManager
+     ↓
+TYPE_LIGHT
+     ↓
+lux reading
+     ↓
+LightSignatureMatcher
+     ↓
+light match score
+```
+
+The reading represents **ambient environmental light**.
+
+---
+
+# 23. LIGHT SIGNATURE
+
+Each checkpoint contains:
 
 ```kotlin
-data class GeofenceEvent(
-    val relicId: String,
-    val transition: GeofenceTransition,
-    val timestamp: Long
+LightSignature(
+    minLux = ...,
+    maxLux = ...
 )
 ```
 
-Possible transitions:
-
-```text
-ENTER
-EXIT
-```
-
-The final implementation may include additional metadata.
+M3 compares the actual ambient reading against that range.
 
 ---
 
-# 38. Geofence Receiver
+# 24. LIGHT MATCHING
 
-The geofence event handling component should:
+Conceptual cases:
 
 ```text
-receive event
- ↓
-identify relic
- ↓
-validate event
- ↓
-publish event/state
+actual lux inside expected range
+        ↓
+strong match
+
+actual lux near expected range
+        ↓
+partial match
+
+actual lux far outside range
+        ↓
+weak/no match
 ```
 
-Avoid putting the entire scan/reveal process inside the receiver.
+The exact scoring curve must follow the shared sensor-fusion specification.
+
+M3 must not create inconsistent scoring rules in different screens.
 
 ---
 
-# 39. Background Event
+# 25. LIGHT NORMALIZATION
 
-Geofence events may occur when the app UI is not actively visible.
+The raw light-match result must be converted into the normalized fusion domain.
+
+Conceptually:
+
+```text
+lightMatch ∈ [0, 1]
+```
+
+where:
+
+```text
+0 = no useful match
+1 = strong match
+```
+
+The exact mathematical function belongs to M3's fusion implementation and shared technical specification.
+
+---
+
+# 26. LIGHT SENSOR UNAVAILABLE
+
+Some devices may not have an ambient-light sensor.
+
+M3 must expose:
+
+```text
+LIGHT_SENSOR_UNAVAILABLE
+```
+
+rather than crashing.
+
+The team must agree whether the MVP:
+
+1. Applies the documented degradation strategy, or
+2. Blocks scan on unsupported hardware.
+
+Do not silently change the fusion formula when a sensor is missing.
+
+---
+
+# 27. ACCELEROMETER
+
+M3 owns accelerometer access.
+
+Conceptual flow:
+
+```text
+SensorManager
+      ↓
+TYPE_ACCELEROMETER
+      ↓
+motion samples
+      ↓
+motion/sweep detector
+      ↓
+motion score
+```
+
+---
+
+# 28. SWEEP GESTURE
+
+The canonical motion type is:
+
+```text
+SWEEP
+```
+
+The detector should identify the intended movement pattern from accelerometer data.
+
+M3 should isolate the algorithm:
+
+```kotlin
+interface MotionDetector {
+    fun addSample(sample: AccelerometerSample)
+    fun currentScore(): Float
+    fun reset()
+}
+```
+
+The exact detector implementation should be based on the project's agreed technical specification.
+
+---
+
+# 29. MOTION SCORE
+
+Normalize motion evidence into:
+
+```text
+[0, 1]
+```
+
+Example:
+
+```text
+0.0 = no convincing sweep
+0.5 = partial evidence
+1.0 = strong sweep
+```
+
+Do not confuse motion score with the final fusion score.
+
+---
+
+# 30. PROXIMITY SENSOR
+
+M3 owns the proximity sensor.
+
+The proximity signal is used as the final physical confirmation.
+
+Conceptually:
+
+```text
+Fusion threshold reached
+        ↓
+Proximity check
+        ↓
+Near/close condition satisfied?
+        ↓
+YES → final gate passes
+NO  → remain in gated state
+```
+
+---
+
+# 31. PROXIMITY IS NOT A FUSION INPUT
+
+This is a critical architecture rule.
+
+Do NOT implement:
+
+```text
+GPS × weight
++
+Light × weight
++
+Motion × weight
++
+Proximity × weight
+```
+
+The canonical model is:
+
+```text
+GPS + Light + Motion
+        ↓
+Weighted Fusion
+        ↓
+Fusion Threshold
+        ↓
+Proximity Final Gate
+```
+
+---
+
+# 32. PROXIMITY SENSOR LIMITATIONS
+
+Different devices may expose different proximity behavior.
+
+M3 must normalize the device-specific reading into a simple gameplay state:
+
+```kotlin
+enum class ProximityState {
+    UNKNOWN,
+    FAR,
+    NEAR,
+    UNAVAILABLE
+}
+```
+
+The threshold should be based on the sensor's reported capabilities rather than assuming one universal raw distance.
+
+---
+
+# 33. SENSOR FUSION ENGINE
+
+The fusion engine combines:
+
+```text
+GPS evidence
+Light evidence
+Motion evidence
+```
+
+into one score.
+
+Conceptual interface:
+
+```kotlin
+data class FusionInput(
+    val gpsScore: Float,
+    val lightScore: Float,
+    val motionScore: Float
+)
+
+data class FusionResult(
+    val score: Float,
+    val thresholdReached: Boolean
+)
+```
+
+---
+
+# 34. WEIGHTED FUSION
+
+The canonical conceptual formula is:
+
+```text
+fusionScore =
+    gpsWeight    × gpsScore
+  + lightWeight  × lightScore
+  + motionWeight × motionScore
+```
+
+The exact weights and threshold must come from the shared project technical specification.
+
+Do not invent a different formula in the implementation.
+
+---
+
+# 35. NORMALIZED INPUTS
+
+All weighted inputs should be normalized consistently:
+
+```text
+GPS score    ∈ [0,1]
+Light score  ∈ [0,1]
+Motion score ∈ [0,1]
+```
+
+Therefore the resulting fusion score can be consistently interpreted.
+
+---
+
+# 36. GPS SCORE
+
+GPS score should represent how strongly the current physical position matches the checkpoint.
+
+A conceptual relationship is:
+
+```text
+closer to checkpoint
+       ↓
+higher GPS evidence
+```
+
+The exact normalization function should follow the project's agreed technical specification.
+
+Do not equate:
+
+```text
+distance < radius
+```
+
+directly with:
+
+```text
+gpsScore = 1
+```
+
+unless the specification explicitly defines it that way.
+
+---
+
+# 37. FUSION THRESHOLD
+
+The weighted fusion score is compared with a defined threshold:
+
+```text
+fusionScore >= threshold
+```
+
+If true:
+
+```text
+FUSION_READY
+```
+
+If false:
+
+```text
+FUSION_INCOMPLETE
+```
+
+The threshold is separate from the proximity gate.
+
+---
+
+# 38. PROXIMITY FINAL GATE
+
+After:
+
+```text
+fusionScore >= threshold
+```
+
+M3 evaluates proximity.
+
+Only when the proximity condition is satisfied does the final physical evidence become:
+
+```text
+DISCOVERY_ELIGIBLE
+```
+
+M4 can then proceed with the reveal/gameplay state.
+
+---
+
+# 39. COMPLETE SENSOR STATE
+
+M3 should expose a consolidated state similar to:
+
+```kotlin
+data class SensorFusionState(
+    val gpsScore: Float = 0f,
+    val lightScore: Float = 0f,
+    val motionScore: Float = 0f,
+    val fusionScore: Float = 0f,
+    val fusionThresholdReached: Boolean = false,
+    val proximityState: ProximityState = ProximityState.UNKNOWN,
+    val finalGatePassed: Boolean = false,
+    val lightAvailable: Boolean = true,
+    val motionAvailable: Boolean = true,
+    val proximityAvailable: Boolean = true
+)
+```
+
+The exact shared model may differ.
+
+---
+
+# 40. SENSOR LIFECYCLE
+
+Sensors should be registered only when needed.
+
+Example:
+
+```text
+Scan starts
+ ↓
+register light listener
+register accelerometer listener
+register proximity listener
+ ↓
+collect evidence
+ ↓
+scan succeeds/fails/exits
+ ↓
+unregister listeners
+```
+
+This prevents unnecessary battery use.
+
+---
+
+# 41. RESET BETWEEN CHECKPOINTS
+
+Sensor state must not leak between checkpoints.
+
+When switching:
+
+```text
+Game A / Checkpoint 1
+        ↓
+Game A / Checkpoint 2
+```
+
+reset:
+
+- Motion detector.
+- Accumulated fusion state where appropriate.
+- Proximity gate state.
+- Temporary scan buffers.
+
+Never use evidence from one checkpoint as evidence for another.
+
+---
+
+# 42. RESET BETWEEN GAMES
+
+When switching:
+
+```text
+Game A
+ ↓
+Game B
+```
+
+all game-specific location/sensor state must be re-scoped.
+
+The system must not use Game A's checkpoint configuration while scanning Game B.
+
+---
+
+# 43. GAME-SCOPED SENSOR CONTEXT
+
+The active sensor context should identify:
+
+```text
+gameId
+checkpointId
+```
+
+Example:
+
+```kotlin
+data class ActiveCheckpointContext(
+    val gameId: String,
+    val checkpointId: String
+)
+```
+
+This makes accidental cross-game sensor use easier to detect.
+
+---
+
+# 44. LOCATION + SENSOR ORCHESTRATION
+
+M3 may provide a coordinator such as:
+
+```kotlin
+class DiscoverySignalCoordinator
+```
+
+Its responsibility is to combine:
+
+```text
+LocationProvider
+LightSensor
+MotionDetector
+ProximitySensor
+FusionEngine
+```
+
+It should not own UI rendering.
+
+---
+
+# 45. UI BOUNDARY WITH M4
+
+M4 needs a clean signal state.
+
+M3 should expose values such as:
+
+```text
+GPS status
+distance
+GPS score
+light status
+light score
+motion status
+motion score
+fusion percentage
+fusion threshold status
+proximity status
+final gate status
+```
+
+M4 converts these into the scan HUD.
+
+---
+
+# 46. M4 MUST NOT ACCESS SENSORS DIRECTLY
+
+M4 should not contain:
+
+```kotlin
+SensorManager
+FusedLocationProviderClient
+LocationServices
+GeofencingClient
+```
+
+M4 consumes M3's state/contract.
+
+This prevents UI code from becoming coupled to hardware.
+
+---
+
+# 47. CREATOR CONFIGURATION BOUNDARY
+
+M2 creates the checkpoint configuration:
+
+```text
+lat
+lng
+radiusM
+minLux
+maxLux
+motionType
+```
+
+M3 consumes it.
 
 Therefore:
 
 ```text
-event handling
+M2 = configuration
+M3 = physical interpretation
 ```
-
-must be separate from:
-
-```text
-visible UI rendering
-```
-
-The UI can respond when it becomes active.
 
 ---
 
-# 40. Geofence Reliability
+# 48. REPOSITORY BOUNDARY
 
-Do not promise instant centimetre-level transitions.
+M3 should obtain checkpoint configuration through the repository/use-case layer.
 
-Real-world geofencing depends on:
+Do not directly query Firestore from sensor code.
+
+Conceptually:
 
 ```text
-location accuracy
-device conditions
-Android behaviour
-environment
+M3 coordinator
+    ↓
+GameRepository
+    ↓
+checkpoint configuration
 ```
 
-The final demo should use realistic expectations.
+The repository implementation is owned by M5/M6.
 
 ---
 
-# 41. Geofence Physical Test
+# 49. OFFLINE LOCATION/SENSOR OPERATION
 
-On a real device:
+Sensor calculations themselves can occur locally.
 
-```text
-stand outside radius
- ↓
-approach
- ↓
-enter region
-```
+The app does not need a network connection to calculate:
 
-Observe:
+- GPS distance.
+- Light score.
+- Motion score.
+- Fusion score.
+- Proximity state.
 
-```text
-ENTER received
-Scan Mode available
-```
+The checkpoint configuration must already be locally available for offline gameplay.
 
-Record approximate timing.
+M6 owns the local cache.
 
 ---
 
-# 42. Physical Boundary Test
+# 50. STALE CONFIGURATION
 
-For R001:
+M3 should not silently use stale checkpoint configuration if the repository exposes a version/updated timestamp and indicates that the local configuration is invalid.
 
-```text
-outside:
-~30 m
-
-near boundary:
-~25 m
-
-inside:
-~18 m
-```
-
-Do not rely solely on exact tape-measured distances because GPS itself has uncertainty.
+The exact stale-data policy belongs to the shared offline contract.
 
 ---
 
-# 43. Location Mocking
+# 51. SENSOR DATA PRIVACY
 
-Before physical testing, use mock location data.
+Sensor readings should be used for the gameplay purpose.
 
-Example:
+Do not persist continuous raw sensor streams unless explicitly required.
+
+Prefer:
 
 ```text
-R001:
-150 m
-55 m
-26 m
-18 m
+raw sensor sample
+   ↓
+derived score/state
+   ↓
+discard raw sample
 ```
 
-This lets M3 and M4 integrate without requiring the team to physically walk around campus for every test.
+This also reduces storage and processing overhead.
 
 ---
 
-# 44. Mock Location Provider
+# 52. PERFORMANCE
 
-Create a development-only abstraction or provider where useful.
+M3 should avoid unnecessary processing.
 
-Example conceptual interface:
+For accelerometer:
+
+- Sample at an appropriate rate.
+- Process only during active scan.
+- Use a bounded buffer/window.
+- Reset after scan.
+
+For light:
+
+- Do not process more readings than needed.
+
+For location:
+
+- Use a gameplay-appropriate update interval.
+
+For proximity:
+
+- Listen only during relevant gate/scan state where possible.
+
+---
+
+# 53. BATTERY MANAGEMENT
+
+The application should avoid:
+
+```text
+GPS always on
++
+all sensors always on
++
+all geofences always active
+```
+
+throughout the entire session.
+
+Prefer:
+
+```text
+Normal gameplay
+   ↓
+Low-cost location/geofence monitoring
+   ↓
+Checkpoint entered
+   ↓
+Active sensor fusion
+   ↓
+Discovery / exit
+   ↓
+Stop active sensor collection
+```
+
+---
+
+# 54. BACKGROUND BEHAVIOR
+
+M3 must account for Android lifecycle/background limitations.
+
+The implementation should define what happens when:
+
+- App goes to background.
+- Screen locks.
+- User returns to app.
+- Scan is interrupted.
+- Activity/fragment is recreated.
+
+Do not assume sensor listeners survive arbitrary lifecycle transitions.
+
+---
+
+# 55. INTERRUPTION
+
+If the player leaves the scan screen:
+
+```text
+stop or suspend active sensor collection
+```
+
+according to the agreed gameplay behavior.
+
+When returning:
+
+```text
+restore active checkpoint context
+reinitialize required sensors
+```
+
+without carrying invalid transient sensor evidence.
+
+---
+
+# 56. DEVICE CAPABILITY MATRIX
+
+Test at least conceptually against:
+
+| Capability | Supported | Unsupported |
+|---|---|---|
+| GPS | Normal scan | Graceful error/degradation |
+| Light sensor | Light scoring | Defined fallback |
+| Accelerometer | Motion scoring | Defined fallback |
+| Proximity | Final gate | Defined fallback |
+| Location services | Active | User guidance |
+| Permission | Granted | Permission UI |
+
+The MVP policy for unsupported sensors must be explicitly documented rather than inferred during implementation.
+
+---
+
+# 57. ERROR STATES
+
+M3 should expose structured errors such as:
+
+```text
+LOCATION_PERMISSION_REQUIRED
+LOCATION_SERVICES_DISABLED
+LOCATION_UNAVAILABLE
+GEOFENCE_REGISTRATION_FAILED
+LIGHT_SENSOR_UNAVAILABLE
+MOTION_SENSOR_UNAVAILABLE
+PROXIMITY_SENSOR_UNAVAILABLE
+INVALID_CHECKPOINT_CONFIGURATION
+```
+
+M4/M1 can map these to user-facing messages.
+
+---
+
+# 58. SECURITY / TRUST MODEL
+
+Sensor fusion provides evidence that the user is physically interacting with a checkpoint.
+
+It is not a complete anti-cheat system.
+
+Do not claim:
+
+```text
+GPS + sensors = impossible to cheat
+```
+
+The backend remains authoritative for progress recording.
+
+M5/M6 should ensure discovery records are scoped correctly and written idempotently.
+
+---
+
+# 59. TESTABLE ABSTRACTIONS
+
+Use abstractions so hardware is mockable.
+
+Suggested:
 
 ```kotlin
-interface LocationProvider {
-    fun observeLocation(): Flow<LocationResult>
-}
+interface LocationProvider
+interface LightSensorProvider
+interface MotionSensorProvider
+interface ProximitySensorProvider
+interface DistanceCalculator
+interface MotionDetector
+interface LightSignatureMatcher
+interface FusionEngine
 ```
 
-Then:
-
-```text
-MockLocationProvider
-```
-
-can be used during UI/integration development.
+The exact interfaces can be consolidated if the project architecture prefers fewer types.
 
 ---
 
-# 45. Real Location Provider
+# 60. FAKE LOCATION PROVIDER
 
-Production implementation:
+For tests:
 
-```text
-Fused Location Provider
+```kotlin
+class FakeLocationProvider
 ```
 
-Mock implementation:
+should allow controlled locations:
 
 ```text
-MockLocationProvider
+100 m away
+50 m away
+20 m away
+5 m away
 ```
 
-Both should produce compatible application-level results.
+This allows deterministic GPS/fusion tests.
 
 ---
 
-# 46. M3 → M4 Contract
+# 61. FAKE LIGHT SENSOR
 
-M4 needs location information for fusion.
+Example test values:
+
+```text
+expected: 100–300 lux
+
+actual: 200 → strong match
+actual: 110 → strong/near match
+actual: 500 → weak/no match
+```
+
+The expected score must follow the canonical matcher.
+
+---
+
+# 62. FAKE MOTION SENSOR
+
+Feed controlled accelerometer samples representing:
+
+```text
+no movement
+random movement
+partial sweep
+valid sweep
+```
+
+Verify that the motion detector produces the expected normalized result.
+
+---
+
+# 63. FAKE PROXIMITY SENSOR
+
+Test:
+
+```text
+UNKNOWN
+FAR
+NEAR
+UNAVAILABLE
+```
+
+Verify that only the defined `NEAR` condition passes the final gate.
+
+---
+
+# 64. FUSION ENGINE UNIT TESTS
+
+Test:
+
+```text
+all strong → threshold reached
+all weak → threshold not reached
+GPS strong + light weak + motion strong
+GPS weak + light strong + motion strong
+boundary at exact threshold
+just below threshold
+just above threshold
+```
+
+Do not test only the happy path.
+
+---
+
+# 65. PROXIMITY GATE UNIT TESTS
+
+Test:
+
+```text
+fusion below threshold + near
+    → FAIL
+
+fusion above threshold + far
+    → FAIL
+
+fusion above threshold + near
+    → PASS
+
+fusion exactly threshold + near
+    → PASS if threshold is inclusive
+```
+
+The comparison operator must match the technical specification.
+
+---
+
+# 66. CROSS-CHECKPOINT TEST
+
+Verify:
+
+```text
+Checkpoint A evidence
+        ↓
+switch to B
+        ↓
+A evidence does not contribute to B
+```
+
+This is a critical isolation test.
+
+---
+
+# 67. CROSS-GAME TEST
+
+Verify:
+
+```text
+Game A / CP-A1
+Game B / CP-B1
+```
+
+and ensure that:
+
+```text
+CP-A1 configuration
+```
+
+cannot be accidentally used for:
+
+```text
+CP-B1 scan
+```
+
+---
+
+# 68. GEOFENCE TESTS
+
+Test:
+
+```text
+valid checkpoint → registration succeeds
+invalid coordinate → rejected
+invalid radius → rejected
+ENTER → correct checkpoint identified
+ENTER → correct game identified
+EXIT → appropriate state
+multiple checkpoints → correct mapping
+```
+
+---
+
+# 69. LOCATION DISTANCE TESTS
+
+Test known coordinate pairs.
+
+Include:
+
+- Same point.
+- Very short distance.
+- Medium distance.
+- Larger distance.
+- Latitude/longitude boundary cases relevant to supported campus geography.
+
+---
+
+# 70. SENSOR LIFECYCLE TESTS
+
+Verify:
+
+```text
+scan starts → listeners registered
+scan exits → listeners removed
+scan succeeds → listeners removed
+scan fails → listeners removed
+screen recreated → no duplicate listeners
+```
+
+Duplicate listeners can cause incorrect scoring and battery drain.
+
+---
+
+# 71. ACCEPTANCE TEST — APPROACH
+
+### Given
+
+A player has joined a game.
+
+### When
+
+The player approaches a checkpoint.
+
+### Then
+
+The system calculates current distance and detects entry into the configured geofence when the platform reports it.
+
+---
+
+# 72. ACCEPTANCE TEST — SENSOR FUSION
+
+### Given
+
+The player is inside the appropriate checkpoint area.
+
+### When
+
+GPS, light, and motion evidence satisfy the configured fusion threshold.
+
+### Then
+
+The system reports:
+
+```text
+fusionThresholdReached = true
+```
+
+but does not reveal the checkpoint yet if the proximity final gate has not passed.
+
+---
+
+# 73. ACCEPTANCE TEST — PROXIMITY GATE
+
+### Given
+
+Fusion threshold has been reached.
+
+### When
+
+Proximity changes to the required near condition.
+
+### Then
+
+The final gate becomes:
+
+```text
+finalGatePassed = true
+```
+
+and M4 can continue the reveal flow.
+
+---
+
+# 74. ACCEPTANCE TEST — PROXIMITY FAILURE
+
+### Given
+
+Fusion threshold has been reached.
+
+### When
+
+The proximity condition remains unsatisfied.
+
+### Then
+
+The final gate remains blocked.
+
+---
+
+# 75. ACCEPTANCE TEST — SENSOR UNAVAILABLE
+
+### Given
+
+A device lacks a required sensor.
+
+### When
+
+The player starts a scan.
+
+### Then
+
+The application follows the documented MVP degradation/blocking behavior and does not crash.
+
+---
+
+# 76. ACCEPTANCE TEST — LOCATION PERMISSION
+
+### Given
+
+Location permission is denied.
+
+### When
+
+The player starts a location-dependent gameplay action.
+
+### Then
+
+The application requests/communicates the required permission state rather than failing silently.
+
+---
+
+# 77. ACCEPTANCE TEST — DYNAMIC CHECKPOINT
+
+### Given
+
+A creator creates a new checkpoint with:
+
+```text
+lat
+lng
+radius
+light signature
+motion type
+```
+
+### When
+
+A player joins the published game.
+
+### Then
+
+M3 uses that checkpoint configuration dynamically without requiring a code change.
+
+---
+
+# 78. ACCEPTANCE TEST — NO HARDCODED CHECKPOINTS
+
+Create a game with:
+
+```text
+2 checkpoints
+```
+
+and another with:
+
+```text
+8 checkpoints
+```
+
+Verify that location/geofence setup works for both.
+
+---
+
+# 79. M3 → M4 HANDOFF
 
 M3 provides:
 
 ```text
-distanceM
-accuracyM
-relicId
-```
-
-through the agreed contract.
-
-M4 should not calculate a second independent GPS distance if the shared design uses M3's distance result.
-
----
-
-# 47. M3 → M2 Contract
-
-M2 needs user-facing location state.
-
-Provide:
-
-```text
+active checkpoint
 distance
-accuracy/status
-geofence event
+gpsScore
+lightScore
+motionScore
+fusionScore
+fusionThresholdReached
+proximityState
+finalGatePassed
+sensor availability
+location availability
+error state
 ```
 
-M2 turns this into:
-
-```text
-Far
-Approaching
-Within area
-Ready to scan
-```
+M4 uses these to render the scan experience.
 
 ---
 
-# 48. M3 → M5/M6
+# 80. M3 → M2 HANDOFF
 
-Relic coordinates should come from the shared relic data.
+M3 provides creator-side integration requirements for:
 
-M3 should not permanently hard-code production coordinates if Firebase/Room is intended to provide them.
+```text
+latitude
+longitude
+radiusM
+minLux
+maxLux
+motionType
+```
+
+If a configuration value has constraints, document them for M2.
 
 ---
 
-# 49. Repository Boundary
+# 81. M3 → M5 HANDOFF
 
-Conceptual:
+M3 informs M5 about:
 
-```text
-UI
- ↓
-ViewModel
- ↓
-Repository
- ↓
-Location Provider
-```
+- Required checkpoint fields.
+- Game/checkpoint IDs used by discovery.
+- Sensor-derived discovery state that may be recorded.
+- Any backend validation assumptions.
 
-The final project may separate location into its own service/repository abstraction.
+M3 does not write Firestore directly.
 
 ---
 
-# 50. Location Error States
+# 82. M3 → M6 HANDOFF
 
-Support:
+M3 informs M6 about any locally required:
 
 ```text
-PERMISSION_DENIED
-LOCATION_UNAVAILABLE
-POOR_ACCURACY
-PROVIDER_ERROR
+checkpoint configuration
+game-scoped active state
+pending discovery result
 ```
 
-Exact enum names are implementation choices.
+M6 decides the Room schema and synchronization implementation.
 
 ---
 
-# 51. Permission Error
+# 83. SUGGESTED PACKAGE STRUCTURE
 
-Expected:
+A possible structure:
 
 ```text
-safe UI state
+location/
+    LocationProvider.kt
+    FusedLocationProviderImpl.kt
+    DistanceCalculator.kt
+    GeofenceManager.kt
+
+sensor/
+    LightSensorProvider.kt
+    AccelerometerProvider.kt
+    ProximitySensorProvider.kt
+    MotionDetector.kt
+    LightSignatureMatcher.kt
+
+fusion/
+    FusionEngine.kt
+    FusionModels.kt
+    DiscoverySignalCoordinator.kt
+
+permission/
+    LocationPermissionManager.kt
 ```
 
-No crash.
+Adapt names to the project's existing package conventions.
 
 ---
 
-# 52. Provider Error
-
-If location provider fails:
-
-```text
-notify state
-```
-
-Do not return:
-
-```text
-0,0
-```
-
-as a fake location.
-
----
-
-# 53. Null Location
-
-If no location is available:
-
-```text
-LocationResult = unavailable
-```
-
-rather than:
-
-```text
-latitude = 0
-longitude = 0
-```
-
-unless the model explicitly defines a valid nullable representation.
-
----
-
-# 54. Accuracy Filtering
-
-Consider rejecting or reducing confidence in extremely poor location readings.
-
-The exact threshold should be agreed during physical testing.
-
-Do not invent a final accuracy threshold independently from M4.
-
----
-
-# 55. Location Update Frequency
-
-Avoid unnecessarily high update frequency.
-
-The exact interval should balance:
-
-```text
-responsiveness
-battery
-accuracy
-```
-
-For the one-month student project, simplicity and reliability are more important than micro-optimizing the interval.
-
----
-
-# 56. Scan Mode Location
-
-Once the user enters Scan Mode:
-
-```text
-M3 can provide updated distance
-```
-
-to M4 as required.
-
-The scan should not depend on an unnecessarily aggressive global location loop.
-
----
-
-# 57. Scan End
-
-When:
-
-```text
-REVEALED
-```
-
-or:
-
-```text
-scan cancelled
-```
-
-stop location work that is no longer required by the scan.
-
-Coordinate with M4.
-
----
-
-# 58. Map Camera
-
-The map may:
-
-```text
-show campus
-center on current location
-center on selected relic
-```
-
-Avoid repeatedly recentering the camera on every location update unless explicitly desired.
-
----
-
-# 59. Map Performance
+# 84. NO UI BUSINESS LOGIC IN SENSOR CLASSES
 
 Avoid:
 
-```text
-recreating all markers every update
+```kotlin
+sensorClass.showToast(...)
+sensorClass.navigate(...)
+sensorClass.showDialog(...)
 ```
 
-Prefer updating only what changed.
+Sensor classes should expose state/results.
+
+M4/M1 decide how those states are presented.
 
 ---
 
-# 60. Marker Data Consistency
+# 85. NO FIREBASE IN SENSOR CLASSES
 
-Every marker must map:
+Avoid:
 
-```text
-marker → relicId
+```kotlin
+FirebaseFirestore.getInstance()
 ```
 
-correctly.
-
-A marker pointing to R001 must open:
+inside:
 
 ```text
-R001
+FusionEngine
+LightSensorProvider
+MotionDetector
+GeofenceManager
 ```
 
-not merely:
-
-```text
-first relic in list
-```
+Persistence belongs behind the repository boundary.
 
 ---
 
-# 61. M3 Unit Tests
+# 86. NO ROOM IN SENSOR CLASSES
 
-Minimum:
+Similarly, sensor/location components must not depend directly on:
 
 ```text
-LOC-001 distance calculation
-LOC-002 far state
-LOC-003 approaching state
-LOC-004 boundary
-LOC-005 inside
-LOC-006 poor accuracy
+RoomDatabase
+DAO
+@Entity
 ```
+
+Local persistence belongs to M6.
 
 ---
 
-# 62. M3 Geofence Tests
+# 87. GIT WORKFLOW
 
-Minimum:
+Branch:
 
 ```text
-GEO-001 ENTER
-GEO-002 EXIT
-GEO-003 wrong relic
-GEO-004 duplicate ENTER
+feature/m3-location-sensors-fusion
 ```
+
+Commit examples:
+
+```text
+feat(location): add fused location provider wrapper
+feat(location): add distance calculator
+feat(location): add dynamic geofence manager
+feat(sensor): add ambient light provider
+feat(sensor): add motion detector
+feat(sensor): add proximity provider
+feat(fusion): add normalized signal models
+feat(fusion): add weighted fusion engine
+feat(fusion): add proximity final gate
+test(location): add distance tests
+test(fusion): add fusion threshold tests
+test(sensor): add motion and light tests
+```
+
+Keep unrelated UI/Firebase/Room changes out of M3 commits.
 
 ---
 
-# 63. M3 Permission Tests
+# 88. CHANGE CONTROL
 
-Minimum:
+Before modifying:
 
-```text
-PERMISSION-001 denied
-PERMISSION-002 granted
-PERMISSION-003 revoked
-```
+- Fusion weights.
+- Fusion threshold.
+- Normalization.
+- Sensor contracts.
+- Location contracts.
+- Repository contracts.
 
----
+inform the team and update the shared technical documentation.
 
-# 64. M3 Map Tests
-
-Minimum:
-
-```text
-MAP-001 map loads
-MAP-002 markers
-MAP-003 current location
-MAP-004 permission denied
-MAP-005 location unavailable
-```
+These values directly affect gameplay behavior.
 
 ---
 
-# 65. M3 Mock Scenarios
+# 89. DEFINITION OF DONE
 
-## Scenario A — Far
+M3 is complete when:
 
-```text
-R001
-distance = 150 m
-accuracy = 8 m
-```
+### Location
 
-Expected:
+- Fused Location Provider is integrated.
+- Permissions are handled.
+- Current location is exposed.
+- Distance calculation works.
+- Accuracy is exposed.
+- Lifecycle is handled.
 
-```text
-Far
-```
+### Geofencing
 
----
+- Geofences are dynamically created from checkpoint data.
+- Geofences are game/checkpoint scoped.
+- ENTER events identify the correct checkpoint.
+- Failures are handled.
 
-# 66. Scenario B — Approaching
+### Sensors
 
-```text
-R001
-distance = 55 m
-accuracy = 8 m
-```
+- Ambient light is available to the gameplay layer.
+- Accelerometer motion is available.
+- Proximity is available where supported.
+- Unsupported sensors are handled according to the agreed MVP policy.
 
-Expected:
+### Fusion
 
-```text
-Approaching
-```
+- GPS evidence is normalized.
+- Light evidence is normalized.
+- Motion evidence is normalized.
+- Weighted fusion is implemented.
+- Threshold evaluation is implemented.
+- Proximity is a separate final gate.
 
----
+### Architecture
 
-# 67. Scenario C — Boundary Outside
+- Hardware APIs are isolated behind testable abstractions.
+- M4 does not directly access hardware.
+- M3 does not directly implement Room/Firebase.
+- Dynamic checkpoint configuration is supported.
 
-```text
-R001
-distance = 26 m
-accuracy = 5 m
-```
+### Testing
 
-Expected:
-
-```text
-Outside
-```
-
----
-
-# 68. Scenario D — Inside
-
-```text
-R001
-distance = 18 m
-accuracy = 5 m
-```
-
-Expected:
-
-```text
-Inside/scan area
-```
+- Unit tests pass.
+- Fusion boundary tests pass.
+- Geofence tests pass.
+- Sensor lifecycle tests pass.
+- Cross-game/checkpoint isolation tests pass.
 
 ---
 
-# 69. Scenario E — Poor Accuracy
+# 90. LEGACY CLEANUP
+
+Remove or migrate code that assumes:
 
 ```text
-R001
-distance = 18 m
-accuracy = 45 m
+R001 → fixed coordinate
+R002 → fixed coordinate
+...
+R006 → fixed coordinate
 ```
 
-Expected:
+The production location system must consume:
 
 ```text
-low confidence
+Game
+  ↓
+Checkpoint[]
+  ↓
+lat/lng/radius
 ```
 
+R001–R006 can remain in seed/demo data only.
+
 ---
 
-# 70. Scenario F — Unavailable
+# 91. FINAL M3 ARCHITECTURE
+
+The physical-discovery pipeline is:
 
 ```text
-location = unavailable
-```
-
-Expected:
-
-```text
-location unavailable
-```
-
----
-
-# 71. M3 Physical Device Testing
-
-At least:
-
-```text
-Device A
-Device B
-```
-
-where available.
-
-Test:
-
-```text
-permission
-current location
-map
-distance
-geofence
-background/foreground
-```
-
----
-
-# 72. GPS Device Test Matrix
-
-| Test | Device A | Device B |
-|---|---|---|
-| Permission | | |
-| Current location | | |
-| Accuracy | | |
-| R001 distance | | |
-| Geofence ENTER | | |
-| Geofence EXIT | | |
-| Background event | | |
-
----
-
-# 73. M3 Battery Test
-
-Check:
-
-```text
-Map open
-Map closed
-Scan active
-Scan completed
-```
-
-Verify that location work changes appropriately.
-
----
-
-# 74. Battery Red Flag
-
-Investigate if:
-
-```text
-location updates continue indefinitely
-```
-
-after:
-
-```text
-leaving Map
-```
-
-or:
-
-```text
-completing Scan
-```
-
-when no other feature requires them.
-
----
-
-# 75. Lifecycle Test
-
-Run:
-
-```text
-Map
- ↓
-background
- ↓
-foreground
-```
-
-Expected:
-
-```text
-location state recovers
-no duplicate listeners
-```
-
----
-
-# 76. Rotation/Lifecycle
-
-If the app supports rotation:
-
-```text
-Map
- ↓
-rotate
-```
-
-Expected:
-
-```text
-map/location state remains coherent
-```
-
----
-
-# 77. Geofence Persistence
-
-If the app restarts:
-
-```text
-registered geofences
-```
-
-must behave according to the chosen Android implementation.
-
-M3 should document actual behaviour rather than assuming it.
-
----
-
-# 78. M3 Handoff to M4
-
-Provide:
-
-```text
-DistanceResult
-accuracy
-relicId
-update lifecycle
-```
-
-Example:
-
-```text
-R001
-18 m
-5 m accuracy
-```
-
----
-
-# 79. M3 Handoff to M2
-
-Provide:
-
-```text
-distance state
-geofence ENTER
-geofence EXIT
-```
-
-M2 uses these to control/present the scan experience.
-
----
-
-# 80. M3 Handoff to M5/M6
-
-Confirm:
-
-```text
-relic coordinate source
-relic IDs
-radius values
-```
-
----
-
-# 81. M3 Git Branch
-
-Recommended:
-
-```text
-feature/location-geofence
-```
-
----
-
-# 82. M3 Commit Examples
-
-```text
-feat: integrate Google Maps
-feat: add fused location provider
-feat: add relic markers
-feat: calculate relic distance
-feat: register relic geofences
-feat: handle geofence enter
-fix: handle denied location permission
-fix: prevent duplicate geofence events
-test: add distance boundary tests
-```
-
----
-
-# 83. M3 PR Checklist
-
-- [ ] Map loads
-- [ ] Permission handled
-- [ ] Location handled
-- [ ] Accuracy handled
-- [ ] Distance tested
-- [ ] Markers use relic IDs
-- [ ] Geofence ENTER tested
-- [ ] EXIT tested
-- [ ] Duplicate event handled
-- [ ] Battery behaviour considered
-- [ ] No direct fusion logic
-- [ ] Relevant tests pass
-
----
-
-# 84. M3 Development Schedule — 13 September
-
-Implement:
-
-```text
-Map foundation
-Location Provider foundation
-```
-
-Use mock relics.
-
----
-
-# 85. 14 September
-
-Implement:
-
-```text
-location permission
-current location
-location state
-```
-
----
-
-# 86. 15 September
-
-Implement:
-
-```text
-distance calculation
-accuracy handling
-relic markers
-```
-
----
-
-# 87. 16 September
-
-Implement:
-
-```text
-geofence registration
-```
-
----
-
-# 88. 17 September
-
-Implement:
-
-```text
-ENTER/EXIT handling
-duplicate protection
-event-to-relic mapping
-```
-
----
-
-# 89. 18 September
-
-Test:
-
-```text
-mock location
-mock geofence
-Map
-distance
-```
-
----
-
-# 90. 19 September Checkpoint
-
-M3 must demonstrate:
-
-```text
-Map
- ↓
-Relic marker
- ↓
-Mock/current location
- ↓
-Distance
- ↓
-Geofence ENTER
-```
-
----
-
-# 91. 20 September
-
-Integrate with:
-
-```text
-M4 distance input
-```
-
----
-
-# 92. 21 September
-
-Integrate with:
-
-```text
-M2 Scan availability
-```
-
----
-
-# 93. 22 September
-
-Physical campus validation.
-
-Measure:
-
-```text
-GPS accuracy
-geofence behaviour
-distance behaviour
-```
-
----
-
-# 94. 23 September
-
-Freeze location architecture.
-
-Only fix:
-
-```text
-bugs
-calibration
-reliability
-```
-
----
-
-# 95. 24 September
-
-Run functional tests.
-
----
-
-# 96. 25 September
-
-Run Device A/B compatibility tests.
-
----
-
-# 97. 26 September
-
-Run:
-
-```text
-poor GPS
-permission
-background
-restart
-```
-
-tests.
-
----
-
-# 98. 27 September
-
-Regression.
-
-No new location features.
-
----
-
-# 99. 28 September
-
-Final physical demo verification.
-
----
-
-# 100. M3 Acceptance — Maps
-
-- [ ] map loads
-- [ ] campus visible
-- [ ] markers visible
-- [ ] marker IDs correct
-- [ ] current location works
-- [ ] permission handled
-
----
-
-# 101. M3 Acceptance — Location
-
-- [ ] distance calculated
-- [ ] accuracy exposed
-- [ ] poor accuracy handled
-- [ ] unavailable state handled
-- [ ] no fake coordinates
-
----
-
-# 102. M3 Acceptance — Geofence
-
-- [ ] registration works
-- [ ] ENTER works
-- [ ] EXIT works
-- [ ] correct relic ID retained
-- [ ] duplicate event handled
-- [ ] ENTER does not reveal relic
-
----
-
-# 103. M3 Acceptance — Battery
-
-- [ ] location not unnecessarily active
-- [ ] Scan lifecycle considered
-- [ ] unnecessary updates stop
-- [ ] no obvious runaway background processing
-
----
-
-# 104. M3 Acceptance — Integration
-
-- [ ] M1 Map container integrated
-- [ ] M4 distance input integrated
-- [ ] M2 scan availability integrated
-- [ ] M5/M6 relic data integrated
-- [ ] E2E flow tested
-
----
-
-# 105. Common M3 Risks
-
-## Risk 1 — GPS is inaccurate
-
-Mitigation:
-
-```text
-accuracy-aware state
-physical calibration
-```
-
-## Risk 2 — Geofence is delayed
-
-Mitigation:
-
-```text
-test realistic behaviour
-do not depend on exact instant transition
-```
-
-## Risk 3 — Battery drain
-
-Mitigation:
-
-```text
-lifecycle-aware updates
-geofence-first strategy
-```
-
-## Risk 4 — Coordinates are wrong
-
-Mitigation:
-
-```text
-physical validation
-```
-
-## Risk 5 — M4 duplicates distance calculation
-
-Mitigation:
-
-```text
-shared DistanceResult contract
-```
-
----
-
-# 106. M3 Must Not
-
-Do not:
-
-```text
-reveal relic on ENTER
-implement sensor fusion
-include light/accelerometer logic
-write progress directly to Firestore
-write progress directly to Room
-create duplicate relic datasets
-poll GPS constantly without reason
-use 0,0 as fake location
-```
-
----
-
-# 107. M3 Should
-
-M3 should:
-
-```text
-provide reliable location state
-provide distance
-provide geofence events
-respect permissions
-respect lifecycle
-consider accuracy
-protect battery
-coordinate physical testing
-```
-
----
-
-# 108. Final M3 End-to-End Flow
-
-The final demonstration should show:
-
-```text
-Open Map
- ↓
-See relic
- ↓
-Move toward relic
- ↓
-Enter geofence
- ↓
-Scan becomes available
- ↓
-M4 receives distance
- ↓
-M2 displays scan
-```
-
-M3's responsibility ends at the location/geofence boundary.
-
----
-
-# 109. Final M3 Checklist
-
-## Maps
-
-- [ ] Google Maps
-- [ ] markers
-- [ ] selected relic
-- [ ] current location
-
-## Location
-
-- [ ] permissions
-- [ ] Fused Location Provider
-- [ ] distance
-- [ ] accuracy
-- [ ] unavailable state
-
-## Geofencing
-
-- [ ] registration
-- [ ] ENTER
-- [ ] EXIT
-- [ ] duplicate protection
-- [ ] correct relic ID
-
-## Battery
-
-- [ ] lifecycle
-- [ ] limited active updates
-- [ ] scan cleanup
-
-## Testing
-
-- [ ] mock tests
-- [ ] physical GPS test
-- [ ] two-device test
-- [ ] E2E integration
-
----
-
-# 110. M3 Definition of Ready
-
-A task is ready when:
-
-- [ ] required coordinates/data known
-- [ ] expected location state known
-- [ ] consuming module identified
-- [ ] mock scenario available
-- [ ] acceptance criteria known
-
----
-
-# 111. M3 Definition of Done
-
-A location feature is done when:
-
-- [ ] implementation works
-- [ ] permission state handled
-- [ ] unavailable state handled
-- [ ] accuracy considered
-- [ ] relevant tests pass
-- [ ] mock integration works
-- [ ] physical device tested where applicable
-- [ ] cross-module contract verified
-- [ ] PR reviewed
-- [ ] documentation updated if contract changed
-
----
-
-# 112. Final Principle
-
-M3 provides the spatial trigger for Campus Quest:
-
-```text
-Where am I?
- ↓
-How far is the relic?
- ↓
-Am I inside the activation area?
- ↓
-Trigger Scan Mode
-```
-
-M3 should keep that responsibility reliable and focused.
-
-The actual discovery remains:
-
-```text
-Location
-+
-Light
-+
-Motion
- ↓
-Fusion
- ↓
-Proximity
- ↓
+Firestore / Room
+      ↓
+GameRepository
+      ↓
+Checkpoint configuration
+      ↓
+┌───────────────────────────────┐
+│ M3 Physical Discovery Layer   │
+│                               │
+│ Location                      │
+│ Geofence                      │
+│ Light                         │
+│ Accelerometer                 │
+│ Proximity                     │
+│ Distance                      │
+│ Motion detection              │
+│ Light matching                │
+│ Normalization                 │
+│ Weighted fusion               │
+│ Proximity final gate          │
+└───────────────────────────────┘
+      ↓
+DiscoverySignalState
+      ↓
+M4 Quest / Scan UI
+      ↓
 Reveal
 ```
 
-M3 provides the location component; it does not become the entire puzzle system.
+---
+
+# 92. CORE DESIGN PRINCIPLE
+
+M3 should provide **reliable physical evidence**, not UI and not persistence.
+
+The canonical decision chain is:
+
+```text
+GPS evidence
+      +
+Light evidence
+      +
+Motion evidence
+      ↓
+Weighted Fusion
+      ↓
+Fusion Threshold
+      ↓
+Proximity Final Gate
+      ↓
+Discovery Eligible
+```
+
+Never change this to:
+
+```text
+GPS + Light + Motion + Proximity
+```
+
+as four weighted signals.
+
+The separation between **fusion** and **final proximity confirmation** is a core Campus Quest mechanic and must remain consistent across implementation, testing, UI, and documentation.
+
+---
+
+# 93. M3 QUICK CHECKLIST
+
+```text
+[ ] Fused Location Provider
+[ ] Location permission
+[ ] Location services state
+[ ] Current location
+[ ] Location accuracy
+[ ] Distance calculator
+[ ] Dynamic geofences
+[ ] Game-scoped geofences
+[ ] Checkpoint-scoped geofences
+[ ] Geofence ENTER
+[ ] Geofence EXIT handling
+[ ] Geofence error handling
+[ ] Ambient light provider
+[ ] Light signature matcher
+[ ] Light normalization
+[ ] Accelerometer provider
+[ ] Motion/sweep detector
+[ ] Motion normalization
+[ ] Proximity provider
+[ ] Proximity state
+[ ] GPS normalization
+[ ] Weighted fusion
+[ ] Fusion threshold
+[ ] Separate proximity final gate
+[ ] Lifecycle management
+[ ] Battery management
+[ ] Sensor availability handling
+[ ] Cross-game isolation
+[ ] Cross-checkpoint isolation
+[ ] Unit tests
+[ ] Integration tests
+[ ] M4 handoff
+[ ] M5/M6 integration
+[ ] Final documentation update
+```
+
+---
+
+# 94. FINAL HANDOFF PACKAGE
+
+M3 should provide:
+
+1. Location provider abstraction.
+2. Geofence manager.
+3. Distance calculator.
+4. Light sensor abstraction.
+5. Light signature matcher.
+6. Accelerometer abstraction.
+7. Motion/sweep detector.
+8. Proximity abstraction.
+9. Fusion engine.
+10. Proximity final-gate logic.
+11. Discovery signal state/contract.
+12. Unit tests.
+13. Hardware/integration test notes.
+14. Sensor availability/degradation rules.
+15. Lifecycle/battery notes.
+16. Integration instructions for M4.
+17. Any shared-contract changes.
+
+---
+
+**END OF MEMBER 3 LOCATION, GEOFENCING, SENSORS & FUSION WORKPLAN**

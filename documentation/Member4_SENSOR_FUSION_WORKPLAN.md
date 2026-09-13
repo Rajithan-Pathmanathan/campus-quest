@@ -1,2657 +1,2109 @@
-# M4 — SENSOR FUSION WORKPLAN
-## Campus Quest — Mobile Application Development
+# MEMBER 4 — QUEST & SCAN GAMEPLAY WORKPLAN
+## Campus Quest — Final Reassigned Team Plan
 
-**Document ID:** M4-SENSOR-FUSION  
-**Owner:** M4 — Device Developer: Sensor Fusion  
-**Project:** Campus Quest  
-**Primary responsibility:** SensorManager integration (Accelerometer, Light sensor, Proximity binary confirmation gate), dynamic ambient light signature range matching (`minLux`..`maxLux`) for active checkpoints, scanning motion gesture classification, weighted fusion engine computation, graceful sensor degradation, and handoff of scan-state results to the UI layer.
+**Owner:** Member 4 (M4)  
+**Primary responsibility:** Player checkpoint gameplay, scan experience, fusion-meter presentation, scan state machine, and discovery/reveal UI  
+**Branch:** `feature/m4-quest-scan-gameplay`  
+**Architecture:** Android + Kotlin, MVVM + Repository  
+**Status:** Final reassignment version
 
 ---
 
-# 1. Purpose
+# 1. PURPOSE
 
-This document defines exactly what M4 must build, what M4 must not build, how M4 connects to the other five team members, how sensor data becomes a fusion score, how missing sensors are handled, and how the work is tested and integrated.
+M4 owns the **player-side checkpoint gameplay experience**.
 
-The implementation must support the project's central mechanic:
+The player has already:
 
 ```text
-M3 GPS / distance
-       ↓
-enter relic geofence
-       ↓
-M2 opens Scan Mode
-       ↓
-M4 reads available sensors
-       ↓
-GPS proximity + light match + accelerometer motion
-       ↓
-weighted fusion score
-       ↓
-proximity sensor final confirmation
-       ↓
-M2 reveals relic/lore
-       ↓
-M6 persists locally
-       ↓
-M5 syncs cloud progress
+Logged in
+   ↓
+Browsed games
+   ↓
+Viewed game details
+   ↓
+Joined a game
+   ↓
+Opened the game map
+   ↓
+Approached a checkpoint
 ```
 
-The important architectural rule is:
+M4 takes over when the checkpoint becomes eligible for scanning and provides the gameplay experience that turns M3's physical-discovery signals into a clear player interaction.
 
-> **GPS distance, light-signature matching, and accelerometer scanning motion contribute to the fused score. The proximity sensor is a separate final confirmation gate and is NOT part of the fusion score.**
+M4 owns:
 
-M4 owns the sensor-fusion logic. M4 does not own the map, geofencing, Firebase, Room, or the visual design of Scan Mode.
+- Quest/checkpoint gameplay screen.
+- Scan HUD.
+- Fusion meter presentation.
+- GPS/light/motion status presentation.
+- Scan state machine.
+- Scan progress presentation.
+- Success/failure states.
+- Proximity-gate presentation.
+- Reveal dialog/screen.
+- Clue/lore presentation after discovery.
+- Transition back to gameplay.
+- Scan-related ViewModels.
+- Scan UI tests.
 
----
+M4 does NOT own:
 
-# 2. Source Basis and Project Alignment
-
-The project materials describe a sensor-fusion based relic discovery experience rather than three independent sensor mini-games. The architecture follows the project's MVVM/repository separation: device-facing logic should remain separated from UI logic, while the ViewModel/UI consumes a stable result.
-
-This document therefore treats the following as the project-level boundaries:
-
-- M3 supplies location/distance information.
-- M4 supplies sensor measurements and fusion results.
-- M2 displays the scan experience.
-- M5 owns Firebase/cloud persistence.
-- M6 owns Room/local persistence and integration coordination.
-- M1 owns the overall application shell/navigation/theme.
-
-Where this document gives exact weights, thresholds, timing values, or implementation names that are not fixed by the project materials, they are explicitly marked **provisional** and must be calibrated/agreed before final use.
-
----
-
-# 3. M4 Role
-
-## 3.1 Primary responsibility
-
-M4 is responsible for:
-
-1. Accessing Android sensors through `SensorManager`.
-2. Detecting whether required sensors exist.
-3. Registering/unregistering listeners safely.
-4. Reading light sensor values in lux.
-5. Reading accelerometer values.
-6. Classifying the intended slow scanning motion.
-7. Receiving GPS distance/proximity information from M3.
-8. Normalizing each available signal.
-9. Combining available signals into one fusion score.
-10. Reweighting the score when a sensor is unavailable.
-11. Exposing a stable result to M2/ViewModel.
-12. Handling proximity as a final gate.
-13. Avoiding unnecessary sensor usage outside Scan Mode.
-14. Testing sensor behavior on at least two Android devices/emulators where possible.
-15. Calibrating the final parameters using real campus measurements.
-
-## 3.2 M4 does not own
-
-M4 must not independently implement:
-
-- Google Maps.
-- Fused Location Provider.
-- Geofence creation.
-- Firebase Authentication.
-- Firestore persistence.
-- Room database schema.
-- Bottom navigation.
-- App-wide navigation.
-- Final screen design.
-- Leaderboard business logic.
-- User profile logic.
-
-If M4 needs location information, M3 supplies it through the agreed interface.
+- Location APIs.
+- Geofence registration.
+- SensorManager.
+- Light sensor implementation.
+- Accelerometer implementation.
+- Proximity sensor implementation.
+- Fusion mathematics.
+- Room.
+- Firestore.
+- FCM.
+- Creator checkpoint configuration.
+- Leaderboard backend.
 
 ---
 
-# 4. Core Sensor Model
+# 2. IMPORTANT REASSIGNMENT
 
-Campus Quest uses three sensor-related mechanisms plus GPS:
+The previous M2 responsibility for Quest/Scan UI is now fully assigned to M4.
 
-| Signal | Owner | Role |
-|---|---|---|
-| GPS distance | M3 | Fused-score input |
-| Light sensor | M4 | Fused-score input |
-| Accelerometer | M4 | Fused-score input |
-| Proximity sensor | M4 | Final reveal gate |
+M3 owns the physical signal system.
 
-The distinction between the last two is critical.
+M4 owns the player-facing interpretation and interaction.
 
-### Fusion inputs
+The boundary is:
 
 ```text
-GPS proximity
-Light match
-Motion match
-      ↓
-weighted fusion
-      ↓
-FusionResult.score
+M3
+Location + Sensors + Fusion
+        ↓
+DiscoverySignalState
+        ↓
+M4
+Quest + Scan UI
+        ↓
+Reveal
+        ↓
+M6/M5
+Progress persistence + cloud sync
 ```
 
-### Final gate
-
-```text
-FusionResult.score >= reveal threshold
-             AND
-proximity confirms close range
-             ↓
-       reveal allowed
-```
-
-The proximity sensor must not silently increase or decrease the percentage shown by the fusion meter.
+M4 must not reimplement M3's sensor logic inside the UI.
 
 ---
 
-# 5. Conceptual Architecture
+# 3. CANONICAL GAMEPLAY FLOW
+
+The complete player gameplay path is:
 
 ```text
-                 ┌──────────────────────┐
-                 │ M3 Location Provider  │
-                 │ distance to relic     │
-                 └──────────┬───────────┘
-                            │
-                            ▼
-┌────────────────────────────────────────────────┐
-│                 M4 Sensor Layer                │
-│                                                │
-│ SensorManager                                  │
-│ ├── Light Sensor                                │
-│ ├── Accelerometer                               │
-│ └── Proximity Sensor                            │
-└──────────────────┬─────────────────────────────┘
-                   │
-                   ▼
-┌────────────────────────────────────────────────┐
-│             SensorFusionEngine                 │
-│                                                │
-│ light normalization                            │
-│ motion classification                          │
-│ GPS normalization                               │
-│ availability detection                         │
-│ weight reallocation                            │
-│ combined score                                 │
-└──────────────────┬─────────────────────────────┘
-                   │
-                   ▼
-              FusionResult
-                   │
-             ┌─────┴─────┐
-             ▼           ▼
-        M2 Scan UI   Proximity Gate
-                         │
-                         ▼
-                   Reveal Decision
+Game Details
+     ↓
+Join Game
+     ↓
+Game Map
+     ↓
+Approach Checkpoint
+     ↓
+Geofence ENTER / proximity-area eligibility
+     ↓
+Scan Mode
+     ↓
+GPS + Light + Motion
+     ↓
+Weighted Fusion
+     ↓
+Fusion Threshold
+     ↓
+Proximity Final Gate
+     ↓
+Reveal
+     ↓
+Record Discovery
+     ↓
+Next Checkpoint
 ```
+
+The exact transition into Scan Mode depends on the shared M3 geofence/location contract.
 
 ---
 
-# 6. Android Sensor Ownership
+# 4. CRITICAL SENSOR-FUSION RULE
 
-## 6.1 SensorManager
+M4 must preserve this mechanic exactly:
 
-M4 should centralize Android sensor access rather than allowing multiple UI screens to independently register listeners.
+```text
+GPS
+ +
+Light
+ +
+Motion
+ ↓
+Weighted Fusion
+ ↓
+Fusion Threshold
+ ↓
+Proximity Final Gate
+ ↓
+Reveal
+```
+
+Do NOT present or implement:
+
+```text
+GPS + Light + Motion + Proximity
+```
+
+as four weighted signals.
+
+Proximity is a **separate final physical confirmation gate**.
+
+---
+
+# 5. PLAYER CHECKPOINT SCREEN
+
+The checkpoint gameplay screen should communicate:
+
+- Checkpoint name.
+- Current clue/instruction where appropriate.
+- Distance/status.
+- Scan state.
+- Fusion progress.
+- GPS status.
+- Light status.
+- Motion status.
+- Proximity status when the final gate is active.
+- Clear next action.
+- Success/failure feedback.
+
+The exact visual design should follow the project's established Campus Quest UI/UX specification.
+
+---
+
+# 6. SCAN HUD
+
+The scan HUD is the primary gameplay interface.
 
 Conceptually:
 
+```text
+┌─────────────────────────────┐
+│ Checkpoint Name             │
+│                             │
+│       FUSION 72%            │
+│       ███████░░░            │
+│                             │
+│ GPS      ✓                  │
+│ LIGHT    ✓                  │
+│ MOTION   ~                  │
+│                             │
+│ Keep sweeping...            │
+└─────────────────────────────┘
+```
+
+This is conceptual only; the final visual layout must follow the project's UI design.
+
+---
+
+# 7. FUSION METER
+
+M4 displays M3's normalized fusion score.
+
+Conceptually:
+
+```text
+fusionScore = 0.72
+```
+
+becomes:
+
+```text
+72%
+```
+
+The UI must not calculate the score itself.
+
+M4 receives the already-computed score from M3.
+
+---
+
+# 8. FUSION METER RULE
+
+The meter represents:
+
+```text
+GPS + Light + Motion
+```
+
+It does not represent:
+
+```text
+GPS + Light + Motion + Proximity
+```
+
+When fusion reaches the threshold, the UI changes state.
+
+Example:
+
+```text
+72%
+   ↓
+85%
+   ↓
+92%
+   ↓
+THRESHOLD REACHED
+```
+
+Then the interface moves to the proximity confirmation phase.
+
+---
+
+# 9. SENSOR STATUS INDICATORS
+
+The scan HUD can show separate indicators:
+
+```text
+GPS      READY
+LIGHT    MATCHING
+MOTION   SWEEP
+```
+
+M4 maps M3's technical state into understandable player-facing language.
+
+M4 must not directly read the sensors to determine these states.
+
+---
+
+# 10. GPS PRESENTATION
+
+Possible UI information:
+
+```text
+Distance: 12 m
+GPS: Good
+```
+
+or:
+
+```text
+GPS signal weak
+Move to a clearer location
+```
+
+The exact wording can be refined during UI implementation.
+
+M3 provides:
+
+- Distance.
+- GPS score.
+- Accuracy/availability.
+- Error state.
+
+---
+
+# 11. LIGHT PRESENTATION
+
+The player does not need to see raw lux values unless the product design intentionally exposes them.
+
+Prefer a gameplay-oriented status:
+
+```text
+Light signature
+Searching...
+```
+
+or:
+
+```text
+Light signature
+Matched
+```
+
+M3 supplies the light score/status.
+
+---
+
+# 12. MOTION PRESENTATION
+
+The player should receive a clear instruction based on the checkpoint's configured motion type.
+
+For the canonical default:
+
+```text
+SWEEP
+```
+
+the UI might communicate:
+
+```text
+Sweep your phone slowly
+```
+
+M3 determines whether the movement pattern matches.
+
+M4 presents the instruction and state.
+
+---
+
+# 13. PROXIMITY PHASE
+
+When:
+
+```text
+fusionThresholdReached == true
+```
+
+M4 transitions the player into the final physical confirmation phase.
+
+Example:
+
+```text
+SIGNALS ALIGNED
+
+Bring the phone close to the checkpoint
+to reveal the clue.
+```
+
+The actual interaction wording should match the product design.
+
+---
+
+# 14. PROXIMITY IS A GATE
+
+M4 must treat:
+
+```text
+finalGatePassed
+```
+
+as the condition for revealing the checkpoint.
+
+Before that:
+
+```text
+Reveal = blocked
+```
+
+After that:
+
+```text
+Reveal = eligible
+```
+
+M4 must not reveal simply because the fusion percentage reaches 100%.
+
+---
+
+# 15. REVEAL
+
+Once M3 reports:
+
+```text
+finalGatePassed = true
+```
+
+M4 shows the reveal.
+
+The reveal may include:
+
+- Checkpoint name.
+- Discovery confirmation.
+- Clue.
+- Lore.
+- Rarity.
+- Visual effect.
+- Continue/Next Checkpoint action.
+
+The exact content follows the established product/UI specification.
+
+---
+
+# 16. REVEAL MUST BE ONCE
+
+A successful discovery should not repeatedly trigger the reveal when:
+
+- Sensor values fluctuate.
+- Location updates continue.
+- The player remains nearby.
+- The screen recomposes/re-renders.
+
+M4 must guard the success transition.
+
+Conceptually:
+
+```text
+DISCOVERY_ELIGIBLE
+       ↓
+REVEAL_SHOWN
+       ↓
+PROGRESS_RECORDED
+```
+
+Once successful, the active scan should be closed.
+
+---
+
+# 17. SCAN STATE MACHINE
+
+Use an explicit state machine.
+
+Suggested states:
+
 ```kotlin
-class DeviceSensorManager(
-    private val context: Context
-) {
-    // sensor discovery
-    // listener registration
-    // listener cleanup
+enum class ScanState {
+    IDLE,
+    WAITING_FOR_LOCATION,
+    OUTSIDE_CHECKPOINT,
+    READY_TO_SCAN,
+    SCANNING,
+    FUSION_READY,
+    WAITING_FOR_PROXIMITY,
+    SUCCESS,
+    REVEALING,
+    COMPLETED,
+    ERROR
 }
 ```
 
-The exact class name is an implementation decision, but the responsibility must remain centralized.
+The exact names can be adjusted to the project's shared contracts.
 
-## 6.2 Sensor discovery
+---
 
-At initialization:
+# 18. STATE TRANSITIONS
+
+Conceptually:
 
 ```text
-SensorManager
+IDLE
+ ↓
+READY_TO_SCAN
+ ↓
+SCANNING
+ ↓
+FUSION_READY
+ ↓
+WAITING_FOR_PROXIMITY
+ ↓
+SUCCESS
+ ↓
+REVEALING
+ ↓
+COMPLETED
+```
+
+Possible failure path:
+
+```text
+SCANNING
+ ↓
+ERROR
+ ↓
+RETRY
+ ↓
+SCANNING
+```
+
+---
+
+# 19. OUTSIDE CHECKPOINT
+
+If the player leaves the required area before discovery:
+
+```text
+SCANNING
    ↓
-getDefaultSensor(TYPE_LIGHT)
-getDefaultSensor(TYPE_ACCELEROMETER)
-getDefaultSensor(TYPE_PROXIMITY)
+OUTSIDE_CHECKPOINT
 ```
 
-Each result must be checked for null.
+The exact behavior should follow the gameplay contract.
 
-Do not assume that every Android device has every sensor.
+The UI should clearly explain:
+
+```text
+Move closer to continue scanning.
+```
+
+Do not erase already-recorded discoveries.
 
 ---
 
-# 7. SensorAvailability
+# 20. LOCATION UNAVAILABLE
 
-Use a conceptual availability model:
+If M3 reports:
 
-```kotlin
-data class SensorAvailability(
-    val lightAvailable: Boolean,
-    val accelerometerAvailable: Boolean,
-    val proximityAvailable: Boolean
-)
+```text
+LOCATION_UNAVAILABLE
 ```
 
-This model is useful to:
-
-- decide which listeners to register;
-- support graceful degradation;
-- report diagnostic information;
-- test sensor combinations;
-- avoid crashes on devices without a specific sensor.
+M4 should show a recoverable state.
 
 Example:
 
 ```text
-light = true
-accelerometer = true
-proximity = true
+Location unavailable
+
+Check that location services are enabled and try again.
 ```
 
-Normal physical-device configuration.
-
-Another possible configuration:
-
-```text
-light = false
-accelerometer = true
-proximity = true
-```
-
-The app must not crash or become permanently unusable because the light sensor is missing.
+Do not crash the scan screen.
 
 ---
 
-# 8. Sensor Lifecycle
+# 21. SENSOR UNAVAILABLE
 
-Sensor listeners should be active only when needed.
-
-Preferred lifecycle:
-
-```text
-Map / Quest List
-     ↓
-No scan
-     ↓
-No continuous sensor listeners
-     ↓
-Geofence entered
-     ↓
-Scan Mode starts
-     ↓
-Register required sensors
-     ↓
-Collect readings
-     ↓
-Scan ends / leaves screen / lifecycle stops
-     ↓
-Unregister listeners
-```
-
-This reduces unnecessary battery consumption.
-
-M4 must not leave accelerometer and light listeners running for the entire lifetime of the application.
-
-## 8.1 Registration
-
-When Scan Mode becomes active:
-
-```text
-register light listener
-register accelerometer listener
-register proximity listener
-```
-
-Only register sensors that actually exist.
-
-## 8.2 Unregistration
-
-When Scan Mode ends:
-
-```text
-unregister light listener
-unregister accelerometer listener
-unregister proximity listener
-```
-
-Also clean up when the owning lifecycle reaches the appropriate stopped/destroyed state.
-
-## 8.3 Duplicate registration prevention
-
-The implementation must avoid:
-
-```text
-register
-register
-register
-```
-
-for the same active scan.
-
-Use an internal state such as:
-
-```text
-sensorsRegistered = true / false
-```
-
-or an equivalent lifecycle-safe mechanism.
-
----
-
-# 9. Light Sensor
-
-## 9.1 Input
-
-Android's light sensor provides an ambient light value, normally represented in lux.
-
-M4 reads the current value:
-
-```text
-currentLux
-```
-
-The relic provides an expected light signature:
-
-```kotlin
-data class LightSignature(
-    val minLux: Float,
-    val maxLux: Float
-)
-```
-
-## 9.2 Canonical relic examples
-
-The development catalog defines the following example signatures:
-
-| Relic | Light range |
-|---|---:|
-| R001 Founder’s Bell | 180–320 lux |
-| R002 Scholar’s Compass | 250–450 lux |
-| R003 Heritage Key | 80–180 lux |
-| R004 Old Library Seal | 400–650 lux |
-| R005 Garden Chronicle | 120–250 lux |
-| R006 Clock Tower Relic | 300–500 lux |
-
-These are development values and must be physically validated before final demonstration.
-
-## 9.3 Light matching
-
-Conceptually:
-
-```text
-if currentLux inside expected range:
-    lightScore = high
-else:
-    lightScore decreases according to distance from expected range
-```
-
-A simple initial development implementation may use a bounded score:
-
-```text
-inside range → 1.0
-
-outside range:
-distance from nearest boundary increases
-→ score approaches 0
-```
-
-Do not hard-code the exact decay curve as a final requirement without M4 calibration.
-
-## 9.4 Example
-
-For R001:
-
-```text
-expected: 180–320 lux
-current: 250 lux
-```
-
-The value is inside the expected range, so the light-match score can be treated as a strong match.
-
-For:
-
-```text
-current: 100 lux
-```
-
-the value is outside the expected range and should contribute a weaker score.
-
----
-
-# 10. Accelerometer
-
-## 10.1 Purpose
-
-The accelerometer detects the user's intended scanning movement.
-
-The project mechanic describes a slow side-to-side sweep rather than arbitrary shaking.
-
-M4 should therefore classify motion rather than simply checking whether the phone is moving.
-
-## 10.2 Raw input
-
-Typical accelerometer values:
-
-```text
-x
-y
-z
-```
-
-The exact axis used for scan classification depends on device orientation and implementation.
-
-M4 must document the selected interpretation.
-
-## 10.3 Motion preprocessing
-
-A practical pipeline is:
-
-```text
-raw accelerometer
-      ↓
-magnitude / axis analysis
-      ↓
-noise filtering
-      ↓
-movement window
-      ↓
-slow sweep detection
-      ↓
-motion score
-```
-
-The implementation should avoid requiring a perfectly identical movement pattern from every user.
-
-## 10.4 Motion score
-
-Conceptually:
-
-```text
-no meaningful motion → low
-random/sharp movement → low/medium
-controlled side-to-side sweep → high
-```
-
-The exact thresholds must be determined through physical testing.
-
-## 10.5 Avoid overfitting
-
-Do not make the motion detector so strict that:
-
-- a slightly different phone orientation fails;
-- a different device fails;
-- normal hand movement permanently produces zero;
-- the user must reproduce an exact waveform.
-
-The mechanic should feel like a controlled scan, not a laboratory measurement.
-
----
-
-# 11. GPS Distance Input
-
-M4 consumes the GPS distance calculated by M3.
-
-Example interface:
-
-```kotlin
-data class LocationSignal(
-    val distanceMeters: Float,
-    val accuracyMeters: Float?
-)
-```
-
-The actual shared contract can use a different name, but the meaning must remain clear.
-
-M4 must not:
-
-- create another Fused Location Provider instance;
-- calculate an independent distance using a second location pipeline;
-- create a second geofence;
-- introduce conflicting proximity rules.
-
-There must be one authoritative location implementation owned by M3.
-
----
-
-# 12. GPS Normalization
-
-The fusion engine needs a normalized GPS score.
-
-Conceptually:
-
-```text
-far from relic
-    ↓
-low GPS score
-
-inside approach range
-    ↓
-higher GPS score
-
-very close
-    ↓
-high GPS score
-```
-
-The exact function depends on the project radius and calibration.
-
-A simple initial approach may map distance against the relic's configured radius:
-
-```text
-distance >= radius → 0
-distance <= 0      → 1
-between            → normalized proportion
-```
-
-This is an initial development model, not a final calibrated requirement.
-
-Accuracy should also be considered.
+If a required sensor is unavailable, M4 displays the project-defined behavior.
 
 Example:
 
 ```text
-distance = 8m
-GPS accuracy = ±35m
+This device cannot perform this scan.
 ```
 
-should not be interpreted with the same confidence as:
+or the documented degraded mode.
 
-```text
-distance = 8m
-GPS accuracy = ±3m
-```
-
-M3 remains responsible for authoritative location data and geofence behavior.
+M4 must not invent a workaround that bypasses the fusion contract.
 
 ---
 
-# 13. Fusion Formula
+# 22. SCAN ERROR
 
-The fusion engine combines available score components.
+Use an explicit error state.
 
-Conceptual formula:
+Example:
 
-```text
-Fusion Score =
-    GPS Score    × GPS Weight
-  + Light Score  × Light Weight
-  + Motion Score × Motion Weight
+```kotlin
+data class ScanErrorUiState(
+    val title: String,
+    val message: String,
+    val retryAvailable: Boolean
+)
 ```
 
-All active component scores should be normalized to:
+This keeps error presentation separate from the sensor implementation.
 
-```text
-0.0 → 1.0
+---
+
+# 23. RETRY
+
+A retry should:
+
+1. Reset only transient scan state.
+2. Preserve game/checkpoint identity.
+3. Reinitialize required M3 scan collection.
+4. Start a fresh fusion session.
+
+Do not accidentally create a second checkpoint discovery record.
+
+---
+
+# 24. VIEWMODEL RESPONSIBILITY
+
+M4 should use a dedicated ViewModel.
+
+Suggested:
+
+```kotlin
+class QuestScanViewModel
 ```
 
-The final UI value can then be converted to:
+It coordinates:
 
-```text
-0 → 100%
+- Current checkpoint.
+- Scan state.
+- M3 discovery signal state.
+- UI state.
+- Reveal state.
+- Discovery-record request.
+- Retry.
+- Lifecycle transitions.
+
+It should not contain raw sensor SDK calls.
+
+---
+
+# 25. SUGGESTED UI STATE
+
+Conceptually:
+
+```kotlin
+data class QuestScanUiState(
+    val gameId: String,
+    val checkpointId: String,
+    val checkpointName: String,
+    val clue: String? = null,
+    val lore: String? = null,
+    val rarity: String? = null,
+    val scanState: ScanState = ScanState.IDLE,
+    val distanceM: Float? = null,
+    val gpsScore: Float = 0f,
+    val lightScore: Float = 0f,
+    val motionScore: Float = 0f,
+    val fusionScore: Float = 0f,
+    val fusionThresholdReached: Boolean = false,
+    val proximityState: ProximityState = ProximityState.UNKNOWN,
+    val finalGatePassed: Boolean = false,
+    val isRecordingDiscovery: Boolean = false,
+    val error: String? = null
+)
 ```
 
-## 13.1 Initial development example
+The actual project model may use separate state objects.
 
-An initial development example could be:
+---
+
+# 26. M3 SIGNAL CONTRACT
+
+M4 consumes a state similar to:
 
 ```text
-GPS       = 0.40
-Light     = 0.35
-Motion    = 0.25
+gameId
+checkpointId
+distance
+gpsScore
+lightScore
+motionScore
+fusionScore
+fusionThresholdReached
+proximityState
+finalGatePassed
+location availability
+sensor availability
+error
+```
+
+M3 owns how these values are calculated.
+
+M4 owns how they are displayed and used to drive UI state.
+
+---
+
+# 27. M4 MUST NOT CALCULATE FUSION
+
+Avoid code such as:
+
+```kotlin
+val score =
+    gpsScore * 0.4 +
+    lightScore * 0.3 +
+    motionScore * 0.3
+```
+
+inside M4.
+
+The fusion engine belongs to M3.
+
+This prevents the UI from becoming a second, potentially inconsistent fusion implementation.
+
+---
+
+# 28. M4 MUST NOT READ SENSOR VALUES
+
+Avoid:
+
+```kotlin
+SensorManager
+LocationServices
+GeofencingClient
+```
+
+inside M4.
+
+M4 receives the result through the M3 contract.
+
+---
+
+# 29. CHECKPOINT CONTENT
+
+After successful discovery, M4 may receive:
+
+```text
+name
+clue
+lore
+rarity
+```
+
+from the checkpoint model.
+
+M4 presents the content.
+
+M2 owns creation/editing of these values.
+
+M5/M6 own persistence.
+
+---
+
+# 30. DISCOVERY RECORDING
+
+After successful physical confirmation:
+
+```text
+M3 finalGatePassed
+        ↓
+M4 SUCCESS
+        ↓
+recordDiscovery(gameId, checkpointId, foundAt)
+```
+
+M4 requests the operation through the repository/use-case boundary.
+
+M4 does not directly write:
+
+```text
+Firestore
+Room
+```
+
+---
+
+# 31. DISCOVERY IDENTITY
+
+Every discovery must be scoped by:
+
+```text
+userId
+gameId
+checkpointId
+```
+
+M4 should pass the correct:
+
+```text
+gameId
+checkpointId
+```
+
+The authenticated user is resolved through the application's identity/repository layer.
+
+---
+
+# 32. DUPLICATE DISCOVERY PROTECTION
+
+The same checkpoint should not be recorded repeatedly because:
+
+- The sensor state fluctuates.
+- The user reopens the screen.
+- The device rotates.
+- The player remains near the checkpoint.
+
+The repository/data layer should provide idempotent recording.
+
+M4 should also guard repeated UI success events.
+
+---
+
+# 33. FOUND CHECKPOINT FLOW
+
+Conceptually:
+
+```text
+Final gate passes
+      ↓
+SUCCESS
+      ↓
+Request discovery recording
+      ↓
+Local progress recorded
+      ↓
+Cloud sync according to repository
+      ↓
+Reveal / completed state
+```
+
+The exact ordering can be adjusted to the shared offline contract.
+
+---
+
+# 34. OFFLINE DISCOVERY
+
+M4 should support the application's offline contract.
+
+If the repository accepts local recording while offline:
+
+```text
+Discovery
+   ↓
+Room/local record
+   ↓
+pendingSync = true
+   ↓
+Reveal
+   ↓
+M6 syncs later
+```
+
+M4 does not implement this synchronization.
+
+---
+
+# 35. NETWORK FAILURE DURING DISCOVERY
+
+If network is unavailable but local discovery is supported:
+
+```text
+Discovery saved locally
+Waiting for sync
+```
+
+The user should not necessarily lose the discovery.
+
+If the canonical project contract requires online validation, M4 must follow that instead.
+
+---
+
+# 36. NEXT CHECKPOINT
+
+After reveal:
+
+```text
+[Next Checkpoint]
+```
+
+should navigate back to the game progression.
+
+The next checkpoint is determined from the game-specific checkpoint ordering/progress.
+
+M4 must not hard-code:
+
+```text
+R001 → R002
+R002 → R003
+```
+
+The player progression must be dynamic.
+
+---
+
+# 37. LAST CHECKPOINT
+
+If the discovered checkpoint is the final checkpoint:
+
+```text
+Quest Complete
+```
+
+may be shown instead of:
+
+```text
+Next Checkpoint
+```
+
+The game-specific completion state must be based on the actual checkpoint list/progress.
+
+---
+
+# 38. GAME-SPECIFIC PROGRESSION
+
+Progress belongs to:
+
+```text
+gameId
 ```
 
 Therefore:
 
 ```text
-score =
-    gpsScore    * 0.40
-  + lightScore  * 0.35
-  + motionScore * 0.25
+Game A progress
 ```
 
-**These weights are provisional.**
+must not affect:
 
-They are not a fixed requirement from the project materials. M4 must test and calibrate them on actual devices and campus conditions, then communicate the final agreed values through the shared contract.
+```text
+Game B progress
+```
+
+M4 must pass the correct game ID throughout the gameplay flow.
 
 ---
 
-# 14. Graceful Sensor Degradation
+# 39. PLAYER LEADERBOARD HANDOFF
 
-This is a required design behavior.
+After discovery is recorded, the backend may update the game-specific leaderboard.
 
-If a sensor is unavailable, the application should not automatically make the relic impossible to discover.
+M4 does not calculate leaderboard ranking.
 
-Example:
+M4 may navigate to or refresh leaderboard UI through M1's player-facing flow.
 
-```text
-GPS       available
-Light     unavailable
-Motion    available
-```
-
-The available weights should be renormalized.
-
-If the initial weights are:
+The leaderboard is always:
 
 ```text
-GPS       0.40
-Light     0.35
-Motion    0.25
+leaderboard for this game
 ```
 
-and Light is unavailable:
-
-```text
-available total = 0.40 + 0.25 = 0.65
-```
-
-Then:
-
-```text
-GPS effective weight
-= 0.40 / 0.65
-
-Motion effective weight
-= 0.25 / 0.65
-```
-
-The resulting active weights sum to 1.0.
-
-Conceptually:
-
-```kotlin
-val activeWeightTotal = availableWeights.sum()
-
-normalizedWeight =
-    originalWeight / activeWeightTotal
-```
-
-## 14.1 If only one fusion input remains
-
-If only GPS remains:
-
-```text
-Fusion Score = GPS Score
-```
-
-The app should continue to function, but M2 may optionally communicate reduced scan fidelity if the shared UX contract calls for it.
-
-## 14.2 Proximity unavailable
-
-Proximity is different because it is the final reveal gate.
-
-If proximity hardware is unavailable, the team must not silently treat it as detected.
-
-The final behavior must be agreed by the team and documented in the shared contract.
-
-A safe development policy is:
-
-```text
-proximity unavailable
-      ↓
-do not falsely claim proximity confirmation
-      ↓
-use an explicitly agreed fallback for demonstration/testing
-```
-
-If the academic requirement requires physical proximity confirmation, a device without the sensor cannot be used to demonstrate that portion.
+not a global leaderboard.
 
 ---
 
-# 15. Proximity Sensor — Final Gate
+# 40. NAVIGATION CONTRACT
 
-## 15.1 Critical rule
-
-> **Proximity is NOT part of the fusion score.**
-
-It does not receive a percentage weight.
-
-It does not increase the fusion meter.
-
-It does not reduce the fusion meter.
-
-It only determines whether the final reveal may happen after the fusion condition is satisfied.
-
-## 15.2 Conceptual state
+Suggested conceptual routes:
 
 ```text
-fusionScore = 86%
-
-proximity = not close
-→ reveal blocked
+player/game/{gameId}
+player/game/{gameId}/checkpoint/{checkpointId}/scan
+player/game/{gameId}/checkpoint/{checkpointId}/reveal
 ```
 
-Then:
+The exact route syntax is defined by the application's shared navigation implementation.
+
+Required identity:
 
 ```text
-fusionScore = 86%
-
-proximity = close
-→ reveal allowed
-```
-
-## 15.3 Final decision
-
-Conceptually:
-
-```kotlin
-revealAllowed =
-    fusionScore >= revealThreshold &&
-    proximityConfirmed
-```
-
-The exact threshold is provisional until calibration.
-
-## 15.4 Why separate it
-
-This separation prevents an accidental implementation where proximity becomes another weighted signal.
-
-Correct:
-
-```text
-[GPS + Light + Motion] → percentage
-                         ↓
-                  threshold reached?
-                         ↓
-                  proximity gate
-                         ↓
-                      reveal
-```
-
-Incorrect:
-
-```text
-GPS + Light + Motion + Proximity
-              ↓
-        weighted percentage
+gameId
+checkpointId
 ```
 
 ---
 
-# 16. Conceptual SensorFusionEngine Interface
+# 41. DEEP-LINK COMPATIBILITY
 
-A possible interface:
+M4 should not assume that the player always arrives through the map.
 
-```kotlin
-interface SensorFusionEngine {
+The application may enter gameplay from:
 
-    fun startScan(
-        relic: Relic,
-        locationInput: LocationSignal
-    )
+- Game map.
+- Continue game.
+- Notification/deep-link path where appropriate.
+- Previously saved progress.
 
-    fun stopScan()
-
-    fun updateLocation(
-        locationInput: LocationSignal
-    )
-
-    fun getCurrentResult(): FusionResult
-
-    fun observeResult(): Flow<FusionResult>
-}
-```
-
-The exact API can be changed during implementation, but it must provide the same conceptual responsibilities.
-
----
-
-# 17. FusionResult
-
-Suggested conceptual model:
-
-```kotlin
-data class FusionResult(
-    val score: Float,
-    val gpsScore: Float?,
-    val lightScore: Float?,
-    val motionScore: Float?,
-    val proximityConfirmed: Boolean,
-    val availability: SensorAvailability,
-    val revealAllowed: Boolean
-)
-```
-
-Interpretation:
-
-- `score` — fused percentage basis, excluding proximity.
-- `gpsScore` — normalized location contribution.
-- `lightScore` — normalized light contribution.
-- `motionScore` — normalized motion contribution.
-- `proximityConfirmed` — final gate state.
-- `availability` — sensor availability snapshot.
-- `revealAllowed` — final decision.
-
-The nullable component scores are useful because a missing sensor should not be represented as a fake zero measurement.
-
----
-
-# 18. ScanState
-
-A conceptual state model:
-
-```kotlin
-sealed interface ScanState {
-    data object Idle : ScanState
-    data object Starting : ScanState
-    data class Scanning(
-        val result: FusionResult
-    ) : ScanState
-    data class ReadyToReveal(
-        val result: FusionResult
-    ) : ScanState
-    data class Completed(
-        val relicId: String
-    ) : ScanState
-    data class Error(
-        val message: String
-    ) : ScanState
-}
-```
-
-The exact Kotlin representation is flexible.
-
-The important states are:
+The screen must validate that:
 
 ```text
-Idle
-Starting
-Scanning
-ReadyToReveal
-Completed
-Error
+gameId
+checkpointId
 ```
 
-M2 should not need to know how raw Android sensor events work.
+refer to a valid accessible game/checkpoint.
 
 ---
 
-# 19. Data Flow During One Scan
+# 42. LOADING STATE
 
-Example for R001:
+When checkpoint details or scan dependencies are loading:
 
 ```text
-R001 selected
-      ↓
-M3 reports distance
-      ↓
-Scan Mode starts
-      ↓
-M4 discovers sensors
-      ↓
-Light sensor → current lux
-Accelerometer → movement classification
-Proximity → close/not close
-      ↓
-M4 normalizes GPS/light/motion
-      ↓
-M4 calculates fusion score
-      ↓
-M2 observes FusionResult
-      ↓
-meter updates
-      ↓
-fusion threshold reached
-      ↓
-proximity checked
-      ↓
-proximity confirmed
-      ↓
-revealAllowed = true
-      ↓
-M2 displays relic reveal
+Loading checkpoint...
+```
+
+Do not display stale information as if it were current.
+
+---
+
+# 43. EMPTY / INVALID CHECKPOINT
+
+If the checkpoint cannot be found:
+
+```text
+Checkpoint unavailable
+
+Return to the game and try again.
+```
+
+Do not crash due to:
+
+```text
+null checkpoint
 ```
 
 ---
 
-# 20. R001 Mock Scenario
+# 44. ROTATION / RECREATION
 
-R001:
+The scan screen should survive normal Android recreation where supported.
 
-```text
-id: R001
-name: Founder’s Bell
-radius: 25m
-light: 180–320 lux
-```
+Transient sensor data may be reset safely.
 
-Mock inputs:
+The app must preserve:
 
-```text
-GPS distance: 8m
-Light: 250 lux
-Motion: controlled sweep
-Proximity: close
-```
+- gameId.
+- checkpointId.
+- Appropriate scan state.
+- Recorded discovery status.
 
-Expected conceptual behavior:
-
-```text
-GPS score → high
-Light score → high
-Motion score → high
-
-Fusion score → high
-
-Proximity → confirmed
-
-Reveal → allowed
-```
-
-The exact resulting percentage depends on the final normalization, weights, smoothing, and calibration.
-
-Do not write tests that depend on an arbitrary exact final percentage unless the team has frozen the algorithm.
+Do not duplicate discovery when the UI is recreated.
 
 ---
 
-# 21. Mock-First Development
+# 45. LIFECYCLE
 
-M4 must not wait for M3's real GPS implementation before developing the fusion engine.
-
-Create a mock input source.
-
-Example:
-
-```kotlin
-data class MockFusionInput(
-    val distanceMeters: Float,
-    val lux: Float,
-    val motionScore: Float,
-    val proximityConfirmed: Boolean
-)
-```
-
-This allows M4 to test:
-
-```text
-R001 + 8m + 250 lux + good motion + proximity
-```
-
-before hardware integration.
-
----
-
-# 22. Required Mock Scenarios
-
-At minimum implement these development scenarios:
-
-### Scenario A — Strong match
-
-```text
-distance = close
-lux = inside signature
-motion = good
-proximity = true
-```
-
-Expected:
-
-```text
-high score
-reveal allowed
-```
-
-### Scenario B — Far away
-
-```text
-distance = far
-lux = matching
-motion = good
-proximity = true
-```
-
-Expected:
-
-```text
-low/reduced score
-reveal blocked
-```
-
-### Scenario C — Wrong light
-
-```text
-distance = close
-lux = outside signature
-motion = good
-proximity = true
-```
-
-Expected:
-
-```text
-reduced score
-```
-
-### Scenario D — Wrong motion
-
-```text
-distance = close
-lux = matching
-motion = poor
-proximity = true
-```
-
-Expected:
-
-```text
-reduced score
-```
-
-### Scenario E — Proximity blocked
-
-```text
-fusion score >= threshold
-proximity = false
-```
-
-Expected:
-
-```text
-reveal blocked
-```
-
-### Scenario F — Missing light sensor
-
-```text
-GPS = available
-motion = available
-light = unavailable
-```
-
-Expected:
-
-```text
-score calculated from available signals
-no crash
-```
-
-### Scenario G — Missing accelerometer
-
-```text
-GPS = available
-light = available
-motion = unavailable
-```
-
-Expected:
-
-```text
-score calculated from available signals
-no crash
-```
-
-### Scenario H — Missing proximity
-
-Expected behavior must follow the agreed project fallback and must never falsely report hardware confirmation.
-
----
-
-# 23. Smoothing
-
-Raw sensor data can fluctuate.
-
-M4 should avoid directly displaying every raw measurement.
-
-Preferred conceptual approach:
-
-```text
-raw readings
-    ↓
-short moving average / smoothing
-    ↓
-normalized score
-    ↓
-fusion
-    ↓
-UI
-```
-
-The exact window length is a calibration parameter.
-
-The purpose is to prevent:
-
-```text
-72%
-73%
-69%
-81%
-64%
-```
-
-from appearing as distracting jitter when the user's actual scan quality has not meaningfully changed.
-
----
-
-# 24. Update Frequency
-
-The UI does not necessarily need to render every hardware sensor event.
-
-A practical architecture can:
-
-```text
-receive sensor events frequently
-      ↓
-process internally
-      ↓
-publish a controlled result update rate
-      ↓
-M2 UI
-```
-
-The exact rate should be chosen during implementation/testing.
-
-Avoid excessive UI updates that waste resources without improving the scan experience.
-
----
-
-# 25. Battery Considerations
-
-M4 must apply battery-conscious behavior:
-
-1. Do not register sensors before Scan Mode.
-2. Do not keep sensors registered after Scan Mode.
-3. Avoid unnecessary high-frequency processing.
-4. Avoid duplicate listeners.
-5. Avoid creating multiple sensor manager instances unnecessarily.
-6. Stop processing after reveal/completion.
-7. Release references appropriately with lifecycle cleanup.
-
-M3 owns the battery-conscious GPS/geofence strategy.
-
-M4 owns battery-conscious sensor usage.
-
----
-
-# 26. Threading and UI Safety
-
-Sensor callbacks can occur frequently.
-
-M4 should avoid blocking the main thread with expensive processing.
+M4 should coordinate scan lifecycle with M3.
 
 Conceptually:
 
 ```text
-sensor event
-   ↓
-lightweight processing
-   ↓
-fusion state
-   ↓
-observable state
-   ↓
-ViewModel
-   ↓
-UI
+Screen enters foreground
+        ↓
+Start/Resume scan
+        ↓
+Screen leaves foreground
+        ↓
+Pause/stop active scan
 ```
 
-If processing becomes non-trivial, move suitable calculations off the UI thread.
+The exact behavior is implemented through the M3 contract.
 
-The UI should never directly manipulate `SensorEvent`.
+M4 should not manually register sensors.
 
 ---
 
-# 27. Error Handling
+# 46. ACCESSIBILITY
 
-Potential failures:
-
-- sensor unavailable;
-- listener registration failure;
-- unexpected sensor values;
-- invalid relic light signature;
-- stale location input;
-- lifecycle stopping while scan is active;
-- duplicate scan initialization.
-
-The fusion engine should fail predictably.
-
-Example conceptual error states:
-
-```text
-SensorUnavailable
-InvalidSignature
-InvalidLocationInput
-ScanNotActive
-```
-
-Do not crash the application because a physical sensor is absent.
-
----
-
-# 28. Sensor Value Validation
-
-M4 should validate incoming data.
+The scan UI should communicate important states without relying only on color.
 
 Examples:
 
 ```text
-lux < 0
-NaN
-Infinity
+Fusion 78 percent
+GPS signal strong
+Light signature matched
+Motion detected
+Move closer
+Proximity confirmation required
+Discovery successful
 ```
 
-should not be treated as valid measurements.
-
-Similarly, invalid GPS distance values should be rejected rather than creating a misleading score.
-
-A defensive rule:
-
-```text
-invalid measurement
-      ↓
-ignore / mark unavailable
-      ↓
-recalculate using valid signals
-```
-
-The exact fallback behavior should be consistent with the shared contract.
+Use accessible text/content descriptions for visual indicators.
 
 ---
 
-# 29. Relic Configuration Input
+# 47. ANIMATION
 
-M4 should receive the relic's signature rather than hard-coding every relic inside the sensor engine.
+Animations may be used for:
 
-Preferred:
+- Fusion-meter growth.
+- Scan activity.
+- Successful discovery.
+- Reveal.
 
-```text
-Relic
- ├── id
- ├── name
- ├── radiusM
- └── lightSignature
-```
+However, animations must not become the source of truth.
 
-Then:
-
-```text
-SensorFusionEngine
-       +
-current Relic
-       ↓
-fusion calculation
-```
-
-This allows M5/M6 to supply relic data without changing M4's algorithm.
+The actual state comes from M3/repository state.
 
 ---
 
-# 30. No Hard-Coded Firebase Access
+# 48. SCAN FEEDBACK
 
-M4 must not directly query Firestore for relic signatures.
+Feedback should make the mechanic understandable.
 
-Correct:
-
-```text
-M2 / ViewModel
-      ↓
-Repository
-      ↓
-Room / Firestore
-      ↓
-Relic configuration
-      ↓
-FusionEngine
-```
-
-Incorrect:
+Examples:
 
 ```text
-FusionEngine
-      ↓
-Firebase
+Searching for signals...
 ```
 
-The fusion engine should remain testable without a network connection.
+```text
+GPS aligned
+```
+
+```text
+Light signature matched
+```
+
+```text
+Keep sweeping
+```
+
+```text
+Signals aligned
+Bring the phone close
+```
+
+The exact copy can follow the final UI/UX specification.
 
 ---
 
-# 31. Interface With M2
+# 49. NO FAKE PROGRESS
 
-M2 needs:
-
-```text
-current score
-component scores if useful
-sensor availability
-proximity status
-reveal permission
-scan state
-```
-
-M2 does not need:
+Do not animate:
 
 ```text
-SensorEvent
-SensorManager
-raw accelerometer implementation
-raw lux processing algorithm
+0% → 100%
 ```
 
-## M2 handoff
+on a timer independently of actual sensor fusion.
 
-M4 provides a stable result such as:
-
-```kotlin
-FusionResult(
-    score = ...,
-    gpsScore = ...,
-    lightScore = ...,
-    motionScore = ...,
-    proximityConfirmed = ...,
-    availability = ...,
-    revealAllowed = ...
-)
-```
-
-M2 maps this into the visual scan meter and states.
+The fusion meter must reflect M3's actual fusion state.
 
 ---
 
-# 32. Interface With M3
+# 50. THRESHOLD FEEDBACK
 
-M3 provides:
+When fusion reaches the threshold:
 
 ```text
-distanceMeters
-accuracyMeters
+Fusion threshold reached
 ```
 
-and/or the exact agreed location-signal model.
+The UI should clearly transition into:
 
-M3 does not need to know:
+```text
+Proximity confirmation
+```
 
-- light normalization;
-- accelerometer classification;
-- fusion weighting;
-- proximity behavior.
-
-M4 does not modify M3's geofence implementation.
+This makes the two-stage mechanic understandable.
 
 ---
 
-# 33. Interface With M5
+# 51. PROXIMITY FEEDBACK
 
-M5 provides/obtains cloud-backed relic configuration.
-
-M4 requires:
+If fusion is ready but proximity is not:
 
 ```text
-relic ID
-light signature
-radius
+Almost there
+
+Bring the phone closer to complete the scan.
 ```
 
-M4 returns a scan outcome that may eventually be used by the application layer to record a successful reveal.
-
-M4 should not directly write:
+If proximity passes:
 
 ```text
-Firestore progress
-leaderboard
-users
+Confirmed
 ```
+
+then reveal.
 
 ---
 
-# 34. Interface With M6
+# 52. SUCCESS FEEDBACK
 
-M6 consumes successful relic completion/progress events for local persistence.
+A successful scan should be unmistakable.
 
-M4 should expose a clear event or result indicating:
-
-```text
-relic completed
-```
-
-M6 can then persist:
+Possible sequence:
 
 ```text
-relicId
-foundAt
-pendingSync
+SUCCESS
+   ↓
+Discovery recorded
+   ↓
+Reveal
 ```
 
-M4 should not directly write Room entities unless the team explicitly agrees to a different architecture.
+The reveal should feel like the completion of the physical interaction, not simply a button click.
 
 ---
 
-# 35. Integration Contract
+# 53. FAILURE FEEDBACK
 
-The team must freeze the following before final integration:
+A failed scan should tell the player what to do.
+
+Avoid:
 
 ```text
-FusionResult structure
-sensor availability representation
-distance input structure
-light signature structure
-fusion score range
-reveal threshold
-proximity gate semantics
-sensor degradation behavior
-final weights
+Scan failed.
 ```
 
-If any item changes after freeze:
+Prefer a state-specific instruction such as:
 
-1. M4 updates the implementation.
-2. M4 updates this contract or the shared contract document.
-3. M4 tells M2/M3/M6 immediately.
-4. Existing tests are rerun.
-5. The change is committed in Git.
+```text
+Signals are not aligned.
+Move closer and continue the sweep.
+```
+
+when supported by the available state.
 
 ---
 
-# 36. Provisional Parameters vs Final Parameters
+# 54. VIEWMODEL EVENTS
 
-The following must be treated as provisional during development:
+Avoid using one-time UI events in a way that causes duplicate navigation after recreation.
 
-- fusion weights;
-- reveal threshold;
-- motion sensitivity;
-- smoothing window;
-- light mismatch decay;
-- GPS normalization curve;
-- acceptable sensor update frequency.
-
-The project should not claim these values are academically fixed unless the lecturer/project specification explicitly states them.
-
-M4 must produce a small calibration record:
+Prefer a state-driven approach where practical:
 
 ```text
-Parameter
-Initial value
-Test condition
-Observed issue
-Final value
-Reason
-Date
-Device
+scanState = REVEALING
 ```
 
-This becomes useful evidence for the final report/demo.
+and guard the transition.
+
+The exact event architecture should follow the project's existing MVVM implementation.
 
 ---
 
-# 37. Campus Calibration Plan — September 22
-
-M4 should perform physical calibration on campus.
-
-## Test locations
-
-Use at least several representative environments:
-
-1. outdoor bright area;
-2. shaded/outdoor transition;
-3. indoor corridor;
-4. indoor room/library-like environment;
-5. target relic locations where practical.
-
-## Light measurements
-
-For each relic location record:
-
-```text
-location
-time
-lux
-weather/lighting condition
-device
-```
-
-Determine whether the development ranges are realistic.
-
-## Motion
+# 55. UNIT TESTS — STATE MACHINE
 
 Test:
 
 ```text
-slow left-right sweep
-slow right-left sweep
-small hand movement
-walking movement
-fast shaking
-stationary phone
+IDLE → READY_TO_SCAN
+READY_TO_SCAN → SCANNING
+SCANNING → FUSION_READY
+FUSION_READY → WAITING_FOR_PROXIMITY
+WAITING_FOR_PROXIMITY → SUCCESS
+SUCCESS → REVEALING
+REVEALING → COMPLETED
 ```
 
-The detector should distinguish intended scanning from clearly unrelated motion.
-
-## GPS
-
-M3 leads GPS measurement.
-
-M4 should verify that the distance values received from M3 behave sensibly near the relic.
+Also test invalid transitions.
 
 ---
 
-# 38. Two-Device Sensor Matrix
+# 56. UNIT TEST — FUSION THRESHOLD
 
-Test on at least two physical Android devices where available.
+Given:
 
-Suggested matrix:
+```text
+fusionThresholdReached = false
+```
 
-| Test | Device A | Device B |
-|---|---|---|
-| Light sensor present | ✓ | ✓/— |
-| Accelerometer present | ✓ | ✓ |
-| Proximity present | ✓/— | ✓/— |
-| Light reading stability | test | test |
-| Motion detection | test | test |
-| Proximity confirmation | test | test |
-| Fusion score | test | test |
-| Missing-sensor fallback | test | test |
-| Lifecycle cleanup | test | test |
-| Battery behavior | observe | observe |
+the UI must not enter the proximity confirmation state.
 
-Do not assume two devices report identical lux values or accelerometer behavior.
+Given:
+
+```text
+fusionThresholdReached = true
+```
+
+the UI may enter the proximity state.
 
 ---
 
-# 39. Unit Testing
+# 57. UNIT TEST — FINAL GATE
 
-M4 should unit-test the algorithm independently from Android hardware.
-
-## Required unit test categories
-
-### Normalization
-
-Test:
+Given:
 
 ```text
-minimum
-maximum
-middle
-below range
-above range
-invalid values
+fusionThresholdReached = true
+proximity = FAR
 ```
 
-### Light matching
-
-Test:
+expect:
 
 ```text
-inside signature
-exact boundary
-slightly outside
-far outside
+WAITING_FOR_PROXIMITY
 ```
 
-### Motion classification
-
-Test representative processed motion samples.
-
-### Fusion
-
-Test:
+Given:
 
 ```text
-all signals available
-one signal unavailable
-two signals unavailable
-only GPS available
+fusionThresholdReached = true
+proximity = NEAR
 ```
 
-### Proximity
-
-Test:
+expect:
 
 ```text
-threshold not reached + proximity true → false
-threshold reached + proximity false → false
-threshold reached + proximity true → true
-```
-
-### Degradation
-
-Test that active weights always normalize correctly.
-
----
-
-# 40. Component/Instrumented Testing
-
-On Android hardware/emulator, verify:
-
-- sensors are discovered;
-- listeners register;
-- listeners unregister;
-- scan starts correctly;
-- scan stops correctly;
-- lifecycle transitions do not leak listeners;
-- unavailable sensors do not crash;
-- result state reaches ViewModel/UI;
-- proximity gate behaves correctly.
-
-Hardware-dependent tests should be separated from pure algorithm tests.
-
----
-
-# 41. Testable Fusion Example
-
-Suppose:
-
-```text
-gpsScore = 0.8
-lightScore = 1.0
-motionScore = 0.6
-```
-
-Using the **initial development example only**:
-
-```text
-GPS = 0.40
-Light = 0.35
-Motion = 0.25
-```
-
-Then:
-
-```text
-score =
-(0.8 × 0.40)
-+
-(1.0 × 0.35)
-+
-(0.6 × 0.25)
-
-= 0.32 + 0.35 + 0.15
-= 0.82
-```
-
-Therefore:
-
-```text
-82%
-```
-
-This is an illustration of the algorithm, not a claim that 40/35/25 are the final weights.
-
----
-
-# 42. Degradation Example
-
-If light is unavailable:
-
-```text
-gpsScore = 0.8
-motionScore = 0.6
-```
-
-Initial weights:
-
-```text
-GPS = 0.40
-Motion = 0.25
-```
-
-Available total:
-
-```text
-0.65
-```
-
-Effective weights:
-
-```text
-GPS    = 0.40 / 0.65
-Motion = 0.25 / 0.65
-```
-
-The two effective weights sum to:
-
-```text
-1.0
-```
-
-This prevents the missing sensor from artificially lowering every score simply because its weight was left unused.
-
----
-
-# 43. What M4 Must Show M2
-
-During integration, M4 should demonstrate:
-
-1. Scan starts.
-2. Sensor availability is detected.
-3. Fusion percentage changes as inputs change.
-4. Light mismatch affects score.
-5. Motion affects score.
-6. GPS distance affects score.
-7. Missing sensor does not crash the scan.
-8. Proximity does not change the percentage.
-9. Proximity blocks reveal when not confirmed.
-10. Proximity permits reveal when confirmed.
-
-This is more valuable than showing raw sensor logs.
-
----
-
-# 44. Debug Logging
-
-During development only, use structured logs.
-
-Example:
-
-```text
-SCAN_START relic=R001
-SENSOR_AVAILABILITY light=true accel=true proximity=true
-GPS distance=8.2
-LIGHT lux=252
-MOTION score=0.74
-FUSION score=0.84
-PROXIMITY close=false
-REVEAL allowed=false
-```
-
-Do not leave excessive logging enabled in the final release build.
-
-Never log sensitive user information unnecessarily.
-
----
-
-# 45. Suggested Package Structure
-
-A possible structure:
-
-```text
-sensor/
-├── DeviceSensorManager.kt
-├── SensorAvailability.kt
-├── LightMatcher.kt
-├── MotionClassifier.kt
-├── SensorFusionEngine.kt
-├── FusionResult.kt
-├── ScanState.kt
-└── ProximityGate.kt
-```
-
-Location input may be represented in a separate shared/domain package:
-
-```text
-domain/
-└── LocationSignal.kt
-```
-
-The exact package layout can follow M1/M6 project conventions.
-
----
-
-# 46. Separation of Responsibilities
-
-### DeviceSensorManager
-
-Owns:
-
-```text
-SensorManager
-sensor discovery
-listener registration
-listener cleanup
-```
-
-### LightMatcher
-
-Owns:
-
-```text
-lux → light score
-```
-
-### MotionClassifier
-
-Owns:
-
-```text
-accelerometer data → motion score
-```
-
-### SensorFusionEngine
-
-Owns:
-
-```text
-component scores
-weights
-degradation
-combined score
-```
-
-### ProximityGate
-
-Owns:
-
-```text
-near/far state
-final confirmation
-```
-
-### ViewModel
-
-Owns:
-
-```text
-UI state
-screen lifecycle coordination
-```
-
-This separation makes M4 easier to test.
-
----
-
-# 47. Avoid These Anti-Patterns
-
-Do not:
-
-### 47.1 Put sensor code directly in an Activity
-
-Bad:
-
-```kotlin
-class ScanActivity : Activity(), SensorEventListener {
-    // entire fusion algorithm here
-}
-```
-
-This makes lifecycle, testing, and reuse harder.
-
-### 47.2 Put Firebase calls in sensor classes
-
-Sensor logic must remain independent of cloud storage.
-
-### 47.3 Put Room calls in sensor classes
-
-Persistence belongs to M6/repository architecture.
-
-### 47.4 Register sensors permanently
-
-This wastes resources.
-
-### 47.5 Treat missing sensor as score zero
-
-Use graceful degradation.
-
-### 47.6 Include proximity in the percentage
-
-This violates the project mechanic.
-
-### 47.7 Duplicate GPS
-
-M3 owns location.
-
-### 47.8 Hard-code final weights without calibration
-
-Initial weights are only development examples.
-
----
-
-# 48. Git Branch
-
-M4 branch:
-
-```text
-feature/sensor-fusion
-```
-
-Do not push unfinished experimental code directly to `main`.
-
-Suggested commits:
-
-```text
-feat: add sensor availability detection
-feat: add light signature matcher
-feat: add accelerometer motion classifier
-feat: add fusion engine
-feat: add proximity reveal gate
-test: add fusion engine unit tests
-test: add sensor degradation scenarios
-fix: clean sensor listeners on lifecycle stop
-docs: record sensor calibration results
-```
-
-Keep commits focused.
-
----
-
-# 49. Pull Request Requirements
-
-Before requesting merge, M4 must provide:
-
-- summary of changes;
-- tests performed;
-- device used;
-- known limitations;
-- any changed shared interfaces;
-- final/provisional parameter status;
-- screenshots/log evidence where useful.
-
-PR reviewers should verify:
-
-```text
-no duplicate GPS
-no Firebase access
-no Room access
-no UI-specific sensor logic
-proximity separated from fusion
-listeners cleaned up
-tests pass
+SUCCESS
 ```
 
 ---
 
-# 50. Day-by-Day Execution Schedule
+# 58. UNIT TEST — NO PROXIMITY WEIGHT
 
-## September 13 — Foundation
+Verify M4 does not independently modify the fusion score based on proximity.
 
-Tasks:
-
-- inspect current Android project;
-- identify package architecture;
-- create sensor package;
-- obtain `SensorManager`;
-- detect light/accelerometer/proximity;
-- define conceptual models;
-- create branch.
-
-Deliverable:
-
-```text
-sensor availability working
-```
+The displayed fusion value must equal the M3-provided value.
 
 ---
 
-## September 14 — Light Sensor
+# 59. UNIT TEST — DISCOVERY ONCE
 
-Tasks:
-
-- implement light listener;
-- capture lux;
-- validate values;
-- create `LightMatcher`;
-- support relic signatures;
-- add unit tests.
-
-Deliverable:
+Trigger:
 
 ```text
-lux → normalized light score
+finalGatePassed = true
 ```
 
----
-
-## September 15 — Accelerometer
-
-Tasks:
-
-- implement accelerometer listener;
-- inspect raw data;
-- select orientation-independent or documented orientation approach;
-- implement motion preprocessing;
-- create initial motion classifier.
-
-Deliverable:
-
-```text
-controlled scan → meaningful motion score
-```
-
----
-
-## September 16 — Proximity
-
-Tasks:
-
-- implement proximity listener;
-- distinguish near/far;
-- create final gate;
-- ensure proximity is not included in fusion calculation.
-
-Deliverable:
-
-```text
-proximity confirmation works independently
-```
-
----
-
-## September 17 — Fusion Engine
-
-Tasks:
-
-- implement normalized component inputs;
-- implement provisional weighting;
-- implement combined score;
-- implement degradation/reweighting;
-- create `FusionResult`.
-
-Deliverable:
-
-```text
-mock sensor inputs → fusion result
-```
-
----
-
-## September 18 — Unit Testing
-
-Tasks:
-
-- normalization tests;
-- light tests;
-- motion tests;
-- fusion tests;
-- degradation tests;
-- proximity-gate tests.
-
-Deliverable:
-
-```text
-algorithm test suite
-```
-
----
-
-## September 19 — M2/M3 Mock Integration
-
-M3 supplies mocked distance.
-
-M2 supplies/consumes mocked scan state.
-
-Test:
-
-```text
-mock GPS
-+
-mock light
-+
-mock motion
-+
-mock proximity
-→
-M2 scan UI
-```
-
-Deliverable:
-
-```text
-full scan logic with fake inputs
-```
-
----
-
-## September 20 — Real GPS Integration
-
-Connect M3's real location signal.
+multiple times.
 
 Verify:
 
 ```text
-M3 distance
-→
-M4 GPS score
+recordDiscovery()
 ```
 
-No duplicate location implementation.
-
-Deliverable:
-
-```text
-real distance influences scan
-```
+is requested only once for the active checkpoint.
 
 ---
 
-## September 21 — Stability and Lifecycle
+# 60. UNIT TEST — CHECKPOINT ISOLATION
+
+Switch:
+
+```text
+Game A / CP1
+```
+
+to:
+
+```text
+Game B / CP1
+```
+
+and verify state is reinitialized for the new game/checkpoint.
+
+---
+
+# 61. UNIT TEST — RETRY
+
+Verify:
+
+```text
+ERROR
+ ↓
+RETRY
+ ↓
+SCANNING
+```
+
+without creating duplicate discovery records.
+
+---
+
+# 62. UI TESTS
 
 Test:
 
-- open Scan Mode;
-- leave Scan Mode;
-- rotate/recreate where applicable;
-- app background/foreground;
-- repeated scans;
-- listener cleanup;
-- sensor availability.
+- Checkpoint name appears.
+- Fusion meter displays current score.
+- GPS state appears.
+- Light state appears.
+- Motion state appears.
+- Proximity state appears at the correct phase.
+- Reveal is hidden before final gate.
+- Reveal appears after successful gate.
+- Error states are visible.
+- Retry works.
+- Continue/next action works.
 
-Deliverable:
+---
+
+# 63. ACCEPTANCE TEST — SCAN START
+
+### Given
+
+Player has entered the eligible checkpoint area.
+
+### When
+
+Scan mode starts.
+
+### Then
+
+The scan HUD shows the current checkpoint and real M3 signal states.
+
+---
+
+# 64. ACCEPTANCE TEST — FUSION
+
+### Given
+
+GPS, light and motion signals are being collected.
+
+### When
+
+M3 reports an increasing fusion score.
+
+### Then
+
+M4's fusion meter reflects the reported score.
+
+The UI must not generate artificial progress.
+
+---
+
+# 65. ACCEPTANCE TEST — THRESHOLD
+
+### Given
+
+Fusion score reaches the configured threshold.
+
+### Then
+
+M4 changes from signal collection to proximity confirmation.
+
+No reveal should occur yet unless the final gate has passed.
+
+---
+
+# 66. ACCEPTANCE TEST — PROXIMITY
+
+### Given
+
+Fusion threshold has been reached.
+
+### When
+
+M3 reports:
 
 ```text
-no obvious listener leaks / duplicate registrations
+proximity = NEAR
+```
+
+### Then
+
+M4 transitions to successful discovery/reveal.
+
+---
+
+# 67. ACCEPTANCE TEST — PROXIMITY BLOCK
+
+### Given
+
+Fusion threshold has been reached.
+
+### When
+
+M3 reports:
+
+```text
+proximity = FAR
+```
+
+### Then
+
+Reveal remains blocked.
+
+---
+
+# 68. ACCEPTANCE TEST — DISCOVERY RECORD
+
+### Given
+
+Final gate passes.
+
+### Then
+
+M4 requests:
+
+```kotlin
+recordDiscovery(gameId, checkpointId, foundAt)
+```
+
+only once for that discovery.
+
+---
+
+# 69. ACCEPTANCE TEST — OFFLINE
+
+### Given
+
+The application is offline.
+
+### When
+
+A valid discovery occurs.
+
+### Then
+
+M4 follows the shared offline contract and presents the appropriate local-save/sync state.
+
+M6 owns the actual synchronization.
+
+---
+
+# 70. ACCEPTANCE TEST — DYNAMIC GAME
+
+### Given
+
+A creator publishes a game containing a newly configured checkpoint.
+
+### When
+
+A player reaches that checkpoint.
+
+### Then
+
+M4 can display and run the checkpoint using its dynamic configuration.
+
+No code change or hard-coded checkpoint ID should be required.
+
+---
+
+# 71. ACCEPTANCE TEST — GAME ISOLATION
+
+### Given
+
+A player participates in two games.
+
+### When
+
+The player scans a checkpoint in Game A.
+
+### Then
+
+Game B's scan/progress state remains unaffected.
+
+---
+
+# 72. ACCEPTANCE TEST — FINAL CHECKPOINT
+
+### Given
+
+The player discovers the final checkpoint.
+
+### Then
+
+The UI presents the game-completion state rather than attempting to navigate to a nonexistent checkpoint.
+
+---
+
+# 73. INTEGRATION WITH M3
+
+M4 requires:
+
+```text
+DiscoverySignalState
+```
+
+from M3.
+
+Integration test:
+
+```text
+Fake/real location
+      ↓
+M3 fusion
+      ↓
+M4 HUD
+      ↓
+threshold
+      ↓
+proximity
+      ↓
+reveal
 ```
 
 ---
 
-## September 22 — Campus Calibration
+# 74. INTEGRATION WITH M5
 
-Physical testing.
+M4 requires repository support for:
 
-Measure:
+```kotlin
+recordDiscovery(
+    gameId,
+    checkpointId,
+    foundAt
+)
+```
 
-- lux;
-- motion behavior;
-- proximity behavior;
-- GPS interaction.
+M5 owns Firestore implementation and cloud-side progress/leaderboard behavior.
 
-Review R001–R006 signatures.
+---
 
-Deliverable:
+# 75. INTEGRATION WITH M6
+
+M4 requires local progress support where offline operation is part of the final contract.
+
+M6 owns:
+
+- Room.
+- Local discovery persistence.
+- Pending sync.
+- Idempotency.
+- Retry.
+
+M4 only consumes the repository/use-case result.
+
+---
+
+# 76. INTEGRATION WITH M1
+
+M1 owns the player navigation shell and leaderboard UI.
+
+M4 hands off:
+
+- Game/checkpoint routes.
+- Completion state.
+- Reveal navigation.
+- Next-checkpoint navigation requirements.
+
+---
+
+# 77. REPOSITORY BOUNDARY
+
+M4 should use the shared repository contract.
+
+Relevant operations include:
+
+```kotlin
+getGameDetails(gameId)
+getGameCheckpoints(gameId)
+recordDiscovery(gameId, checkpointId, foundAt)
+```
+
+and the M3 signal provider/use-case.
+
+M4 must not directly instantiate Firebase or Room.
+
+---
+
+# 78. SUGGESTED PACKAGE STRUCTURE
 
 ```text
-calibration record
+quest/
+    QuestScreen.kt
+    QuestScanViewModel.kt
+    ScanState.kt
+    ScanUiState.kt
+    ScanComponents.kt
+    RevealDialog.kt
+    ScanNavigation.kt
+```
+
+Adapt to the project's existing XML/Compose architecture rather than introducing a second UI technology unnecessarily.
+
+---
+
+# 79. MOCK DATA STRATEGY
+
+M4 may use seed/demo data during development:
+
+```text
+demo-campus-quest
+R001–R006
+```
+
+but must test dynamic behavior with arbitrary IDs.
+
+Recommended test IDs:
+
+```text
+game-alpha
+cp-alpha-001
+
+game-beta
+cp-beta-001
+```
+
+This prevents accidental dependence on sample relic IDs.
+
+---
+
+# 80. MOCK SIGNAL STRATEGY
+
+For UI development, create fake M3 states:
+
+```text
+fusion 0%
+fusion 25%
+fusion 50%
+fusion 75%
+fusion threshold reached
+proximity far
+proximity near
+success
+error
+```
+
+This allows M4 to build the UI without waiting for physical sensor integration.
+
+---
+
+# 81. MOCK SCAN STATE SCENARIOS
+
+At minimum:
+
+```text
+Scenario 1: Location unavailable
+Scenario 2: Outside checkpoint
+Scenario 3: Scanning
+Scenario 4: Fusion increasing
+Scenario 5: Fusion threshold reached
+Scenario 6: Waiting for proximity
+Scenario 7: Proximity confirmed
+Scenario 8: Reveal
+Scenario 9: Discovery saved
+Scenario 10: Error + retry
+Scenario 11: Final checkpoint
 ```
 
 ---
 
-## September 23 — Freeze Sensor Contract
+# 82. PERFORMANCE
 
-Finalize, after testing:
+The UI should not recompose/re-render excessively because sensor updates may arrive frequently.
 
-- weights;
-- thresholds;
-- smoothing;
-- motion parameters;
-- degradation behavior;
-- proximity fallback;
-- result structure.
+Use appropriate state collection and derive only the values required by the current screen.
 
-Update shared contract.
-
-Deliverable:
-
-```text
-M4 sensor contract frozen
-```
+Avoid heavy computation in composables/UI callbacks.
 
 ---
 
-## September 24 — Integration
+# 83. BATTERY
 
-Work with:
+M4 itself should not keep sensors running.
 
-- M2;
-- M3;
-- M6;
-- M5 where data configuration is involved.
-
-Deliverable:
-
-```text
-R001 end-to-end scan
-```
+When the scan screen becomes inactive, it must tell the M3 layer that active scanning is no longer required through the agreed lifecycle contract.
 
 ---
 
-## September 25 — Multi-Relic Validation
+# 84. SECURITY
 
-Test:
+M4 should not trust the UI's own success state as authoritative.
 
-```text
-R001
-R002
-R003
-R004
-R005
-R006
-```
+The discovery record must go through the repository/backend rules.
 
-Verify signatures are loaded dynamically.
-
----
-
-## September 26 — Device Testing
-
-Repeat core tests on available devices.
-
-Focus on:
-
-- light variation;
-- accelerometer orientation;
-- proximity behavior;
-- lifecycle;
-- performance.
-
----
-
-## September 27 — Bug Fixes
-
-Only fix high-value issues.
-
-Priorities:
-
-1. crash;
-2. reveal logic failure;
-3. incorrect fusion;
-4. lifecycle leak;
-5. sensor compatibility;
-6. UI polish.
-
----
-
-## September 28 — Final Freeze
-
-Confirm:
+For example:
 
 ```text
-sensor module builds
-tests pass
-contract documented
-R001 works
-multi-relic scan works
-proximity gate works
-no duplicate location
-no persistence coupling
-```
-
-Prepare demo evidence.
-
----
-
-# 51. M4 Dependencies
-
-| Dependency | Needed from | Why |
-|---|---|---|
-| Relic model | Shared/M5/M6 | light signature |
-| Location signal | M3 | GPS fusion input |
-| Scan state integration | M2 | display result |
-| Local persistence event | M6 | completed relic |
-| Firebase-backed relic data | M5 | cloud configuration |
-| App shell | M1 | final navigation |
-
-M4 can develop with mocks before all dependencies are ready.
-
----
-
-# 52. M4 → M2 Handoff Checklist
-
-Before handoff:
-
-- [ ] `FusionResult` agreed.
-- [ ] Score range agreed.
-- [ ] Component scores defined.
-- [ ] Sensor availability defined.
-- [ ] Reveal threshold agreed.
-- [ ] Proximity semantics documented.
-- [ ] Proximity excluded from fusion.
-- [ ] Mock scenarios demonstrated.
-- [ ] Missing-sensor behavior demonstrated.
-- [ ] Lifecycle cleanup verified.
-
----
-
-# 53. M4 → M3 Handoff Checklist
-
-- [ ] M4 accepts M3 distance.
-- [ ] M4 does not create another location pipeline.
-- [ ] Distance units are meters.
-- [ ] Accuracy field meaning is documented.
-- [ ] Stale location behavior is documented.
-- [ ] Geofence remains M3-owned.
-
----
-
-# 54. M4 → M6 Handoff Checklist
-
-- [ ] Successful reveal event defined.
-- [ ] Relic ID is stable.
-- [ ] Completion does not write Room directly.
-- [ ] M6 can observe/receive completion.
-- [ ] Offline behavior remains M6-owned.
-
----
-
-# 55. M4 → M5 Handoff Checklist
-
-- [ ] Relic signature model agreed.
-- [ ] Relic IDs match Firestore.
-- [ ] M4 does not directly access Firestore.
-- [ ] Cloud configuration can be consumed through repository/domain layer.
-
----
-
-# 56. Definition of Ready
-
-M4 work is ready to start when:
-
-- Android project builds;
-- M4 branch exists;
-- sensor package location is agreed;
-- shared Relic model is known or mocked;
-- M3 distance can be mocked;
-- M2 can consume a conceptual result;
-- initial provisional parameters are documented.
-
----
-
-# 57. Definition of Done
-
-M4 is done when:
-
-- [ ] light sensor implemented;
-- [ ] accelerometer implemented;
-- [ ] proximity implemented;
-- [ ] sensor availability handled;
-- [ ] lifecycle registration/unregistration handled;
-- [ ] fusion engine implemented;
-- [ ] GPS input consumed from M3;
-- [ ] graceful degradation implemented;
-- [ ] proximity kept outside fusion;
-- [ ] unit tests pass;
-- [ ] hardware testing completed;
-- [ ] campus calibration completed;
-- [ ] final parameters documented;
-- [ ] M2 integration completed;
-- [ ] M3 integration completed;
-- [ ] R001 end-to-end scan works;
-- [ ] no direct Firebase/Room coupling;
-- [ ] PR merged after review.
-
----
-
-# 58. Risks
-
-## Risk 1 — Light sensor unavailable
-
-Mitigation:
-
-```text
-detect at runtime
-reweight active signals
-```
-
-## Risk 2 — Light values vary by device
-
-Mitigation:
-
-```text
-calibrate
-use ranges rather than one exact lux
-```
-
-## Risk 3 — Motion detector too strict
-
-Mitigation:
-
-```text
-test multiple users/devices
-use tolerant classification
-```
-
-## Risk 4 — GPS inaccurate
-
-Mitigation:
-
-```text
-M3 provides accuracy
-use geofence + distance
-do not depend on one exact coordinate reading
-```
-
-## Risk 5 — Sensor listener leak
-
-Mitigation:
-
-```text
-centralized lifecycle management
-explicit unregister
-repeat open/close tests
-```
-
-## Risk 6 — Team changes result structure late
-
-Mitigation:
-
-```text
-freeze shared contract by Sep 23
-```
-
-## Risk 7 — Proximity incorrectly added to score
-
-Mitigation:
-
-```text
-separate ProximityGate class
-unit-test score independently
-```
-
----
-
-# 59. If M4 Falls Behind
-
-Priority order:
-
-### Priority 1
-
-```text
-R001 working end-to-end
-```
-
-### Priority 2
-
-```text
-GPS + light + motion fusion
-```
-
-### Priority 3
-
-```text
-proximity final gate
-```
-
-### Priority 4
-
-```text
-sensor degradation
-```
-
-### Priority 5
-
-```text
-multi-device refinement
-```
-
-### Priority 6
-
-```text
-advanced smoothing/polish
-```
-
-Do not spend time on advanced sensor analytics while the basic scan cannot reliably reveal R001.
-
----
-
-# 60. Evidence for Lecturer/Demo
-
-M4 should be able to demonstrate:
-
-1. Android sensor detection.
-2. Live light reading.
-3. Live motion detection.
-4. Fusion score changing.
-5. GPS contribution.
-6. Missing-sensor fallback.
-7. Proximity as separate gate.
-8. Successful R001 reveal.
-9. Unit tests.
-10. Physical calibration.
-
-A useful verbal explanation:
-
-> “The scan score is calculated by combining GPS proximity, ambient-light signature matching, and accelerometer-based scanning motion. Each signal is normalized and weighted, and unavailable sensors are removed and their weights redistributed. The proximity sensor is deliberately separate: it is used only as the final close-range confirmation before revealing the relic.”
-
----
-
-# 61. Final Technical Checklist
-
-## Sensors
-
-- [ ] SensorManager initialized.
-- [ ] Light sensor checked.
-- [ ] Accelerometer checked.
-- [ ] Proximity sensor checked.
-- [ ] Null sensor handling exists.
-
-## Light
-
-- [ ] Lux captured.
-- [ ] Signature supplied dynamically.
-- [ ] Match normalized.
-- [ ] Invalid values handled.
-
-## Motion
-
-- [ ] Raw acceleration processed.
-- [ ] Noise considered.
-- [ ] Slow sweep recognized.
-- [ ] Random movement does not automatically score as perfect.
-
-## GPS
-
-- [ ] M3 owns location.
-- [ ] M4 consumes distance.
-- [ ] No duplicate Fused Location Provider.
-
-## Fusion
-
-- [ ] Components normalized.
-- [ ] Weights documented.
-- [ ] Provisional values clearly marked until calibration.
-- [ ] Missing signals reweighted.
-- [ ] Final score bounded.
-- [ ] Proximity excluded.
-
-## Proximity
-
-- [ ] Near/far detected.
-- [ ] Final gate implemented.
-- [ ] No contribution to percentage.
-- [ ] Missing hardware handled honestly.
-
-## Lifecycle
-
-- [ ] Register on scan start.
-- [ ] Unregister on scan end.
-- [ ] Repeated scans safe.
-- [ ] Background/foreground behavior tested.
-
-## Integration
-
-- [ ] M2 result contract implemented.
-- [ ] M3 distance contract implemented.
-- [ ] M5 relic configuration compatible.
-- [ ] M6 completion handoff compatible.
-
-## Testing
-
-- [ ] Unit tests.
-- [ ] Hardware tests.
-- [ ] Missing-sensor tests.
-- [ ] Lifecycle tests.
-- [ ] Campus calibration.
-- [ ] Two-device validation.
-
----
-
-# 62. Final M4 Deliverables
-
-By the end of the project, M4 should provide:
-
-```text
-1. Sensor availability implementation
-2. Light sensor implementation
-3. Accelerometer implementation
-4. Proximity sensor implementation
-5. LightMatcher
-6. MotionClassifier
-7. SensorFusionEngine
-8. FusionResult
-9. ScanState integration
-10. Graceful degradation
-11. Lifecycle-safe sensor management
-12. Unit tests
-13. Hardware test evidence
-14. Campus calibration record
-15. Final parameter record
-16. Shared interface documentation
-17. R001 end-to-end demonstration
-```
-
----
-
-# 63. One-Page M4 Summary
-
-```text
-M4 OWNS
-────────────────────────────────────────
-Light sensor
-Accelerometer
-Proximity sensor
-SensorManager
-Motion classification
-Light matching
-Fusion algorithm
-Sensor availability
-Graceful degradation
-Sensor lifecycle
-Calibration
-────────────────────────────────────────
-
-M4 RECEIVES
-────────────────────────────────────────
-Relic configuration
-GPS distance from M3
-────────────────────────────────────────
-
-M4 RETURNS
-────────────────────────────────────────
-FusionResult
-Scan state
-Fusion percentage
-Component scores
-Proximity status
-Reveal decision
-────────────────────────────────────────
-
-IMPORTANT RULE
-────────────────────────────────────────
-GPS + LIGHT + MOTION
+UI says SUCCESS
         ↓
-    FUSION SCORE
-
-PROXIMITY
+recordDiscovery
         ↓
-FINAL REVEAL GATE
-
-PROXIMITY IS NOT PART OF THE FUSION SCORE
-────────────────────────────────────────
-
-FIRST PRIORITY IF BEHIND
-────────────────────────────────────────
-Make R001 work reliably end-to-end.
-────────────────────────────────────────
+M5/M6 persistence/security
 ```
 
-# 64. Final Handoff Statement
+The backend may reject an invalid or unauthorized record.
 
-M4's output should be a reusable, testable sensor-fusion component that does not depend directly on UI, Firebase, Room, or a duplicate location system.
+M4 must handle that rejection.
 
-The clean boundary is:
+---
+
+# 85. ERROR AFTER SUCCESS
+
+If physical confirmation succeeds but persistence fails:
 
 ```text
-M3
-Location
-  ↓
-M4
-Sensor fusion
-  ↓
-M2
-Scan UI
-  ↓
-M6/M5
-Persistence and sync
+Discovery confirmed
+Saving progress...
 ```
 
-The fusion engine should remain independently testable with mock inputs so that hardware availability, campus conditions, and network status do not prevent development.
+then:
 
-The final calibrated values must be documented before the September 23 contract freeze. The initial values in this workplan are development examples only.
+```text
+Saved locally / pending sync
+```
+
+or the documented error state.
+
+Do not falsely claim cloud persistence if it has not been confirmed.
+
+---
+
+# 86. REVEAL CONTENT SAFETY
+
+The reveal should use the checkpoint data already authorized for the current player/game.
+
+Do not load arbitrary checkpoint data based solely on a user-provided ID without repository/access validation.
+
+---
+
+# 87. ACCESS CONTROL
+
+A player must only be able to run gameplay for a game they are authorized to play according to the repository/backend rules.
+
+M4 handles unauthorized responses gracefully.
+
+Example:
+
+```text
+You can no longer access this game.
+```
+
+---
+
+# 88. CLOSED GAME
+
+If the game becomes:
+
+```text
+CLOSED
+```
+
+while the player is attempting to continue:
+
+```text
+Scan unavailable
+This game is no longer active.
+```
+
+The exact lifecycle behavior follows the shared product contract.
+
+---
+
+# 89. PUBLISHED GAME CHANGES
+
+M4 should not assume checkpoint configuration is immutable unless the product lifecycle specifies it.
+
+If creators can modify published games, M4 must consume the repository's current valid configuration.
+
+If published games are locked, the UI should follow the locked-game contract.
+
+---
+
+# 90. NO HARDCODED QUEST SEQUENCE
+
+Do not write:
+
+```kotlin
+when (checkpointId) {
+    "R001" -> ...
+    "R002" -> ...
+}
+```
+
+for gameplay behavior.
+
+Gameplay must use:
+
+```text
+gameId
+checkpointId
+order
+checkpoint configuration
+```
+
+from the dynamic data model.
+
+---
+
+# 91. GIT WORKFLOW
+
+Branch:
+
+```text
+feature/m4-quest-scan-gameplay
+```
+
+Commit examples:
+
+```text
+feat(quest): add checkpoint scan screen
+feat(quest): add scan state machine
+feat(quest): add fusion meter
+feat(quest): add sensor status indicators
+feat(quest): add proximity gate UI
+feat(quest): add discovery reveal
+feat(quest): add discovery recording flow
+test(quest): add scan state tests
+test(quest): add reveal transition tests
+```
+
+Avoid mixing M3 sensor implementation or M5/M6 persistence implementation into M4 commits.
+
+---
+
+# 92. CHANGE CONTROL
+
+Before changing:
+
+- Scan state machine.
+- Fusion threshold presentation.
+- Proximity gate behavior.
+- Discovery transition.
+- Repository discovery contract.
+- Navigation contract.
+
+inform the relevant member and update shared documentation.
+
+The physical mechanic must remain consistent across M3 and M4.
+
+---
+
+# 93. DEFINITION OF DONE
+
+M4 is complete when:
+
+### Gameplay
+
+- Player can enter checkpoint scan mode.
+- Checkpoint identity is correct.
+- Scan state is explicit.
+- GPS/light/motion states are displayed.
+- Fusion meter reflects M3's actual score.
+- Fusion threshold is represented correctly.
+- Proximity final gate is represented separately.
+- Reveal occurs only after final gate.
+
+### Discovery
+
+- Discovery is recorded through the repository boundary.
+- Duplicate recording is prevented.
+- Game/checkpoint IDs are correct.
+- Offline behavior follows the shared contract.
+- Final checkpoint completes the game appropriately.
+
+### Architecture
+
+- ViewModel owns scan UI state.
+- M3 owns hardware/fusion logic.
+- M4 does not access sensor SDKs directly.
+- M4 does not access Firebase/Room directly.
+- Dynamic checkpoint IDs are supported.
+
+### Testing
+
+- State-machine tests pass.
+- Fusion presentation tests pass.
+- Proximity gate tests pass.
+- Reveal tests pass.
+- Duplicate-discovery tests pass.
+- Dynamic/multi-game tests pass.
+- Error/retry tests pass.
+
+---
+
+# 94. LEGACY CLEANUP
+
+Remove or isolate code that assumes:
+
+```text
+Relic
+FoundRelic
+R001–R006
+```
+
+are the permanent gameplay entities.
+
+The production gameplay screen must consume:
+
+```text
+Game
+   ↓
+Checkpoint
+   ↓
+Checkpoint configuration
+```
+
+R001–R006 remain valid only as sample/seed data.
+
+---
+
+# 95. FINAL M4 ARCHITECTURE
+
+The complete M4 path is:
+
+```text
+Game / Checkpoint
+      ↓
+QuestScanViewModel
+      ↓
+M3 DiscoverySignalState
+      ↓
+┌─────────────────────────────┐
+│ Scan UI                     │
+│                             │
+│ GPS status                  │
+│ Light status                │
+│ Motion status               │
+│ Fusion meter                │
+│ Fusion threshold            │
+│ Proximity final gate        │
+│ Success                     │
+│ Reveal                      │
+└─────────────────────────────┘
+      ↓
+recordDiscovery()
+      ↓
+M6 local persistence
+      ↓
+M5 cloud sync / leaderboard
+      ↓
+Next checkpoint / completion
+```
+
+---
+
+# 96. CORE DESIGN PRINCIPLE
+
+M4 is the **player's physical-discovery experience layer**.
+
+It does not decide whether the raw sensors are trustworthy and it does not implement the sensors.
+
+M3 supplies:
+
+```text
+GPS evidence
+Light evidence
+Motion evidence
+Fusion result
+Proximity state
+Final gate
+```
+
+M4 turns those results into:
+
+```text
+Scan
+   ↓
+Feedback
+   ↓
+Threshold
+   ↓
+Proximity confirmation
+   ↓
+Reveal
+   ↓
+Discovery
+```
+
+The most important rule is:
+
+```text
+Fusion threshold ≠ discovery
+```
+
+Discovery requires:
+
+```text
+Fusion threshold
++
+Proximity final gate
+```
+
+---
+
+# 97. M4 QUICK CHECKLIST
+
+```text
+[ ] Checkpoint gameplay screen
+[ ] Scan HUD
+[ ] Scan state machine
+[ ] GPS status
+[ ] Light status
+[ ] Motion status
+[ ] Fusion meter
+[ ] Fusion threshold state
+[ ] Proximity phase
+[ ] Proximity final-gate state
+[ ] Success state
+[ ] Reveal UI
+[ ] Clue display
+[ ] Lore display
+[ ] Rarity display
+[ ] Discovery recording
+[ ] Duplicate-discovery protection
+[ ] Retry
+[ ] Error states
+[ ] Offline behavior
+[ ] Next checkpoint
+[ ] Final checkpoint completion
+[ ] Dynamic checkpoint support
+[ ] Multi-game isolation
+[ ] ViewModel tests
+[ ] State-machine tests
+[ ] UI tests
+[ ] M3 integration
+[ ] M5/M6 integration
+[ ] M1 navigation integration
+```
+
+---
+
+# 98. FINAL HANDOFF PACKAGE
+
+M4 should provide:
+
+1. Quest/checkpoint gameplay screen.
+2. Scan HUD.
+3. Scan state machine.
+4. Scan ViewModel.
+5. Fusion-meter presentation.
+6. Sensor-status presentation.
+7. Proximity-gate presentation.
+8. Reveal UI.
+9. Discovery-recording integration.
+10. Navigation contracts.
+11. Mock signal states.
+12. Unit tests.
+13. UI tests.
+14. Integration test notes.
+15. Error-state mapping.
+16. Any shared-contract changes.
+
+---
+
+**END OF MEMBER 4 QUEST & SCAN GAMEPLAY WORKPLAN**

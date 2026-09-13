@@ -1,209 +1,114 @@
-# M5 — FIREBASE CLOUD & SYNC WORKPLAN
-## Campus Quest — Mobile Application Development
+# MEMBER 5 — FIREBASE, FIRESTORE, AUTHENTICATION & CLOUD BACKEND WORKPLAN
+## Campus Quest — Final Reassigned Team Plan
 
-**Document ID:** M5-FIREBASE-CLOUD-SYNC  
-**Owner:** M5 — Backend Developer: Firebase  
-**Project:** Campus Quest  
-**Primary responsibility:** Firebase project setup, Authentication (Creators & Players), Firestore schema (`games`, `checkpoints`, `gamePlayers`, `progress`, `leaderboards`), FCM push notification broadcast on game publish (`/topics/new_games`), cloud repository implementation, security rules, real-time game leaderboards, and reliable synchronization boundaries.
-
----
-
-# 1. Purpose
-
-This document defines M5's complete implementation responsibility and the interfaces M5 must provide to the rest of the Campus Quest team.
-
-M5 owns the cloud/backend side of the application:
-
-```text
-Android Application
-      ↓
-Repository boundary
-      ↓
-Firebase Authentication
-      ↓
-Firestore
-      ↓
-Users / Relics / Progress / Leaderboard
-```
-
-M5 must provide cloud functionality without coupling UI, sensor, location, or Room implementation directly to Firebase.
-
-The intended architecture is:
-
-```text
-UI
- ↓
-ViewModel
- ↓
-Repository
- ↓
-Room / Firestore
-```
-
-Firebase is authoritative for shared cloud data. Room is responsible for immediate local/offline persistence and pending synchronization.
+**Owner:** Member 5 (M5)  
+**Primary responsibility:** Firebase Authentication, Firestore cloud data, security rules, publishing backend, game membership/progress/leaderboards, and FCM new-game notifications  
+**Branch:** `feature/m5-firebase-backend`  
+**Architecture:** Android + Kotlin, MVVM + Repository  
+**Status:** Final reassignment version
 
 ---
 
-# 2. M5 Role
+# 1. PURPOSE
 
-## 2.1 Primary responsibility
+M5 owns the **cloud/backend side** of Campus Quest.
 
-M5 is responsible for:
+The cloud layer provides the authoritative shared data required by:
 
-1. Creating/configuring the Firebase project.
-2. Connecting the Android application to Firebase.
-3. Configuring Firebase Authentication.
-4. Implementing user authentication flows.
-5. Designing and implementing Firestore collections/documents.
-6. Creating the relic catalog in Firestore.
-7. Supporting user progress storage.
-8. Supporting leaderboard data.
-9. Implementing the cloud repository implementation.
-10. Writing and validating Firestore security rules.
-11. Testing authenticated and unauthorized access.
-12. Supporting synchronization with M6's local Room layer.
-13. Providing stable cloud data contracts.
-14. Seeding development/test data.
-15. Testing offline/reconnect behavior with M6.
-16. Documenting Firebase configuration and security decisions.
+- Game creators.
+- Game players.
+- Game discovery.
+- Game publishing.
+- Game membership.
+- Checkpoint configuration.
+- Player progress.
+- Game-specific leaderboards.
+- New-game notifications.
 
-## 2.2 M5 does not own
+M5 is responsible for implementing and securing the Firebase side while exposing a clean repository contract to the Android application.
 
-M5 must not directly own:
-
-- Scan UI.
-- SensorManager.
-- Sensor fusion.
-- Google Maps.
-- Geofencing.
-- Room entities.
-- Bottom navigation.
-- App theme.
-- Final visual design.
-- Local pending-sync queue.
-- Device sensor calibration.
-
----
-
-# 3. Cloud Architecture
-
-The intended conceptual architecture is:
+The intended flow is:
 
 ```text
-                    ┌─────────────────┐
-                    │   Android UI    │
-                    └────────┬────────┘
-                             ↓
-                    ┌─────────────────┐
-                    │    ViewModel    │
-                    └────────┬────────┘
-                             ↓
-                    ┌─────────────────┐
-                    │ Repository      │
-                    │ Interface      │
-                    └──────┬─────┬────┘
-                           │     │
-                     local │     │ cloud
-                           ↓     ↓
-                       Room   Firestore
-                                 │
-                                 ├── users
-                                 ├── relics
-                                 ├── progress
-                                 └── leaderboard
-```
-
-M5 implements the cloud side of the repository boundary.
-
----
-
-# 4. Firebase Services
-
-The project requires:
-
-```text
-Firebase Authentication
-Firestore Database
-```
-
-Other Firebase products should not be introduced unless the team explicitly needs them.
-
-The MVP should remain focused.
-
----
-
-# 5. Firebase Authentication
-
-## 5.1 Purpose
-
-Authentication provides a stable Firebase user identity.
-
-The application should not depend on development IDs such as:
-
-```text
-U001
-U002
-U003
-```
-
-as Firebase Auth identities.
-
-Firebase generates the real authenticated UID.
-
-Development users can still have display/test identifiers in mock data, but cloud ownership should use the authenticated UID.
-
----
-
-# 6. Authentication Flow
-
-Conceptually:
-
-```text
-Launch
- ↓
-Check current Firebase user
- ↓
-authenticated?
- ├── yes → Main application
- └── no  → Login
-```
-
-Login:
-
-```text
-Email
-Password
- ↓
+Android UI/ViewModels
+        ↓
+GameRepository
+        ↓
+M5 Firebase implementation
+        ↓
 Firebase Auth
- ↓
-success
- ↓
-obtain Firebase UID
- ↓
-load/create user profile
- ↓
-Main application
+Firestore
+FCM
 ```
 
-Logout:
-
-```text
-Firebase Auth signOut
- ↓
-return to login
-```
+M5 does not own the Android UI, sensors, Room, or local synchronization engine.
 
 ---
 
-# 7. User Profile
+# 2. IMPORTANT REASSIGNMENT
 
-Suggested Firestore structure:
+The final six-member allocation assigns M5 to:
+
+- Firebase Authentication.
+- Firestore.
+- Security rules.
+- Game/game-checkpoint cloud persistence.
+- Creator ownership.
+- Game membership.
+- Player progress.
+- Game-specific leaderboard backend.
+- Publishing state transition.
+- FCM new-game notifications.
+- Cloud-side validation.
+- Firebase repository implementation.
+- Cloud integration tests.
+
+M5 does NOT own:
+
+- Creator UI.
+- Player UI.
+- Navigation shell.
+- Location APIs.
+- Geofencing.
+- Sensors.
+- Sensor fusion.
+- Scan HUD.
+- Reveal UI.
+- Room.
+- Local offline database.
+- Sync engine.
+
+M6 owns Room/repository/local sync responsibilities.
+
+---
+
+# 3. CANONICAL FIRESTORE STRUCTURE
+
+The canonical structure is:
+
+```text
+users
+games/{gameId}
+games/{gameId}/checkpoints/{checkpointId}
+gamePlayers/{gameId}_{uid}
+progress/{uid}/games/{gameId}/checkpoints/{checkpointId}
+leaderboards/{gameId}/entries/{uid}
+/topics/new_games
+```
+
+The exact Firebase implementation can use equivalent supported structures where required, but the logical ownership and scoping must remain the same.
+
+---
+
+# 4. USERS
+
+Conceptual document:
 
 ```text
 users/{uid}
 ```
 
-Example fields:
+Possible fields:
 
 ```text
 uid
@@ -212,823 +117,1361 @@ email
 createdAt
 ```
 
-The UID should normally be the document identifier rather than relying only on a separate `uid` field.
+Only the fields required by the product should be stored.
 
-Example:
-
-```text
-users/
-  abc123FirebaseUid/
-    displayName: "Nimal Perera"
-    email: "nimal@example.com"
-    createdAt: ...
-```
-
-The exact email addresses used for development should be test accounts.
+M5 must ensure that creator/player identity is derived from Firebase Authentication.
 
 ---
 
-# 8. Canonical Development Users
+# 5. AUTHENTICATION
 
-The project mock catalog defines:
+M5 owns Firebase Authentication integration.
 
-| Development ID | Name |
-|---|---|
-| U001 | Nimal Perera |
-| U002 | Kavindi Silva |
-| U003 | Sahan Fernando |
-| U004 | Ayesha Jayasinghe |
-| U005 | Test Explorer |
+The application must support the authentication method agreed by the project.
 
-These are development/test identities.
+M5 provides:
 
-They must not be confused with Firebase-generated UIDs.
+```text
+authenticated user ID
+authenticated user display name
+authentication state
+sign-in result
+sign-out result
+```
 
-M5 should map authenticated users to their profile documents.
+M1 consumes authentication state for navigation.
 
 ---
 
-# 9. Relic Collection
+# 6. AUTHENTICATION STATE
 
-Suggested structure:
-
-```text
-relics/{relicId}
-```
-
-Example:
-
-```text
-relics/R001
-```
-
-Fields:
-
-```text
-id
-name
-lat
-lng
-radiusM
-lightSignature
-rarity
-lore
-```
-
-Light signature:
-
-```text
-lightSignature:
-    minLux
-    maxLux
-```
-
-M4 consumes this configuration through the repository/domain layer.
-
-M4 must not directly query Firestore.
-
----
-
-# 10. Canonical Relic Data
-
-Development catalog:
-
-| ID | Name | Latitude | Longitude | Radius | Light |
-|---|---|---:|---:|---:|---:|
-| R001 | Founder’s Bell | 6.974850 | 79.915300 | 25m | 180–320 |
-| R002 | Scholar’s Compass | 6.975420 | 79.914750 | 25m | 250–450 |
-| R003 | Heritage Key | 6.975900 | 79.915650 | 20m | 80–180 |
-| R004 | Old Library Seal | 6.976300 | 79.914900 | 30m | 400–650 |
-| R005 | Garden Chronicle | 6.974300 | 79.916100 | 25m | 120–250 |
-| R006 | Clock Tower Relic | 6.976750 | 79.915700 | 20m | 300–500 |
-
-These coordinates and light signatures are development values and must be physically validated before the final demonstration.
-
----
-
-# 11. Progress Model
-
-The project needs to record successful relic discoveries.
-
-Conceptual cloud structure:
-
-```text
-progress/{uid}/found/{relicId}
-```
-
-Example:
-
-```text
-progress/
-  abc123/
-    found/
-      R001
-        relicId: R001
-        foundAt: ...
-```
-
-This supports:
-
-```text
-user
- ↓
-found relics
-```
-
-The local Room model can additionally contain:
-
-```text
-pendingSync
-```
-
-The cloud document does not need a `pendingSync` field.
-
----
-
-# 12. Cloud vs Local Responsibility
-
-Important distinction:
-
-| Data | Room | Firestore |
-|---|---|---|
-| Cached relics | yes | authoritative |
-| Found relic | immediate local copy | authoritative shared record |
-| Pending sync | yes | no |
-| User profile | cache if needed | authoritative |
-| Leaderboard | cached/read | authoritative |
-| Sensor readings | no permanent cloud need | no |
-| Temporary scan state | no permanent cloud need | no |
-
-M5 must not require a network connection for every scan operation.
-
-M6 owns immediate local persistence.
-
----
-
-# 13. Repository Boundary
-
-The shared project contract proposes:
+Suggested abstraction:
 
 ```kotlin
-interface QuestRepository {
+data class AuthUser(
+    val uid: String,
+    val displayName: String?,
+    val email: String?
+)
+```
 
-    suspend fun getRelics(): List<Relic>
+Possible repository interface:
 
-    suspend fun getFusionSignature(
-        relicId: String
-    ): LightSignature
-
-    suspend fun recordReveal(
-        relicId: String
-    )
-
-    fun observeLeaderboard():
-        Flow<List<LeaderboardEntry>>
-
-    suspend fun syncPending()
+```kotlin
+interface AuthRepository {
+    fun observeAuthState(): Flow<AuthUser?>
+    suspend fun signIn(...): Result<AuthUser>
+    suspend fun signOut(): Result<Unit>
 }
 ```
 
-This is a conceptual shared interface.
-
-The final code may split this into multiple repositories if that produces a cleaner architecture, for example:
-
-```text
-AuthRepository
-QuestRepository
-ProgressRepository
-LeaderboardRepository
-```
-
-Any change must be agreed with the team before integration.
+The exact interface must match the shared project architecture.
 
 ---
 
-# 14. Cloud Repository Responsibilities
+# 7. CREATOR IDENTITY
 
-M5's repository implementation should provide operations such as:
+When a creator creates a game:
 
 ```text
-fetch relics
-fetch one relic
-fetch user profile
-create/update user profile
-record progress
-observe leaderboard
-sync local pending records
+Firebase Auth UID
+       ↓
+game.creatorId
 ```
 
-M5 should expose domain-level models rather than leaking Firestore-specific document structures into UI code.
+Do not allow the client to arbitrarily choose:
+
+```text
+creatorId
+```
+
+for a new game.
+
+The backend/security rules must verify ownership.
 
 ---
 
-# 15. Firebase DTO / Domain Separation
+# 8. GAME MODEL
 
-A useful pattern is:
+Canonical model:
+
+```kotlin
+enum class GameStatus {
+    DRAFT,
+    PUBLISHED,
+    CLOSED
+}
+
+data class Game(
+    val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val publishedAt: Long? = null
+)
+```
+
+M5 must persist the game using these logical fields.
+
+---
+
+# 9. CHECKPOINT MODEL
+
+Canonical model:
+
+```kotlin
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusM: Float = 20f,
+    val lightSignature: LightSignature,
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP",
+    val rarity: String = "COMMON"
+)
+```
+
+The backend must support dynamically created checkpoints.
+
+Do not design the Firestore structure around a permanent six-relic list.
+
+---
+
+# 10. DYNAMIC GAME CREATION
+
+A creator can create:
 
 ```text
-Firestore DTO
-      ↓
-Mapper
-      ↓
-Domain model
-      ↓
-Repository
-      ↓
-ViewModel
+Game A
+  2 checkpoints
 ```
+
+or:
+
+```text
+Game B
+  8 checkpoints
+```
+
+or another valid number supported by the product rules.
+
+The cloud data model must not require code changes for a new checkpoint.
+
+---
+
+# 11. GAME CREATION FLOW
+
+Conceptually:
+
+```text
+Authenticated creator
+       ↓
+Create Game
+       ↓
+games/{gameId}
+       ↓
+status = DRAFT
+       ↓
+Add checkpoints
+       ↓
+games/{gameId}/checkpoints/{checkpointId}
+```
+
+The game remains a draft until explicitly published.
+
+---
+
+# 12. GAME ID
+
+Game IDs must uniquely identify a game.
+
+M5 should use a safe ID generation strategy.
+
+The ID must not depend on:
+
+```text
+R001
+R002
+```
+
+or another fixed relic naming scheme.
+
+---
+
+# 13. CHECKPOINT ID
+
+Checkpoint IDs must be unique within the game.
+
+The backend should preserve the ID when editing an existing checkpoint.
+
+An update must not accidentally create a new checkpoint.
+
+---
+
+# 14. CHECKPOINT SCOPING
+
+Every checkpoint belongs to one game:
+
+```text
+checkpoint.gameId == gameId
+```
+
+The Firestore path should make that relationship explicit:
+
+```text
+games/{gameId}/checkpoints/{checkpointId}
+```
+
+This is a critical data-isolation rule.
+
+---
+
+# 15. GAME OWNERSHIP
+
+Creator operations must be restricted to the authenticated creator who owns the game.
+
+Conceptually:
+
+```text
+request.auth.uid == game.creatorId
+```
+
+This rule applies to:
+
+- Edit game.
+- Add checkpoint.
+- Update checkpoint.
+- Delete checkpoint.
+- Publish game.
+- Other creator-only operations.
+
+The exact Firestore rule syntax must match the final data structure.
+
+---
+
+# 16. PLAYER ACCESS
+
+Players should only be able to access published games according to the product rules.
+
+Draft games must not accidentally appear in the public game-discovery list.
+
+The backend must enforce this rather than relying only on UI filtering.
+
+---
+
+# 17. GAME DISCOVERY
+
+Player game discovery should query published games.
+
+Conceptually:
+
+```text
+games
+WHERE status == PUBLISHED
+```
+
+M1 displays the results.
+
+M5 owns the cloud query and access rules.
+
+---
+
+# 18. GAME DETAILS
+
+The repository should provide:
+
+```kotlin
+suspend fun getGameDetails(gameId: String): Game?
+```
+
+The cloud implementation retrieves the requested game subject to access rules.
+
+---
+
+# 19. GAME CHECKPOINT RETRIEVAL
+
+The repository should provide:
+
+```kotlin
+suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
+```
+
+M5 retrieves:
+
+```text
+games/{gameId}/checkpoints
+```
+
+and returns them in the agreed order.
+
+Do not depend on Firestore document insertion order as the gameplay order.
+
+Use:
+
+```text
+order
+```
+
+from the checkpoint model.
+
+---
+
+# 20. CHECKPOINT ORDER
+
+The backend should preserve the creator-defined:
+
+```text
+order
+```
+
+The query should sort according to the agreed order field or the repository should perform deterministic ordering after retrieval.
+
+---
+
+# 21. GAME MEMBERSHIP
+
+Canonical logical record:
+
+```text
+gamePlayers/{gameId}_{uid}
+```
+
+Possible fields:
+
+```text
+gameId
+userId
+joinedAt
+status
+```
+
+The membership record identifies that a player has joined a particular game.
+
+---
+
+# 22. JOIN GAME
+
+Repository contract:
+
+```kotlin
+suspend fun joinGame(gameId: String): Result<Unit>
+```
+
+M5 implements the cloud membership operation.
+
+The operation should be idempotent.
+
+If the user has already joined:
+
+```text
+joinGame()
+```
+
+should not create multiple logical memberships.
+
+---
+
+# 23. JOIN AUTHORIZATION
+
+The backend should verify:
+
+```text
+request.auth != null
+game exists
+game is joinable/published
+```
+
+according to the product lifecycle.
+
+---
+
+# 24. PLAYER PROGRESS
+
+Canonical logical structure:
+
+```text
+progress/{uid}/games/{gameId}/checkpoints/{checkpointId}
+```
+
+This is intentionally scoped by:
+
+```text
+user
++
+game
++
+checkpoint
+```
+
+---
+
+# 25. PROGRESS RECORD
+
+Suggested logical fields:
+
+```text
+checkpointId
+gameId
+userId
+foundAt
+```
+
+Additional fields may be added if explicitly required.
+
+Do not store a global:
+
+```text
+foundRelic = true
+```
+
+without game/checkpoint scope.
+
+---
+
+# 26. RECORD DISCOVERY
+
+Repository contract:
+
+```kotlin
+suspend fun recordDiscovery(
+    gameId: String,
+    checkpointId: String,
+    foundAt: Long
+): Result<Unit>
+```
+
+M5 implements the cloud operation.
+
+The operation must verify:
+
+- Authenticated user.
+- Valid game.
+- Valid checkpoint belonging to game.
+- Player membership where required.
+- Valid discovery/progress transition.
+
+---
+
+# 27. DISCOVERY IDEMPOTENCY
+
+Repeated discovery requests should not create duplicate progress records.
 
 For example:
 
 ```text
-FirestoreRelicDto
-        ↓
-Relic
+same user
+same game
+same checkpoint
 ```
 
-This prevents the entire application from becoming dependent on Firestore field names.
+should resolve to one logical discovery.
+
+This is especially important because:
+
+- Sensor success may be emitted more than once.
+- App lifecycle may repeat requests.
+- Offline synchronization may retry.
+- Network operations may be retried.
 
 ---
 
-# 16. Firestore Relic DTO
+# 28. DISCOVERY AUTHORITY
 
-Conceptual model:
-
-```kotlin
-data class FirestoreRelicDto(
-    val id: String? = null,
-    val name: String? = null,
-    val lat: Double? = null,
-    val lng: Double? = null,
-    val radiusM: Double? = null,
-    val lightSignature: LightSignatureDto? = null,
-    val rarity: String? = null,
-    val lore: String? = null
-)
-```
-
-The exact Firebase serialization approach can follow the Android/Firebase library version used by the team.
-
----
-
-# 17. Domain Relic
-
-Conceptually:
-
-```kotlin
-data class Relic(
-    val id: String,
-    val name: String,
-    val lat: Double,
-    val lng: Double,
-    val radiusM: Float,
-    val lightSignature: LightSignature,
-    val rarity: String,
-    val lore: String
-)
-```
-
-M4 needs:
-
-```text
-id
-radiusM
-lightSignature
-```
-
-M3 needs:
-
-```text
-id
-lat
-lng
-radiusM
-```
-
-M2 needs:
-
-```text
-id
-name
-rarity
-lore
-```
-
-This demonstrates why a shared domain model is useful.
-
----
-
-# 18. Light Signature
-
-Conceptual:
-
-```kotlin
-data class LightSignature(
-    val minLux: Float,
-    val maxLux: Float
-)
-```
-
-The values must be loaded from the relic configuration.
-
-M5 does not determine the final calibrated values independently.
-
-M4 calibrates sensor behavior and communicates agreed values.
-
----
-
-# 19. Leaderboard
-
-The project includes a leaderboard.
-
-Conceptual collection:
-
-```text
-leaderboard/{uid}
-```
-
-Fields:
-
-```text
-uid
-displayName
-relicsFound
-lastUpdate
-```
-
-Example:
-
-```text
-leaderboard/abc123
-    uid: abc123
-    displayName: Nimal Perera
-    relicsFound: 3
-    lastUpdate: ...
-```
-
----
-
-# 20. Leaderboard Update Strategy
-
-For the MVP, a simple strategy is sufficient:
-
-```text
-successful reveal
-      ↓
-record progress
-      ↓
-update user's relic count
-      ↓
-leaderboard reflects count
-```
-
-The implementation must avoid obvious duplicate-count problems.
-
-If the same relic is revealed multiple times, it should not increase the user's unique relic count multiple times.
-
----
-
-# 21. Duplicate Discovery Protection
-
-The system should treat a relic as uniquely discovered per user.
-
-Conceptually:
-
-```text
-user U
-found R001?
- ├── no → create record + increment count
- └── yes → do not count again
-```
-
-This is important for leaderboard correctness.
-
-The local Room layer should also avoid creating duplicate successful records.
-
----
-
-# 22. Timestamp Handling
-
-Use server-compatible timestamp semantics where practical.
-
-Conceptually:
+M5 should not treat arbitrary client-provided:
 
 ```text
 foundAt
-createdAt
-lastUpdate
+gameId
+checkpointId
 ```
 
-should be stored consistently.
+as automatically trustworthy.
 
-Avoid storing formatted display strings as the primary timestamp.
+Security rules and backend design must validate ownership and scope.
 
-Correct:
-
-```text
-Timestamp / Date / Instant
-```
-
-Then format in the UI.
+The project is not expected to provide perfect anti-cheat protection through Firebase alone, but obvious cross-user/cross-game writes must be prevented.
 
 ---
 
-# 23. Firestore Security Principles
+# 29. GAME-SPECIFIC LEADERBOARD
 
-M5 owns security rules.
+There is **no global leaderboard** in the canonical architecture.
 
-The goal is:
+Leaderboard structure:
 
 ```text
-authenticated user
-    ↓
-can access only allowed data
+leaderboards/{gameId}/entries/{uid}
 ```
 
-Users should not be able to arbitrarily modify another user's progress.
+Every game has its own leaderboard.
 
 ---
 
-# 24. Security Rules — User Data
+# 30. LEADERBOARD ENTRY
 
-Conceptual rule:
-
-```text
-users/{uid}
-```
-
-should permit the authenticated user to read/write their own profile subject to agreed restrictions.
-
-Example pseudocode:
+Conceptual fields:
 
 ```text
-request.auth != null
-&& request.auth.uid == uid
+userId
+displayName
+foundCount
+score
+lastUpdatedAt
 ```
 
-The final rule syntax must be validated in Firebase before deployment.
+The exact scoring/ranking fields must follow the product specification.
+
+M5 owns the backend representation.
 
 ---
 
-# 25. Security Rules — Progress
+# 31. LEADERBOARD ISOLATION
 
 For:
 
 ```text
-progress/{uid}/found/{relicId}
+Game A
 ```
 
-the authenticated user should only be able to modify their own progress:
+only Game A progress should contribute to:
 
 ```text
-request.auth != null
-&& request.auth.uid == uid
+leaderboards/GameA
 ```
 
-M5 should also consider preventing clients from writing arbitrary leaderboard totals.
+For:
+
+```text
+Game B
+```
+
+only Game B progress contributes to:
+
+```text
+leaderboards/GameB
+```
+
+Never mix them into a global ranking.
 
 ---
 
-# 26. Security Rules — Relics
+# 32. LEADERBOARD UPDATE
 
-Relics are application configuration.
-
-A sensible MVP approach is:
+When a discovery is recorded:
 
 ```text
-authenticated users → read
-clients → no direct write
+progress updated
+       ↓
+game-specific leaderboard updated
 ```
 
-M5/admin workflow owns writes.
+The implementation may use:
 
-This prevents a client from changing:
+- Transaction.
+- Cloud Function/event.
+- Controlled client write with strict rules.
 
-```text
-coordinates
-radius
-light signatures
-rarity
-lore
-```
-
-during gameplay.
+The selected implementation must prevent unauthorized score manipulation.
 
 ---
 
-# 27. Security Rules — Leaderboard
+# 33. LEADERBOARD SECURITY
 
-Leaderboard data is shared.
-
-Clients should generally be able to:
+A client should not be able to freely submit:
 
 ```text
-read leaderboard
+score = 999999
 ```
 
-but should not be trusted to directly set:
+and become first place.
 
-```text
-relicsFound = 9999
-```
-
-The exact secure update architecture must be chosen by M5.
-
-For the MVP, the team should prioritize preventing obvious client-side score manipulation.
+Where leaderboard values are derived from progress, they should be derived from authoritative progress data or protected by backend validation.
 
 ---
 
-# 28. Security Rule Validation
+# 34. REAL-TIME LEADERBOARD
 
-Do not assume pseudocode is deployable.
+Repository contract:
 
-M5 must:
+```kotlin
+fun observeGameLeaderboard(
+    gameId: String
+): Flow<List<GameLeaderboardEntry>>
+```
 
-1. write actual Firestore rules;
-2. deploy/test them;
-3. test authenticated access;
-4. test unauthorized access;
-5. test cross-user access;
-6. test client attempts to modify protected fields.
+M1/M4 may consume this for presentation.
 
-Record the results.
+M5 provides the Firestore-backed implementation.
 
 ---
 
-# 29. Required Security Tests
+# 35. GAME PUBLISHING
 
-### Test A — Own user profile
+Repository contract:
 
-```text
-User A → User A profile
+```kotlin
+suspend fun publishGame(gameId: String): Result<Unit>
 ```
 
-Expected:
+Publishing is a controlled state transition:
 
 ```text
-allowed according to profile rule
+DRAFT → PUBLISHED
 ```
 
-### Test B — Other user profile
+M5 owns the cloud operation.
+
+---
+
+# 36. PUBLISH VALIDATION
+
+The backend must not rely exclusively on M2's UI validation.
+
+Before allowing publication, validate the required game data.
+
+Conceptually:
 
 ```text
-User A → User B profile
+valid title
+valid description
+required checkpoint count
+valid checkpoint locations
+valid radius
+valid light signature
+valid checkpoint order
+required content
+valid gameplay metadata
 ```
 
-Expected:
+The exact publication requirements must match the canonical project specification.
+
+---
+
+# 37. PUBLISH OWNERSHIP
+
+Only the game creator may publish:
 
 ```text
-denied where modification is not permitted
+request.auth.uid == game.creatorId
 ```
 
-### Test C — Own progress
+An unrelated user must not be able to publish another creator's draft.
+
+---
+
+# 38. PUBLISH ATOMICITY
+
+Avoid leaving the game in a partially published state.
+
+The intended logical outcome is:
 
 ```text
-User A → A/R001
+game.status = PUBLISHED
+game.publishedAt = timestamp
 ```
 
-Expected:
+together.
+
+Where the chosen Firebase design supports it, use an atomic transaction/batch or equivalent controlled operation.
+
+---
+
+# 39. PUBLISHED GAME DISCOVERY
+
+After:
 
 ```text
-allowed
+status = PUBLISHED
 ```
 
-### Test D — Other progress
+the game becomes eligible for player discovery.
+
+M1 then displays it through the game-list flow.
+
+---
+
+# 40. FCM NEW-GAME NOTIFICATION
+
+Publishing a game should trigger notification to registered users.
+
+MVP target:
 
 ```text
-User A → B/R001
+FCM topic:
+/topics/new_games
 ```
 
-Expected:
+Conceptual flow:
 
 ```text
-denied
-```
-
-### Test E — Relic modification
-
-Normal client:
-
-```text
-change R001 coordinates
-```
-
-Expected:
-
-```text
-denied
-```
-
-### Test F — Leaderboard manipulation
-
-```text
-client sets relicsFound = 999
-```
-
-Expected:
-
-```text
-denied
+Creator publishes
+      ↓
+Firestore status = PUBLISHED
+      ↓
+Publication event
+      ↓
+FCM topic notification
+      ↓
+/topics/new_games
+      ↓
+Registered devices
 ```
 
 ---
 
-# 30. Authentication Error Handling
+# 41. NOTIFICATION PAYLOAD
 
-M5 should map Firebase exceptions into application-level errors.
+Canonical model:
+
+```kotlin
+data class NewGameNotification(
+    val gameId: String,
+    val gameTitle: String,
+    val creatorName: String,
+    val checkpointCount: Int,
+    val publishedAt: Long
+)
+```
+
+The notification must contain enough information to route the player to the correct game.
+
+---
+
+# 42. NOTIFICATION DEEP LINK
+
+When a user taps a new-game notification:
+
+```text
+Notification
+    ↓
+gameId
+    ↓
+Game Details
+```
+
+M1 owns the navigation/deep-link UI integration.
+
+M5 owns the cloud notification mechanism and payload.
+
+---
+
+# 43. TOPIC SUBSCRIPTION
+
+Registered users should subscribe to:
+
+```text
+/topics/new_games
+```
+
+according to the agreed notification implementation.
+
+The application should not create a separate topic per game unless the project explicitly requires it.
+
+---
+
+# 44. NOTIFICATION FAILURE
+
+A notification failure must not invalidate the successful publication itself.
+
+Conceptually:
+
+```text
+Game published = authoritative state
+Notification = secondary delivery mechanism
+```
+
+The UI should not report:
+
+```text
+Publish failed
+```
+
+solely because notification delivery has a problem, if the game was already successfully published.
+
+---
+
+# 45. REPOSITORY IMPLEMENTATION
+
+The canonical repository boundary is:
+
+```kotlin
+interface GameRepository {
+    suspend fun getAvailableGames(): List<Game>
+    suspend fun getGameDetails(gameId: String): Game?
+    suspend fun createGame(game: Game): Result<Game>
+    suspend fun createCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Checkpoint>
+    suspend fun updateCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Unit>
+    suspend fun publishGame(gameId: String): Result<Unit>
+    suspend fun joinGame(gameId: String): Result<Unit>
+    suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
+    suspend fun getFusionSignature(
+        gameId: String,
+        checkpointId: String
+    ): LightSignature
+    suspend fun recordDiscovery(
+        gameId: String,
+        checkpointId: String,
+        foundAt: Long
+    ): Result<Unit>
+    fun observeGameLeaderboard(
+        gameId: String
+    ): Flow<List<GameLeaderboardEntry>>
+    suspend fun syncPending()
+}
+```
+
+M5 primarily implements the cloud portion.
+
+M6 integrates local persistence/sync around the repository.
+
+---
+
+# 46. CLOUD REPOSITORY RESPONSIBILITY
+
+M5's implementation should translate:
+
+```text
+Repository operation
+       ↓
+Firestore query/write
+       ↓
+Firebase result
+       ↓
+domain/result
+```
+
+UI/ViewModels must not need to know Firestore collection paths.
+
+---
+
+# 47. ERROR MAPPING
+
+Map Firebase failures into meaningful repository results.
 
 Examples:
 
 ```text
-Invalid credentials
-Network unavailable
-Account already exists
-Permission denied
-Unknown Firebase error
+permission denied
+not found
+network unavailable
+already exists
+invalid data
+unauthenticated
+unknown error
 ```
 
-Do not expose raw technical Firebase messages directly to users.
-
-Conceptual:
-
-```kotlin
-sealed interface AppError {
-    data object InvalidCredentials : AppError
-    data object NetworkUnavailable : AppError
-    data object PermissionDenied : AppError
-    data class Unknown(val cause: Throwable) : AppError
-}
-```
-
-This is a conceptual model and can be adapted to the project's existing error architecture.
+Do not expose raw SDK exceptions throughout the UI.
 
 ---
 
-# 31. Network Failure
+# 48. AUTHENTICATION ERROR
 
-Cloud operations must anticipate:
+If a user is unauthenticated:
 
 ```text
-no internet
-slow internet
-temporary timeout
-Firebase unavailable
+AuthRepository
 ```
 
-M5 should not make the entire application crash.
+should report the state.
 
-The application should continue using the local layer where possible.
-
-M6 owns offline persistence and pending-sync behavior.
+Creator/player operations requiring authentication should fail cleanly.
 
 ---
 
-# 32. Sync Boundary With M6
+# 49. FIRESTORE ERROR HANDLING
 
-The intended flow:
+Possible cases:
 
 ```text
-successful scan
+Firestore unavailable
+permission denied
+document not found
+invalid query
+timeout
+```
+
+The repository should return structured failures.
+
+M1/M2/M4 then present appropriate messages.
+
+---
+
+# 50. OFFLINE CLOUD BEHAVIOR
+
+M5 does not own the local offline cache.
+
+M6 owns:
+
+```text
+Room
+pending writes
+sync
+retry
+```
+
+M5 must provide cloud operations that can safely receive retried requests.
+
+This requires idempotent behavior where appropriate.
+
+---
+
+# 51. SYNC CONTRACT WITH M6
+
+M6 may call M5's cloud implementation during synchronization.
+
+The cloud layer must safely process:
+
+```text
+create/update
+discovery record
+membership
+```
+
+without producing duplicates.
+
+M5 should document:
+
+- Idempotency keys/paths.
+- Expected conflict behavior.
+- Server validation.
+- Retry-safe operations.
+
+---
+
+# 52. CONFLICT HANDLING
+
+Potential conflicts include:
+
+```text
+local draft changed
+cloud draft changed
+```
+
+or:
+
+```text
+discovery already exists
+```
+
+M6 owns synchronization policy.
+
+M5 must return enough information for M6 to resolve or report the conflict.
+
+---
+
+# 53. TIMESTAMPS
+
+Use a consistent timestamp strategy.
+
+Relevant fields include:
+
+```text
+createdAt
+publishedAt
+joinedAt
+foundAt
+lastUpdatedAt
+```
+
+Where server timestamps are preferred by the architecture, use the agreed Firebase timestamp mechanism.
+
+Do not mix incompatible timestamp formats across collections.
+
+---
+
+# 54. SERVER AUTHORITY
+
+Where timing affects leaderboard/progress ordering, prefer authoritative server timestamps where feasible.
+
+Client timestamps may be accepted as part of the MVP only if the project contract allows them.
+
+Do not silently change timestamp semantics.
+
+---
+
+# 55. SECURITY RULES — GENERAL PRINCIPLES
+
+Security rules should enforce:
+
+```text
+authentication
+ownership
+game visibility
+membership
+game/checkpoint scope
+progress scope
+leaderboard protection
+```
+
+Client-side checks are not sufficient.
+
+---
+
+# 56. USERS SECURITY
+
+A user should only modify their own user document where the product permits user editing.
+
+Conceptually:
+
+```text
+request.auth.uid == userId
+```
+
+---
+
+# 57. GAMES SECURITY
+
+Creators:
+
+```text
+create own game
+read own drafts
+update own drafts
+publish own game
+```
+
+Players:
+
+```text
+read published games
+```
+
+according to the product rules.
+
+---
+
+# 58. CHECKPOINT SECURITY
+
+Creators may manage checkpoints only under games they own.
+
+Players may read checkpoints for games they are authorized to play.
+
+Players must not modify creator checkpoint configuration.
+
+---
+
+# 59. MEMBERSHIP SECURITY
+
+A player should be able to create/manage their own membership record.
+
+One user's membership must not be writable by another user.
+
+---
+
+# 60. PROGRESS SECURITY
+
+A user may create/update their own progress only for games they are allowed to play.
+
+A player must not be able to write:
+
+```text
+progress/anotherUser
+```
+
+---
+
+# 61. LEADERBOARD SECURITY
+
+Prevent arbitrary client manipulation of ranking values.
+
+Where possible:
+
+```text
+progress
+    ↓
+trusted calculation
+    ↓
+leaderboard
+```
+
+rather than:
+
+```text
+client
+    ↓
+arbitrary score
+```
+
+---
+
+# 62. FIRESTORE INDEXING
+
+M5 should identify queries that require indexes.
+
+Likely examples:
+
+```text
+games WHERE status == PUBLISHED ORDER BY ...
+leaderboard entries ORDER BY score
+checkpoints ORDER BY order
+```
+
+The exact indexes depend on the implemented query structure.
+
+Keep required index configuration in the project repository.
+
+---
+
+# 63. CLOUD DATA VALIDATION
+
+Validate:
+
+```text
+latitude
+longitude
+radiusM
+minLux
+maxLux
+order
+status
+creatorId
+gameId
+checkpointId
+```
+
+according to the agreed ranges and relationships.
+
+Do not rely entirely on Android-side validation.
+
+---
+
+# 64. LOCATION DATA VALIDATION
+
+Coordinates must be valid:
+
+```text
+latitude ∈ [-90, 90]
+longitude ∈ [-180, 180]
+```
+
+The checkpoint must belong to the game specified by its path.
+
+---
+
+# 65. RADIUS VALIDATION
+
+Reject:
+
+```text
+radius <= 0
+```
+
+and any value outside the agreed project range.
+
+M3 consumes the radius for geofencing.
+
+---
+
+# 66. LIGHT SIGNATURE VALIDATION
+
+Validate:
+
+```text
+minLux >= 0
+maxLux >= 0
+minLux <= maxLux
+```
+
+and any additional project-defined constraints.
+
+---
+
+# 67. ORDER VALIDATION
+
+Checkpoint ordering must be deterministic.
+
+Reject or normalize invalid ordering according to the project contract.
+
+Avoid duplicate/ambiguous ordering if the gameplay specification requires unique sequence numbers.
+
+---
+
+# 68. GAME STATUS TRANSITIONS
+
+Valid lifecycle should be explicit.
+
+Conceptually:
+
+```text
+DRAFT → PUBLISHED
+PUBLISHED → CLOSED
+```
+
+Do not permit arbitrary:
+
+```text
+CLOSED → DRAFT
+```
+
+or:
+
+```text
+PUBLISHED → DRAFT
+```
+
+unless the product explicitly supports it.
+
+---
+
+# 69. CLOSED GAMES
+
+A closed game should remain available for historical progress/leaderboard behavior as defined by the product, while new gameplay/join operations are restricted.
+
+M5 must implement the final lifecycle rules consistently.
+
+---
+
+# 70. DATA CONSISTENCY
+
+When creating/updating related data:
+
+```text
+Game
+Checkpoint
+Membership
+Progress
+Leaderboard
+```
+
+ensure references remain valid.
+
+Avoid orphaned checkpoint records or progress records referencing nonexistent games.
+
+---
+
+# 71. TRANSACTIONS / BATCHES
+
+Use Firestore transactions/batches where multiple related writes must succeed together.
+
+Examples:
+
+```text
+publish game metadata
+```
+
+or:
+
+```text
+discovery + derived leaderboard update
+```
+
+where the selected implementation requires atomicity.
+
+---
+
+# 72. CLOUD FUNCTIONS / SERVER-SIDE LOGIC
+
+If the MVP uses Firebase Cloud Functions or an equivalent server-side event mechanism, M5 owns that implementation.
+
+Potential uses:
+
+```text
+published game event
       ↓
-M6 writes local FoundRelicEntity
+FCM notification
+
+discovery event
       ↓
-pendingSync = true
-      ↓
-cloud available?
-      ├── yes → sync to Firestore
-      └── no  → remain pending
-      ↓
-successful cloud write
-      ↓
-pendingSync = false
+leaderboard update
 ```
 
-M5 provides the cloud write operation.
-
-M6 controls the local queue/state.
+The team should avoid adding unnecessary server complexity if a simpler secure MVP implementation is sufficient.
 
 ---
 
-# 33. Sync Idempotency
+# 73. FCM TOKEN MANAGEMENT
 
-M5 must support safe repeated sync attempts.
+If the project requires device-specific token storage, M5 should define the structure and security rules.
 
-Example:
-
-```text
-R001 pending
- ↓
-upload
- ↓
-network drops before local state changes
- ↓
-sync retries
-```
-
-The second attempt must not create a second unique discovery.
-
-Using a deterministic document path:
+For the MVP topic approach, the main requirement is:
 
 ```text
-progress/{uid}/found/R001
+/topic/new_games
 ```
 
-helps make the operation idempotent.
+subscription.
+
+Do not store unnecessary device information.
 
 ---
 
-# 34. Sync Pending Contract
+# 74. FCM NOTIFICATION CONTENT
 
-The shared interface proposes:
-
-```kotlin
-suspend fun syncPending()
-```
-
-M6 may instead pass pending records into a cloud-specific method.
-
-The important contract is:
+Notification should communicate:
 
 ```text
-M6 owns pending queue
-M5 owns cloud write
-successful cloud write → acknowledgement
+New game available
+Game title
+Creator
+Checkpoint count
 ```
 
-Do not allow both M5 and M6 to maintain separate conflicting sync queues.
+and carry:
+
+```text
+gameId
+```
+
+for navigation.
 
 ---
 
-# 35. Cloud Read Strategy
+# 75. FIREBASE CONFIGURATION
 
-For relic configuration:
+M5 is responsible for ensuring:
 
-```text
-Firestore
- ↓
-repository
- ↓
-Room cache
- ↓
-UI/M4/M3
-```
+- Firebase project is correctly configured.
+- Android Firebase configuration is present.
+- Required Firebase services are enabled.
+- Firestore is configured.
+- Authentication is configured.
+- FCM is configured.
 
-A practical MVP approach:
-
-```text
-try local cache first
-      ↓
-if stale/missing → cloud refresh
-      ↓
-update Room
-```
-
-The exact cache policy is M6's responsibility.
-
-M5 must provide reliable cloud retrieval.
+Do not commit secrets or private credentials into the repository.
 
 ---
 
-# 36. Firebase Initialization
+# 76. FIREBASE ENVIRONMENT
 
-M5 must verify:
+The team should distinguish:
 
 ```text
-google-services configuration
-Firebase project
-application ID/package match
-Authentication enabled
-Firestore enabled
+development/test
 ```
 
-Do not commit secrets or environment-specific credentials incorrectly.
+from:
 
-The Android Firebase configuration file must be handled according to the project's repository policy.
+```text
+production/demo
+```
+
+where practical.
+
+Seed data must not be confused with permanent production data.
 
 ---
 
-# 37. Development Firebase Project
+# 77. SEED DATA
 
-M5 should establish a dedicated development/test Firebase environment where possible.
-
-Avoid using production-like data during rapid development.
-
-Development dataset:
+The primary demo game may contain:
 
 ```text
-6 relics
-5 development users
-sample progress
-sample leaderboard
-```
-
----
-
-# 38. Seed Data
-
-Seed:
-
-```text
+demo-campus-quest
 R001
 R002
 R003
@@ -1037,1452 +1480,1078 @@ R005
 R006
 ```
 
-with:
+These are seed/demo values.
 
-- name;
-- coordinates;
-- radius;
-- light signature;
-- rarity;
-- lore.
-
-Seed enough progress to demonstrate leaderboard behavior.
-
-Do not depend on manual data entry immediately before the demo.
-
----
-
-# 39. Development User Setup
-
-Create test authentication accounts.
-
-Example:
+M5 must ensure the backend remains capable of:
 
 ```text
-Nimal test account
-Kavindi test account
-Sahan test account
-Ayesha test account
-Test Explorer
-```
-
-Passwords must not be placed in source code or documentation.
-
-Use secure local/test credential handling.
-
----
-
-# 40. Firestore Offline Behavior
-
-Firestore may provide its own client-side behavior, but the project still uses Room as the explicit local application persistence layer.
-
-M5 should not replace the Room architecture with an assumption that Firebase offline caching solves all local requirements.
-
-The team needs:
-
-```text
-Room → local source for immediate app state
-Firestore → cloud shared source
+arbitrary game IDs
+arbitrary checkpoint IDs
+dynamic checkpoint counts
 ```
 
 ---
 
-# 41. Repository Mapping
+# 78. SECOND DEMO GAME
 
-Conceptual mapping:
+Testing should include a second game such as:
 
 ```text
-QuestRepository.getRelics()
-        ↓
-Firestore relic query
-        ↓
-map documents
-        ↓
-List<Relic>
+demo-science-trail
 ```
 
-```text
-QuestRepository.recordReveal(R001)
-        ↓
-Firestore progress write
-        ↓
-acknowledgement
-```
+This verifies:
+
+- Game isolation.
+- Game-specific progress.
+- Game-specific leaderboard.
+- Dynamic checkpoint loading.
+- Creator/player access boundaries.
+
+---
+
+# 79. MULTI-GAME TEST
+
+Create:
 
 ```text
-observeLeaderboard()
-        ↓
-Firestore listener/query
-        ↓
-map documents
-        ↓
-Flow<List<LeaderboardEntry>>
+Game A
+Game B
+```
+
+Verify:
+
+```text
+A checkpoints ≠ B checkpoints
+A progress ≠ B progress
+A leaderboard ≠ B leaderboard
 ```
 
 ---
 
-# 42. LeaderboardEntry
+# 80. MULTI-USER TEST
 
-Conceptual model:
+Test:
 
-```kotlin
-data class LeaderboardEntry(
-    val uid: String,
-    val displayName: String,
-    val relicsFound: Int,
-    val lastUpdate: Instant?
-)
+```text
+Creator A
+Creator B
+Player A
+Player B
 ```
 
-The exact time type depends on project libraries.
+Verify:
+
+- Creator A cannot edit Creator B's game.
+- Player A cannot write Player B's progress.
+- Player A cannot modify creator data.
+- Leaderboards remain correctly scoped.
 
 ---
 
-# 43. Leaderboard Ordering
+# 81. REPOSITORY TESTS
 
-Primary ordering:
-
-```text
-relicsFound descending
-```
-
-Tie-breaking can use:
+Test repository operations:
 
 ```text
-lastUpdate
+getAvailableGames
+getGameDetails
+createGame
+createCheckpoint
+updateCheckpoint
+publishGame
+joinGame
+getGameCheckpoints
+recordDiscovery
+observeGameLeaderboard
 ```
 
-or another agreed rule.
-
-The tie-breaking rule should be documented if the UI displays ranked positions.
+Use Firebase emulator/mocks where appropriate.
 
 ---
 
-# 44. Real-Time Leaderboard
+# 82. AUTH TESTS
 
-If the team chooses a Firestore snapshot listener:
+Test:
 
 ```text
-Firestore change
- ↓
-Flow update
- ↓
-ViewModel
- ↓
-Leaderboard UI
+unauthenticated
+authenticated player
+authenticated creator
+sign out
+invalid credentials
 ```
 
-This is appropriate for demonstrating live leaderboard changes.
-
-If real-time listening creates unnecessary complexity for the one-month MVP, a refresh/query approach can be used if accepted by the team.
+Verify protected operations are rejected when unauthenticated.
 
 ---
 
-# 45. Authentication State Observation
+# 83. FIRESTORE SECURITY RULE TESTS
 
-M5 should provide a way for the app to determine:
-
-```text
-logged in
-logged out
-```
-
-The UI should not directly depend on Firebase SDK calls.
-
-Conceptually:
-
-```kotlin
-interface AuthRepository {
-    fun observeAuthState(): Flow<AuthUser?>
-    suspend fun login(...)
-    suspend fun register(...)
-    suspend fun logout()
-}
-```
-
-This is a proposed interface.
-
----
-
-# 46. AuthUser
-
-Domain model:
-
-```kotlin
-data class AuthUser(
-    val uid: String,
-    val email: String?,
-    val displayName: String?
-)
-```
-
-Keep Firebase's `FirebaseUser` object out of UI code where practical.
-
----
-
-# 47. Registration Flow
-
-If registration is included:
-
-```text
-email/password
- ↓
-Firebase createUser
- ↓
-Firebase UID
- ↓
-create users/{uid}
- ↓
-Main application
-```
-
-If the project uses pre-created test accounts only, M5 can implement login first and keep registration secondary.
-
----
-
-# 48. Login Testing
-
-Required cases:
-
-```text
-valid account
-invalid password
-unknown account
-empty input
-network unavailable
-logout
-re-login
-```
-
-The UI error mapping should be handled through the ViewModel/application layer.
-
----
-
-# 49. Firestore Data Validation
-
-M5 must validate required fields.
-
-For relic:
-
-```text
-id != blank
-name != blank
-lat valid
-lng valid
-radius > 0
-light min <= max
-rarity valid
-lore present where required
-```
-
-Do not allow malformed relic configuration to reach M4/M3 silently.
-
----
-
-# 50. Coordinates
-
-Latitude:
-
-```text
--90 → +90
-```
-
-Longitude:
-
-```text
--180 → +180
-```
-
-For this project, the canonical campus coordinates are around:
-
-```text
-6.97 latitude
-79.91 longitude
-```
-
-The exact coordinates remain development values until physical validation.
-
----
-
-# 51. Firestore Collection Naming
-
-Use consistent names.
-
-Recommended:
-
-```text
-users
-relics
-progress
-leaderboard
-```
-
-Avoid inconsistent variants such as:
-
-```text
-Relic
-relic
-relicData
-quests
-treasures
-```
-
-unless the team explicitly changes the canonical schema.
-
----
-
-# 52. Field Naming
-
-Recommended:
-
-```text
-displayName
-createdAt
-foundAt
-lastUpdate
-relicsFound
-radiusM
-lightSignature
-minLux
-maxLux
-```
-
-Avoid mixing:
-
-```text
-radius
-radius_m
-radiusMeters
-```
-
-in different parts of the app.
-
----
-
-# 53. Firestore Schema Documentation
-
-M5 must maintain a schema table:
-
-| Collection | Document | Required fields | Client access |
-|---|---|---|---|
-| users | uid | displayName, email, createdAt | own |
-| relics | relicId | id, name, lat, lng, radiusM, lightSignature, rarity, lore | read |
-| progress | uid/relicId | relicId, foundAt | own |
-| leaderboard | uid | uid, displayName, relicsFound, lastUpdate | read / controlled write |
-
-The exact security rules must accompany this table.
-
----
-
-# 54. M5 and M4
-
-M4 needs:
-
-```text
-relic ID
-light signature
-radius
-```
-
-M5 must ensure cloud relic documents contain these fields consistently.
-
-M5 does not choose sensor weights.
-
-M4 owns:
-
-```text
-light normalization
-motion classification
-fusion
-proximity
-```
-
----
-
-# 55. M5 and M3
-
-M3 needs:
-
-```text
-lat
-lng
-radiusM
-```
-
-M5 supplies these through the repository/domain model.
-
-M3 owns:
-
-```text
-Google Maps
-Fused Location Provider
-geofencing
-distance calculation
-```
-
-M5 does not duplicate any location service.
-
----
-
-# 56. M5 and M2
-
-M2 needs:
-
-```text
-name
-rarity
-lore
-progress
-leaderboard
-```
-
-M5 provides cloud data through repository/domain models.
-
-M2 should not import Firestore classes directly.
-
----
-
-# 57. M5 and M6
-
-M6 needs:
-
-```text
-cloud read/write functions
-acknowledgement of successful sync
-authentication identity
-```
-
-M6 owns:
-
-```text
-Room
-pendingSync
-local cache
-sync orchestration
-```
-
-The boundary must remain explicit.
-
----
-
-# 58. Mock-First Development
-
-M5 should not block the frontend while Firebase is being built.
-
-M2/M1 can use:
-
-```text
-FakeQuestRepository
-FakeAuthRepository
-```
-
-M5 can then replace the fake implementation during integration.
-
-This allows:
-
-```text
-UI development
-+
-backend development
-```
-
-to proceed in parallel.
-
----
-
-# 59. Mock Cloud Dataset
-
-M5 should maintain a development dataset that exactly follows the canonical shared catalog.
-
-Example:
-
-```text
-R001 Founder’s Bell
-R002 Scholar’s Compass
-R003 Heritage Key
-R004 Old Library Seal
-R005 Garden Chronicle
-R006 Clock Tower Relic
-```
-
-Do not introduce a second conflicting dataset.
-
----
-
-# 60. Backend Test Matrix
-
-| Area | Test |
-|---|---|
-| Auth | valid login |
-| Auth | invalid credentials |
-| Auth | logout |
-| Users | profile creation |
-| Users | profile retrieval |
-| Relics | six relics load |
-| Relics | malformed data rejected/handled |
-| Progress | first discovery |
-| Progress | duplicate discovery |
-| Progress | cross-user access denied |
-| Leaderboard | ordering |
-| Leaderboard | duplicate prevention |
-| Security | unauthorized writes denied |
-| Sync | retry after network failure |
-
----
-
-# 61. Integration Test — R001
-
-Required backend integration scenario:
-
-```text
-login as test user
- ↓
-load R001
- ↓
-scan succeeds
- ↓
-record R001
- ↓
-Firestore progress/R001 exists
- ↓
-leaderboard count updates
- ↓
-reload app
- ↓
-R001 remains discovered
-```
-
-This is one of the key MVP acceptance tests.
-
----
-
-# 62. Duplicate R001 Test
-
-Perform:
-
-```text
-discover R001
-discover R001 again
-```
-
-Expected:
-
-```text
-one unique progress record
-leaderboard count increases only once
-```
-
-The local and cloud layers must agree.
-
----
-
-# 63. Multi-User Test
-
-Use two accounts:
-
-```text
-User A discovers R001
-User B discovers R002
-```
-
-Expected:
-
-```text
-A → R001
-B → R002
-```
-
-Each user's progress remains separate.
-
-Leaderboard:
-
-```text
-A = 1
-B = 1
-```
-
----
-
-# 64. Security Test Before Demo
-
-M5 must demonstrate:
-
-```text
-User A cannot modify User B's progress.
-Client cannot change relic coordinates.
-Client cannot arbitrarily increase leaderboard score.
-```
-
-If these tests fail, security rules are not ready.
-
----
-
-# 65. Error/Loading States
-
-M5 must provide enough repository-level information for UI to represent:
-
-```text
-Loading
-Success
-Empty
-Network error
-Permission denied
-Unexpected error
-```
-
-The exact UI is M1/M2 responsibility.
-
----
-
-# 66. Logging
-
-Development logs may include:
-
-```text
-AUTH_SUCCESS uid=...
-RELIC_FETCH count=6
-PROGRESS_WRITE relic=R001
-SYNC_SUCCESS relic=R001
-LEADERBOARD_UPDATE count=...
-```
-
-Do not log passwords, tokens, or unnecessary personal data.
-
-Disable or reduce verbose backend logs in final builds.
-
----
-
-# 67. Secrets and Credentials
-
-Never commit:
-
-```text
-passwords
-API secrets
-service-account private keys
-```
-
-Test account passwords must remain outside source code.
-
-The standard Android Firebase configuration must follow repository/project policy.
-
-If service-account credentials are ever needed for administrative seeding, they must not be bundled into the mobile application.
-
----
-
-# 68. Admin Data Management
-
-Relic configuration should be treated as controlled data.
-
-During development, M5 may use:
-
-```text
-Firebase Console
-seed script/tool
-```
-
-depending on the chosen workflow.
-
-The mobile client should not have unrestricted administrative write permissions.
-
----
-
-# 69. Firestore Query Design
-
-Avoid downloading unrelated data unnecessarily.
+Security rules should be tested explicitly.
 
 Examples:
 
 ```text
-load relic catalog
-query user's progress
-observe leaderboard
+creator can update own draft
+creator cannot update another creator's game
+player can read published game
+player cannot modify checkpoint
+player can write own progress
+player cannot write another user's progress
+client cannot arbitrarily modify leaderboard score
 ```
 
-Queries should be limited to what the screen/use case requires.
-
-The MVP has only six relics, so a full relic catalog read is acceptable.
-
-Do not prematurely optimize a six-document dataset into a complicated backend architecture.
-
 ---
 
-# 70. Firebase Cost Awareness
+# 84. PUBLISH SECURITY TEST
 
-The project is small.
-
-M5 should:
-
-- avoid unnecessary repeated listeners;
-- avoid writing the same progress repeatedly;
-- avoid polling every second;
-- use deterministic document IDs;
-- cache data locally through M6;
-- unsubscribe listeners when screens are no longer active.
-
-The goal is reliable academic implementation, not production-scale infrastructure.
-
----
-
-# 71. Firebase Emulator
-
-If practical, use Firebase Emulator Suite or equivalent testing tools for security-rule validation.
-
-If unavailable or too time-consuming, perform controlled testing in the development Firebase project.
-
-The requirement is validation, not a specific testing tool.
-
----
-
-# 72. Firestore Security Rule Status
-
-M5 must mark rules as:
+Attempt:
 
 ```text
+Creator A → publish Game B owned by Creator B
+```
+
+Expected:
+
+```text
+DENIED
+```
+
+---
+
+# 85. CHECKPOINT SECURITY TEST
+
+Attempt:
+
+```text
+Player → update checkpoint
+```
+
+Expected:
+
+```text
+DENIED
+```
+
+---
+
+# 86. PROGRESS SECURITY TEST
+
+Attempt:
+
+```text
+User A → write progress/UserB/...
+```
+
+Expected:
+
+```text
+DENIED
+```
+
+---
+
+# 87. LEADERBOARD SECURITY TEST
+
+Attempt:
+
+```text
+Client → arbitrary score
+```
+
+Expected:
+
+```text
+DENIED
+```
+
+or safely validated/recalculated.
+
+---
+
+# 88. FCM TEST
+
+Test:
+
+```text
+publish game
+   ↓
+notification event
+   ↓
+FCM topic
+   ↓
+device receives notification
+   ↓
+payload contains gameId
+```
+
+The notification must route to the correct game.
+
+---
+
+# 89. NOTIFICATION DEEP-LINK TEST
+
+Given:
+
+```text
+gameId = game-alpha
+```
+
+when notification is tapped:
+
+```text
+Game Details(game-alpha)
+```
+
+must open.
+
+M1 owns final navigation behavior.
+
+M5 owns payload correctness.
+
+---
+
+# 90. CLOUD ERROR TESTS
+
+Test:
+
+```text
+network unavailable
+permission denied
+document missing
+unauthenticated
+duplicate request
+invalid game ID
+invalid checkpoint ID
+```
+
+Verify repository results are meaningful.
+
+---
+
+# 91. ACCEPTANCE TEST — CREATE GAME
+
+### Given
+
+Authenticated creator.
+
+### When
+
+Creator saves a new game.
+
+### Then
+
+Firestore contains a draft game owned by that creator.
+
+---
+
+# 92. ACCEPTANCE TEST — ADD CHECKPOINT
+
+### Given
+
+A creator-owned draft game.
+
+### When
+
+Creator saves a checkpoint.
+
+### Then
+
+The checkpoint exists under:
+
+```text
+games/{gameId}/checkpoints/{checkpointId}
+```
+
+and contains the configured location, radius, light signature and gameplay metadata.
+
+---
+
+# 93. ACCEPTANCE TEST — PUBLISH
+
+### Given
+
+A valid creator-owned draft.
+
+### When
+
+Creator publishes.
+
+### Then
+
+The game becomes:
+
+```text
+PUBLISHED
+```
+
+and receives a publication timestamp according to the chosen timestamp policy.
+
+---
+
+# 94. ACCEPTANCE TEST — PLAYER DISCOVERY
+
+### Given
+
+A published game.
+
+### When
+
+A player loads available games.
+
+### Then
+
+The game is discoverable.
+
+Draft games are not presented as publicly published games.
+
+---
+
+# 95. ACCEPTANCE TEST — JOIN
+
+### Given
+
+Authenticated player and published game.
+
+### When
+
+Player joins.
+
+### Then
+
+A game-specific membership record exists.
+
+Repeated join requests do not create duplicate logical memberships.
+
+---
+
+# 96. ACCEPTANCE TEST — DISCOVERY
+
+### Given
+
+A joined player.
+
+### When
+
+M4 requests discovery recording after M3's successful physical scan.
+
+### Then
+
+The player's progress is recorded under the correct:
+
+```text
+user
+game
+checkpoint
+```
+
+scope.
+
+---
+
+# 97. ACCEPTANCE TEST — LEADERBOARD
+
+### Given
+
+Two players in one game.
+
+### When
+
+Their checkpoint discoveries differ.
+
+### Then
+
+The game-specific leaderboard reflects the appropriate ranking.
+
+---
+
+# 98. ACCEPTANCE TEST — GAME ISOLATION
+
+### Given
+
+A player has progress in:
+
+```text
+Game A
+```
+
+### When
+
+The player opens:
+
+```text
+Game B
+```
+
+### Then
+
+Game A progress does not appear as Game B progress.
+
+---
+
+# 99. ACCEPTANCE TEST — NOTIFICATION
+
+### Given
+
+A creator publishes a game.
+
+### When
+
+The publication event is processed.
+
+### Then
+
+the new-game notification contains:
+
+```text
+gameId
+gameTitle
+creatorName
+checkpointCount
+publishedAt
+```
+
+according to the final payload.
+
+---
+
+# 100. ACCEPTANCE TEST — UNAUTHORIZED CREATOR
+
+### Given
+
+Creator A owns Game A.
+
+### When
+
+Creator B attempts to modify Game A.
+
+### Then
+
+Firebase security rules reject the operation.
+
+---
+
+# 101. ACCEPTANCE TEST — PLAYER CANNOT EDIT
+
+### Given
+
+Player is a member of a game.
+
+### When
+
+Player attempts to change checkpoint configuration.
+
+### Then
+
+The operation is rejected.
+
+---
+
+# 102. OFFLINE SYNC HANDOFF
+
+M6 may submit pending cloud operations after reconnecting.
+
+M5 must ensure cloud operations are:
+
+- Retry-safe.
+- Idempotent where required.
+- Correctly scoped.
+- Able to distinguish already-applied operations from new operations.
+
+---
+
+# 103. CLOUD / LOCAL SOURCE OF TRUTH
+
+For shared authoritative data:
+
+```text
+Firebase
+```
+
+is the cloud source of truth.
+
+M6 may maintain local cached copies for offline operation.
+
+M5 should not assume Room is authoritative for cloud security decisions.
+
+---
+
+# 104. CLOUD DATA MODEL DOCUMENTATION
+
+M5 must maintain a clear mapping:
+
+```text
+Domain Model
+      ↓
+Firestore Path
+      ↓
+Firestore Fields
+      ↓
+Security Rules
+      ↓
+Repository Method
+```
+
+This makes integration easier for M6 and the rest of the team.
+
+---
+
+# 105. SUGGESTED PACKAGE STRUCTURE
+
+A possible Android-side structure:
+
+```text
+data/
+    firebase/
+        FirebaseAuthDataSource.kt
+        FirestoreGameDataSource.kt
+        FcmNotificationManager.kt
+
+repository/
+    FirebaseAuthRepository.kt
+    FirebaseGameRepository.kt
+
+model/
+    GameDto.kt
+    CheckpointDto.kt
+    LeaderboardEntryDto.kt
+    NotificationPayload.kt
+```
+
+Exact package names should follow the existing project.
+
+---
+
+# 106. DTO / DOMAIN MAPPING
+
+If DTOs are used:
+
+```text
+Firestore DTO
+      ↓
+Mapper
+      ↓
+Domain Game / Checkpoint
+```
+
+Do not expose Firestore-specific document snapshots to UI/ViewModels.
+
+---
+
+# 107. FIREBASE DEPENDENCY ISOLATION
+
+Firebase-specific classes should remain in the data/infrastructure layer.
+
+Avoid:
+
+```kotlin
+FirebaseFirestore.getInstance()
+```
+
+inside:
+
+```text
+M2 ViewModel
+M4 ViewModel
+M3 FusionEngine
+```
+
+All access should go through the repository/data boundary.
+
+---
+
+# 108. NO SENSOR LOGIC IN M5
+
+M5 must not implement:
+
+```text
+GPS
+Light sensor
+Accelerometer
+Proximity
+Fusion
+```
+
+M3 owns these.
+
+M5 only receives the resulting discovery operation.
+
+---
+
+# 109. NO ROOM LOGIC IN M5
+
+M5 does not own:
+
+```text
+@Entity
+@Dao
+RoomDatabase
+PendingSyncEntity
+```
+
+M6 owns these.
+
+---
+
+# 110. NO UI LOGIC IN M5
+
+M5 should return:
+
+```text
+Result
+Flow
+domain data
+error states
+```
+
+not manipulate screens, dialogs, or navigation.
+
+---
+
+# 111. PERFORMANCE
+
+Firestore access should avoid unnecessary reads.
+
+Examples:
+
+- Query only published games for public discovery.
+- Retrieve only required checkpoint data.
+- Observe only the current game's leaderboard.
+- Avoid repeatedly downloading all games/checkpoints on every recomposition.
+
+M6's local cache can reduce repeated cloud reads.
+
+---
+
+# 112. PAGINATION
+
+If the number of games becomes large, pagination may be required.
+
+For the MVP, a simpler query may be sufficient if the dataset remains small.
+
+Do not over-engineer pagination unless the project scope requires it.
+
+---
+
+# 113. CACHE INTERACTION
+
+M5 should coordinate with M6 regarding Firestore cache behavior.
+
+M5 provides authoritative cloud access.
+
+M6 decides the application's explicit Room caching/sync strategy.
+
+Do not introduce two competing caching systems without agreement.
+
+---
+
+# 114. TEST ENVIRONMENT
+
+Recommended testing approaches include:
+
+- Firebase Emulator where practical.
+- Repository fakes.
+- Security rules tests.
+- Controlled seed data.
+- Test accounts.
+- Test games.
+
+The exact setup should match the team's development environment.
+
+---
+
+# 115. SEED DATA REQUIREMENTS
+
+Seed data should cover:
+
+```text
+1 published demo game
+1 second demo game
+1 draft game
+multiple players
+multiple memberships
+multiple discoveries
+game-specific leaderboard entries
+```
+
+This enables meaningful integration testing.
+
+---
+
+# 116. LEGACY CLEANUP
+
+M5 should remove or isolate cloud structures based on:
+
+```text
+relics
+foundRelics
+global leaderboard
+fixed R001–R006 production assumptions
+```
+
+if they conflict with the new architecture.
+
+Legacy seed records may remain for demo compatibility.
+
+---
+
+# 117. NO GLOBAL LEADERBOARD
+
+Do not implement:
+
+```text
+leaderboards/global
+```
+
+as the primary leaderboard architecture.
+
+The canonical structure is:
+
+```text
+leaderboards/{gameId}/entries/{uid}
+```
+
+---
+
+# 118. NO FIXED CHECKPOINT COLLECTION
+
+Do not create a structure such as:
+
+```text
+relics/R001
+relics/R002
+...
+```
+
+as the primary production data model.
+
+Use:
+
+```text
+games/{gameId}/checkpoints/{checkpointId}
+```
+
+---
+
+# 119. CHANGE CONTROL
+
+Before modifying shared cloud contracts:
+
+1. Identify the affected repository/model.
+2. Inform M6 and dependent members.
+3. Confirm Firestore/security impact.
+4. Update shared contracts.
+5. Update rules/indexes.
+6. Update tests.
+7. Communicate migration requirements.
+
+Firebase schema changes can break multiple team members, so changes must be coordinated.
+
+---
+
+# 120. GIT WORKFLOW
+
+Branch:
+
+```text
+feature/m5-firebase-backend
+```
+
+Commit examples:
+
+```text
+feat(auth): integrate firebase authentication
+feat(firebase): add game firestore datasource
+feat(firebase): add checkpoint persistence
+feat(firebase): add game membership
+feat(firebase): add discovery progress
+feat(firebase): add game leaderboard
+feat(firebase): add publish workflow
+feat(fcm): add new game topic notification
+feat(security): add firestore ownership rules
+test(firebase): add repository integration tests
+test(security): add firestore rules tests
+```
+
+Do not mix Room implementation into M5 commits.
+
+---
+
+# 121. DEFINITION OF DONE
+
+M5 is complete when:
+
+### Authentication
+
+- Firebase Auth works.
+- Authenticated user identity is available.
+- Protected operations require authentication.
+
+### Games
+
+- Games can be created.
+- Draft games can be stored.
+- Published games can be discovered.
+- Creator ownership is enforced.
+
+### Checkpoints
+
+- Dynamic checkpoints can be stored.
+- Checkpoints are game-scoped.
+- Checkpoint ordering is preserved.
+- Creator-only modification is enforced.
+
+### Membership
+
+- Players can join published games.
+- Membership is game-specific.
+- Duplicate joins are handled safely.
+
+### Progress
+
+- Discoveries are stored by user/game/checkpoint.
+- Duplicate discovery requests are safe.
+- Unauthorized progress writes are blocked.
+
+### Leaderboard
+
+- Each game has its own leaderboard.
+- Leaderboard data cannot be arbitrarily manipulated.
+- Real-time observation works where required.
+
+### Publishing
+
+- Draft → Published transition works.
+- Server-side validation exists.
+- Only the creator can publish.
+
+### Notifications
+
+- `/topics/new_games` is supported.
+- Published-game notification payload includes `gameId`.
+- Notification delivery is integrated.
+- Deep-link information is correct.
+
+### Architecture
+
+- Firebase is isolated behind repository/data boundaries.
+- M6 can integrate cloud synchronization.
+- UI members do not need direct Firestore access.
+
+### Testing
+
+- Auth tests pass.
+- Repository tests pass.
+- Security-rule tests pass.
+- Multi-user tests pass.
+- Multi-game isolation tests pass.
+- FCM tests pass.
+
+---
+
+# 122. FINAL M5 ARCHITECTURE
+
+The cloud architecture is:
+
+```text
+                 Firebase Authentication
+                          │
+                          ▼
+                 Authenticated User
+                          │
+                          ▼
+                    GameRepository
+                          │
+            ┌─────────────┼─────────────┐
+            ▼             ▼             ▼
+        Firestore        FCM       Security Rules
+            │             │
+     ┌──────┼──────┐      │
+     ▼      ▼      ▼      ▼
+   Games  Progress Leaderboards
+     │
+     ▼
+ Checkpoints
+```
+
+Creator flow:
+
+```text
+M2 Creator UI
+      ↓
+GameRepository
+      ↓
+Firestore
+      ↓
 DRAFT
-TESTED
-DEPLOYED
+      ↓
+Publish validation
+      ↓
+PUBLISHED
+      ↓
+FCM /topics/new_games
 ```
 
-Do not describe draft pseudocode as production-ready security.
-
----
-
-# 73. Day-by-Day Execution Schedule
-
-## September 13 — Firebase Setup
-
-Tasks:
-
-- create/select Firebase project;
-- connect Android app;
-- enable Authentication;
-- enable Firestore;
-- verify build.
-
-Deliverable:
+Player discovery:
 
 ```text
-Android app successfully connected to Firebase
-```
-
----
-
-## September 14 — Authentication
-
-Tasks:
-
-- implement Firebase Auth repository;
-- login;
-- auth-state observation;
-- logout;
-- test account.
-
-Deliverable:
-
-```text
-login/logout works
+M1 Player UI
+      ↓
+GameRepository
+      ↓
+Published games
+      ↓
+Game Details
+      ↓
+Join
+      ↓
+Game-scoped progress
 ```
 
 ---
 
-## September 15 — User Profiles
+# 123. CORE DESIGN PRINCIPLE
 
-Tasks:
+M5 provides the **authoritative shared cloud layer**.
 
-- create `users/{uid}`;
-- map Auth user to profile;
-- load profile;
-- test first-login creation.
-
-Deliverable:
+The cloud model must preserve three critical boundaries:
 
 ```text
-authenticated user has cloud profile
+Creator ownership
++
+Game scope
++
+User scope
 ```
 
----
-
-## September 16 — Relics
-
-Tasks:
-
-- create canonical six relic documents;
-- implement relic retrieval;
-- implement DTO/domain mapping;
-- test R001–R006.
-
-Deliverable:
+Therefore:
 
 ```text
-six relics load from Firestore
+Game
+  ↓
+Checkpoint
 ```
 
----
-
-## September 17 — Progress
-
-Tasks:
-
-- implement found relic path;
-- deterministic relic document ID;
-- duplicate protection;
-- timestamps.
-
-Deliverable:
+is game-scoped,
 
 ```text
-recordReveal works
+User
+  ↓
+Game
+  ↓
+Progress
 ```
 
----
+is user + game scoped,
 
-## September 18 — Leaderboard
-
-Tasks:
-
-- implement leaderboard model;
-- update count;
-- observe/query leaderboard;
-- test ordering.
-
-Deliverable:
+and:
 
 ```text
-leaderboard works
-```
-
----
-
-## September 19 — Repository Integration
-
-Tasks:
-
-- connect shared `QuestRepository`;
-- replace mock cloud implementation;
-- test M2/M6 interfaces.
-
-Deliverable:
-
-```text
-repository boundary working
-```
-
----
-
-## September 20 — Sync With M6
-
-Tasks:
-
-- define pending record handoff;
-- implement cloud acknowledgement;
-- test offline → online retry.
-
-Deliverable:
-
-```text
-pending local discovery can sync
-```
-
----
-
-## September 21 — Security Rules
-
-Tasks:
-
-- user access rules;
-- progress access rules;
-- relic read protection;
-- leaderboard protection;
-- cross-user tests.
-
-Deliverable:
-
-```text
-security rules tested
-```
-
----
-
-## September 22 — Integration Testing
-
-Test:
-
-```text
-login
-→ relic load
-→ scan
-→ reveal
-→ progress
-→ leaderboard
-```
-
-Deliverable:
-
-```text
-R001 cloud-backed end-to-end path
-```
-
----
-
-## September 23 — Contract Freeze
-
-Freeze:
-
-```text
-collection names
-field names
-domain models
-repository methods
-sync semantics
-security assumptions
-```
-
-Document any changes.
-
----
-
-## September 24 — Full Integration
-
-Work with:
-
-- M1;
-- M2;
-- M3;
-- M4;
-- M6.
-
-Test the complete application.
-
----
-
-## September 25 — Multi-User Testing
-
-Test:
-
-```text
-two users
-multiple relics
-duplicate discovery
-leaderboard
-```
-
----
-
-## September 26 — Offline/Recovery Testing
-
-Test:
-
-```text
-online
-offline
-discover
-close app
-restore network
-sync
-```
-
----
-
-## September 27 — Security and Reliability Fixes
-
-Prioritize:
-
-1. security;
-2. duplicate data;
-3. failed sync;
-4. auth failures;
-5. crashes;
-6. minor polish.
-
----
-
-## September 28 — Final Freeze
-
-Confirm:
-
-```text
-Firebase connected
-Auth works
-6 relics available
-progress works
-leaderboard works
-security tested
-offline sync works
-R001 end-to-end works
-```
-
----
-
-# 74. M5 → M1 Handoff
-
-M1 needs:
-
-```text
-auth state
-display name
-login success/failure state
-```
-
-M1 does not need Firebase SDK access.
-
----
-
-# 75. M5 → M2 Handoff
-
-M2 needs:
-
-```text
-Relic
-progress
-leaderboard
-auth/profile information where required
-```
-
-M2 must not directly query Firestore.
-
----
-
-# 76. M5 → M3 Handoff
-
-M3 needs:
-
-```text
-lat
-lng
-radiusM
-relicId
-```
-
-The location module remains M3-owned.
-
----
-
-# 77. M5 → M4 Handoff
-
-M4 needs:
-
-```text
-lightSignature
-relicId
-```
-
-M4 owns all sensor interpretation.
-
----
-
-# 78. M5 → M6 Handoff
-
-M6 needs:
-
-```text
-cloud write operation
-cloud read operation
-auth UID
-sync acknowledgement
-```
-
-M6 owns Room and local queue state.
-
----
-
-# 79. Git Branch
-
-M5 branch:
-
-```text
-feature/firebase-sync
-```
-
-No direct push to `main`.
-
----
-
-# 80. Suggested Commits
-
-```text
-feat: connect Firebase project
-feat: add Firebase authentication
-feat: add user profile repository
-feat: add Firestore relic catalog
-feat: add progress repository
-feat: add leaderboard repository
-feat: add cloud repository implementation
-feat: add sync acknowledgement
-test: add Firebase repository tests
-test: add security rule tests
-docs: document Firebase schema
-fix: prevent duplicate progress records
-```
-
----
-
-# 81. Pull Request Checklist
-
-Before PR:
-
-- [ ] project builds;
-- [ ] authentication tested;
-- [ ] six relics load;
-- [ ] progress writes;
-- [ ] duplicates prevented;
-- [ ] leaderboard works;
-- [ ] security rules tested;
-- [ ] sync boundary agreed;
-- [ ] no direct UI Firebase calls;
-- [ ] no Room code in Firebase classes;
-- [ ] no sensor/location code in Firebase classes;
-- [ ] README/configuration updated where required.
-
----
-
-# 82. Definition of Ready
-
-M5 is ready when:
-
-- Firebase project is available;
-- Android application ID is known;
-- shared domain models are available or mocked;
-- canonical relic catalog is known;
-- repository boundary is agreed;
-- test accounts can be created.
-
----
-
-# 83. Definition of Done
-
-M5 is done when:
-
-- [ ] Firebase project connected;
-- [ ] Authentication implemented;
-- [ ] user profile implemented;
-- [ ] six relics seeded;
-- [ ] relic repository implemented;
-- [ ] progress implemented;
-- [ ] duplicate discovery handled;
-- [ ] leaderboard implemented;
-- [ ] cloud repository integrated;
-- [ ] M6 sync boundary implemented;
-- [ ] security rules deployed/tested;
-- [ ] cross-user access tested;
-- [ ] offline/retry behavior tested;
-- [ ] R001 cloud-backed end-to-end flow works;
-- [ ] documentation updated;
-- [ ] PR reviewed and merged.
-
----
-
-# 84. Risks
-
-## Risk 1 — Firebase configuration failure
-
-Mitigation:
-
-```text
-connect Firebase on Sep 13
-```
-
-Do not postpone configuration.
-
-## Risk 2 — Authentication blocks the team
-
-Mitigation:
-
-```text
-M1/M2 continue with fake repository
-```
-
-## Risk 3 — Firestore schema changes late
-
-Mitigation:
-
-```text
-freeze schema by Sep 23
-```
-
-## Risk 4 — Duplicate progress
-
-Mitigation:
-
-```text
-deterministic document IDs
-```
-
-## Risk 5 — Leaderboard manipulation
-
-Mitigation:
-
-```text
-restrict client writes
-```
-
-## Risk 6 — Offline sync complexity
-
-Mitigation:
-
-```text
-M6 owns local queue
-M5 owns cloud acknowledgement
-```
-
-## Risk 7 — Security rules left until the end
-
-Mitigation:
-
-```text
-draft early
-test by Sep 21
-```
-
----
-
-# 85. If M5 Falls Behind
-
-Priority:
-
-### 1
-
-```text
-Authentication
-```
-
-### 2
-
-```text
-Relic retrieval
-```
-
-### 3
-
-```text
-Progress recording
-```
-
-### 4
-
-```text
+Game
+  ↓
 Leaderboard
 ```
 
-### 5
+is game-specific.
 
-```text
-Security rules
-```
-
-### 6
-
-```text
-Offline sync refinement
-```
-
-The MVP must be able to:
-
-```text
-login
-→ load relic
-→ complete R001
-→ persist progress
-```
-
-before advanced cloud functionality is polished.
+There is no global leaderboard and no permanent fixed checkpoint list.
 
 ---
 
-# 86. Required Evidence
-
-M5 should collect:
-
-1. Firebase project connection evidence.
-2. Authentication success.
-3. Firestore six-relic dataset.
-4. Successful R001 progress write.
-5. Duplicate discovery test.
-6. Leaderboard update.
-7. Security-rule denial test.
-8. Offline/reconnect synchronization test.
-9. Multi-user isolation test.
-
-These can support the final report and presentation.
-
----
-
-# 87. Final M5 Technical Checklist
-
-## Authentication
-
-- [ ] Firebase Auth enabled.
-- [ ] Login works.
-- [ ] Logout works.
-- [ ] Auth state observable.
-- [ ] Test accounts available.
-- [ ] Errors mapped.
-
-## Users
-
-- [ ] `users/{uid}` implemented.
-- [ ] Firebase UID used correctly.
-- [ ] Display name stored.
-- [ ] Cross-user protection tested.
-
-## Relics
-
-- [ ] `relics/{relicId}` implemented.
-- [ ] R001–R006 seeded.
-- [ ] coordinates correct as development values.
-- [ ] radius available.
-- [ ] light signature available.
-- [ ] lore available.
-- [ ] read access tested.
-
-## Progress
-
-- [ ] `progress/{uid}/found/{relicId}` implemented.
-- [ ] timestamp stored.
-- [ ] duplicate prevented.
-- [ ] cross-user protection tested.
-
-## Leaderboard
-
-- [ ] leaderboard model implemented.
-- [ ] count updates.
-- [ ] duplicates do not inflate count.
-- [ ] ordering works.
-- [ ] unauthorized score manipulation blocked.
-
-## Sync
-
-- [ ] M6 boundary defined.
-- [ ] pending records can be uploaded.
-- [ ] retry is safe.
-- [ ] successful upload acknowledged.
-
-## Security
-
-- [ ] actual rules deployed.
-- [ ] own-user access tested.
-- [ ] cross-user access tested.
-- [ ] relic writes protected.
-- [ ] leaderboard writes protected.
-
----
-
-# 88. Final Deliverables
-
-M5 must provide:
+# 124. M5 QUICK CHECKLIST
 
 ```text
-1. Firebase project configuration
-2. Firebase Authentication
-3. AuthRepository / equivalent
-4. User profile implementation
-5. Firestore relic collection
-6. Canonical six relic records
-7. Progress implementation
-8. Leaderboard implementation
-9. Cloud repository implementation
-10. Sync/cloud acknowledgement interface
-11. Firestore security rules
-12. Security test evidence
-13. Offline/retry integration evidence
-14. Firebase schema documentation
-15. Test account setup
-16. R001 cloud-backed end-to-end demonstration
+[ ] Firebase project configuration
+[ ] Firebase Authentication
+[ ] Auth state
+[ ] User identity
+[ ] Game creation
+[ ] Game draft persistence
+[ ] Game retrieval
+[ ] Published game discovery
+[ ] Dynamic checkpoint persistence
+[ ] Checkpoint update
+[ ] Checkpoint delete
+[ ] Checkpoint ordering
+[ ] Creator ownership
+[ ] Game membership
+[ ] Join idempotency
+[ ] Player progress
+[ ] Discovery idempotency
+[ ] Game-specific leaderboard
+[ ] Leaderboard security
+[ ] Publish validation
+[ ] Draft → Published
+[ ] FCM setup
+[ ] /topics/new_games
+[ ] Notification payload
+[ ] Notification deep-link data
+[ ] Firestore security rules
+[ ] Firestore indexes
+[ ] Cloud error mapping
+[ ] Multi-user tests
+[ ] Multi-game tests
+[ ] Security-rule tests
+[ ] Repository tests
+[ ] FCM tests
+[ ] M6 sync handoff
 ```
 
 ---
 
-# 89. One-Page M5 Summary
+# 125. FINAL HANDOFF PACKAGE
+
+M5 should provide:
+
+1. Firebase Auth integration.
+2. Firestore data sources.
+3. Firebase repository implementation.
+4. Firestore security rules.
+5. Required indexes/configuration.
+6. Game/checkpoint cloud model.
+7. Membership implementation.
+8. Progress implementation.
+9. Game-specific leaderboard implementation.
+10. Publish operation.
+11. FCM topic notification implementation.
+12. Notification payload/deep-link contract.
+13. Firebase error mapping.
+14. Emulator/test configuration where used.
+15. Seed/demo data.
+16. Security-rule tests.
+17. Repository tests.
+18. M6 cloud-sync handoff documentation.
+19. Any required shared-contract changes.
+
+---
+
+# 126. FINAL INTEGRATION CONTRACT
+
+The rest of the team should be able to work without knowing Firebase internals.
+
+The intended dependency is:
 
 ```text
-M5 OWNS
-────────────────────────────────────────
-Firebase project
-Authentication
-User profiles
-Firestore relics
-Cloud progress
-Leaderboard
-Cloud repository
-Security rules
-Cloud sync boundary
-────────────────────────────────────────
-
-M5 RECEIVES
-────────────────────────────────────────
-Domain/repository contracts
-Relic model
-Local pending records from M6
-────────────────────────────────────────
-
-M5 RETURNS
-────────────────────────────────────────
-Authenticated UID
-Relic data
-Progress cloud writes
-Leaderboard data
-Sync acknowledgement
-────────────────────────────────────────
-
-IMPORTANT RULES
-────────────────────────────────────────
-Firebase UID ≠ development ID
-M5 does not own Room
-M5 does not own sensors
-M5 does not own GPS
-M5 does not put Firebase calls in UI
-Client must not freely manipulate leaderboard totals
-────────────────────────────────────────
-
-CLOUD MODEL
-────────────────────────────────────────
-users/{uid}
-relics/{relicId}
-progress/{uid}/found/{relicId}
-leaderboard/{uid}
-────────────────────────────────────────
-
-FIRST PRIORITY IF BEHIND
-────────────────────────────────────────
-Login → load R001 → record discovery.
-────────────────────────────────────────
+M1/M2/M4
+   ↓
+Repository interface
+   ↓
+M5 cloud implementation
 ```
 
-# 90. Final Handoff Statement
-
-M5's implementation should make Firebase an infrastructure layer behind the repository boundary rather than a dependency spread throughout the Android application.
-
-The intended boundary is:
+and:
 
 ```text
-M1/M2
+M6
    ↓
-ViewModel
+Repository/sync boundary
    ↓
-Repository
-   ↓
-M5 Firebase implementation
-   ↓
-Firebase Auth / Firestore
+M5 cloud implementation
 ```
 
-while local persistence remains:
+This keeps Firebase implementation isolated and allows the application to use the same domain-level contracts for cloud and local data.
 
-```text
-Repository
-   ↓
-M6 Room implementation
-```
+---
 
-The most important integration target is a reliable:
-
-```text
-authenticated user
-→ R001 loaded
-→ scan completed
-→ progress stored
-→ leaderboard updated
-→ progress remains available after restart
-```
-
-Security rules must be tested before the final integration freeze. The canonical relic coordinates and light signatures remain development values until physical validation/calibration is completed by the appropriate team members.
+**END OF MEMBER 5 FIREBASE, FIRESTORE, AUTHENTICATION & CLOUD BACKEND WORKPLAN**

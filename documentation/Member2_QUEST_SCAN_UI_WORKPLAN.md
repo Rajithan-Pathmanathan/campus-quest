@@ -1,115 +1,1281 @@
-# Campus Quest — M2 Workplan: Quest & Scan Experience
+# MEMBER 2 — CREATOR & GAME MANAGEMENT WORKPLAN
+## Campus Quest — Final Reassigned Team Plan
 
-**Document ID:** CQ-M2  
-**Role:** M2 — Frontend Developer: Quest + Scan Experience  
-**Project:** Campus Quest  
-**Development window:** 13 September 2026 – 28 September 2026  
-**Primary responsibility:** Quest discovery UI, quest details, Scan Mode UI, fusion-meter presentation, scan instructions, relic reveal, lore/progress presentation, and leaderboard presentation where assigned  
-**Primary dependencies:** M1 navigation/theme, M3 location state, M4 sensor-fusion result, M5/M6 relic/progress data
-
----
-
-# 1. Role Objective
-
-M2 owns the user-facing dynamic checkpoint and scanning experience for the player's active joined game:
-
-```text
-Active Game Checkpoints
-          ↓
-Checkpoint Details & Clues
-          ↓
-Geofence ENTER Event
-          ↓
-Scan Mode HUD (Live Fusion Meter)
-          ↓
-Fusion Score >= Threshold Prompt ("Signal Locked!")
-          ↓
-Proximity Confirmation Gate
-          ↓
-Relic Reveal Animation & Lore Dialog
-          ↓
-Game Progress & Leaderboard Presentation
-```
-
-# 2. Primary Deliverables
-
-M2 must deliver:
-
-- Quest list
-- Quest cards
-- Quest details screen
-- Relic information presentation
-- Scan Mode screen
-- Scan instructions
-- Fusion progress/meter
-- Scan state presentation
-- Sensor limitation messaging
-- Proximity confirmation state
-- Successful reveal screen
-- Relic/lore presentation
-- Discovery success state
-- Progress presentation
-- Leaderboard presentation where assigned
-- Mock-based versions of all screens
-- Integration with real M3/M4/M5/M6 outputs
+**Owner:** Member 2 (M2)  
+**Primary responsibility:** Creator-facing game and checkpoint management  
+**Branch:** `feature/m2-creator-game-management`  
+**Architecture:** Android + Kotlin, MVVM + Repository, Room + Firebase/Firestore  
+**Status:** Final reassignment version
 
 ---
 
-# 3. Ownership Boundary
+# 1. PURPOSE
 
-M2 owns:
+M2 owns the complete **Game Creator** workflow for Campus Quest.
+
+The creator must be able to:
+
+1. Enter creator/game-management functionality.
+2. Create a new game.
+3. Enter and edit game metadata.
+4. Add checkpoints dynamically.
+5. Configure checkpoint location and geofence radius.
+6. Configure the ambient-light signature.
+7. Add clues and lore.
+8. Configure checkpoint order, rarity, and motion type.
+9. Edit and delete checkpoints.
+10. Save a game as a draft.
+11. Validate the game before publication.
+12. Publish a valid game.
+13. Hand the published game to the backend so it becomes available to players.
+14. Return to edit drafts where permitted.
+
+The creator workflow must be **dynamic**.
+
+The app must not require a permanent hard-coded set of checkpoints such as `R001–R006`. Those identifiers may exist only as seed/demo data.
+
+---
+
+# 2. IMPORTANT REASSIGNMENT
+
+The previous M2 responsibility for **Quest / Scan UI** is no longer part of M2's ownership.
+
+## M2 now owns
+
+- Creator entry and creator navigation integration.
+- Create-game screens.
+- Game metadata editing.
+- Checkpoint creation.
+- Checkpoint editing.
+- Checkpoint deletion.
+- Checkpoint ordering.
+- Location configuration fields.
+- Geofence radius configuration.
+- Ambient-light signature configuration fields.
+- Clue/lore configuration.
+- Rarity configuration.
+- Motion-type configuration.
+- Draft management.
+- Creator-side validation.
+- Publish UI and publish workflow.
+- Creator ViewModels and creator UI state.
+
+## M2 does NOT own
+
+- Player scan HUD.
+- GPS sensor implementation.
+- Fused Location Provider implementation.
+- Geofence registration internals.
+- Ambient-light sensor implementation.
+- Accelerometer implementation.
+- Proximity sensor implementation.
+- Sensor-fusion mathematics.
+- Room database implementation.
+- Firestore implementation.
+- FCM implementation.
+- Repository implementation internals.
+
+Those responsibilities belong primarily to M3, M5 and M6.
+
+---
+
+# 3. CANONICAL DOMAIN MODEL
+
+M2 must build against these concepts.
+
+```kotlin
+enum class GameStatus {
+    DRAFT,
+    PUBLISHED,
+    CLOSED
+}
+
+data class Game(
+    val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val publishedAt: Long? = null
+)
+
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusM: Float = 20f,
+    val lightSignature: LightSignature,
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP",
+    val rarity: String = "COMMON"
+)
+```
+
+M2 should consume the shared model rather than creating an independent creator-only model that conflicts with the rest of the application.
+
+---
+
+# 4. CREATOR USER JOURNEY
+
+The intended creator flow is:
 
 ```text
-Quest UI
-Quest details
-Scan UI
-Fusion meter display
-Scan instructions
-Reveal UI
-Lore
-Discovery presentation
-Progress presentation
-Leaderboard presentation
+Creator Entry
+    ↓
+Creator Games
+    ↓
+Create New Game
+    ↓
+Game Details Editor
+    ↓
+Checkpoint List
+    ↓
+Add Checkpoint
+    ↓
+Checkpoint Editor
+    ↓
+Save Checkpoint
+    ↓
+Checkpoint List
+    ↓
+Add/Edit/Delete/Reorder
+    ↓
+Save Draft
+    ↓
+Validate Game
+    ↓
+Publish Confirmation
+    ↓
+Publish
+    ↓
+Published Game
 ```
+
+A creator may leave an incomplete game as a draft.
+
+Publication is a separate state transition.
+
+---
+
+# 5. CREATOR ENTRY
+
+## Responsibility
+
+M2 supplies the creator-side destination and navigation contract.
+
+M1 owns the shared application navigation shell.
+
+M2 must therefore provide:
+
+- Creator destination/screen contract.
+- Creator navigation routes.
+- Required navigation arguments.
+- Creator game-list state requirements.
+- Navigation to create/edit game.
+- Navigation to checkpoint editor.
+
+M2 should not duplicate the application's global navigation implementation.
+
+---
+
+# 6. CREATOR GAMES SCREEN
+
+This screen shows games created by the current user.
+
+Possible sections:
+
+```text
+My Games
+
+[ + Create Game ]
+
+Draft Games
+    Game A
+    4 checkpoints
+    Draft
+    [Edit]
+
+Published Games
+    Game B
+    8 checkpoints
+    Published
+    [View]
+```
+
+The exact visual layout should follow the project's established UI/UX specification and Material Design guidance.
+
+The screen must distinguish:
+
+- Draft.
+- Published.
+- Closed, if supported by the final implementation.
+
+---
+
+# 7. CREATE GAME SCREEN
+
+The initial game editor should collect:
+
+- Game title.
+- Game description.
+
+The creator identity must come from the authenticated user context.
+
+The creator should not manually enter an arbitrary `creatorId`.
+
+Example state:
+
+```kotlin
+data class GameEditorUiState(
+    val gameId: String? = null,
+    val title: String = "",
+    val description: String = "",
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val isSaving: Boolean = false,
+    val isPublishing: Boolean = false,
+    val validationErrors: List<String> = emptyList(),
+    val saveError: String? = null
+)
+```
+
+---
+
+# 8. GAME TITLE VALIDATION
+
+At minimum, validate:
+
+- Title is not blank.
+- Title is not whitespace-only.
+- Title length is within the application's agreed limit.
+- Unsafe/invalid input is rejected according to the application's validation rules.
+
+Do not silently invent different validation rules in M2 if shared project contracts already define them.
+
+The UI should show validation close to the relevant field.
+
+---
+
+# 9. GAME DESCRIPTION VALIDATION
+
+Validate:
+
+- Description is not unintentionally empty if publication requires it.
+- Length is within the agreed project limit.
+- Excessive whitespace is handled consistently.
+
+Drafts may be allowed to remain incomplete if the product specification permits it.
+
+Publication validation must be stricter than draft saving.
+
+---
+
+# 10. CHECKPOINT LIST
+
+The checkpoint list is the central creator-management screen.
+
+Each checkpoint should expose enough information for the creator to understand its configuration.
+
+Example:
+
+```text
+Checkpoint 1
+Old Library
+Location configured
+Radius: 20 m
+Light: configured
+[Edit] [Delete]
+
+Checkpoint 2
+Main Courtyard
+Location configured
+Radius: 30 m
+Light: configured
+[Edit] [Delete]
+```
+
+The list must support dynamic counts.
+
+Do not code:
+
+```kotlin
+val checkpoints = listOf(R001, R002, R003, R004, R005, R006)
+```
+
+as the production architecture.
+
+---
+
+# 11. ADD CHECKPOINT
+
+The creator selects:
+
+```text
++ Add Checkpoint
+```
+
+A new checkpoint editor opens.
+
+The checkpoint belongs to the current game through:
+
+```kotlin
+gameId
+```
+
+The checkpoint ID must be unique within the game.
+
+M2 should obtain IDs through the agreed repository/data contract rather than assuming a permanent global sequence.
+
+---
+
+# 12. CHECKPOINT EDITOR
+
+The checkpoint editor should provide fields for:
+
+### Identity/content
+
+- Name.
+- Clue.
+- Lore.
+
+### Location
+
+- Latitude.
+- Longitude.
+- Geofence radius.
+
+### Sensor-fusion configuration
+
+- Minimum expected ambient light.
+- Maximum expected ambient light.
+
+### Gameplay metadata
+
+- Order.
+- Motion type.
+- Rarity.
+
+Example conceptual state:
+
+```kotlin
+data class CheckpointEditorUiState(
+    val checkpointId: String? = null,
+    val gameId: String,
+    val name: String = "",
+    val lat: String = "",
+    val lng: String = "",
+    val radiusM: String = "20",
+    val minLux: String = "",
+    val maxLux: String = "",
+    val clue: String = "",
+    val lore: String = "",
+    val order: String = "1",
+    val motionType: String = "SWEEP",
+    val rarity: String = "COMMON",
+    val isSaving: Boolean = false,
+    val validationErrors: Map<String, String> = emptyMap()
+)
+```
+
+This is a UI-state representation. It is not a replacement for the shared domain model.
+
+---
+
+# 13. LOCATION CONFIGURATION
+
+M2 owns the creator-facing configuration of coordinates.
+
+M2 does not implement the location provider.
+
+The editor may receive coordinates through:
+
+- Map-based selection.
+- Location picker.
+- Manual latitude/longitude entry.
+
+The exact mechanism should follow the project's UI specification.
+
+M3 owns the actual map/location/geospatial implementation.
+
+## Integration contract
+
+M2 requests or receives:
+
+```text
+SelectedLocation(
+    latitude,
+    longitude
+)
+```
+
+and places those values into the checkpoint editor.
+
+M2 should not directly depend on `FusedLocationProviderClient`.
+
+---
+
+# 14. GEOFENCE RADIUS
+
+The creator configures:
+
+```text
+radiusM
+```
+
+Example:
+
+```text
+Geofence radius
+[ 20 ] metres
+```
+
+Validation should ensure:
+
+- Numeric value.
+- Positive value.
+- Within the agreed safe/project range.
+- No impossible or nonsensical radius.
+
+The radius is stored with the checkpoint.
+
+M3 later consumes the radius when registering dynamic geofences.
+
+---
+
+# 15. AMBIENT LIGHT SIGNATURE
+
+The creator configures an expected environmental light range:
+
+```text
+Minimum Lux: 100
+Maximum Lux: 350
+```
+
+This represents the **expected ambient environmental light range at the checkpoint**.
+
+It is not a light emitted by the relic.
+
+M2 owns the input/configuration UI.
+
+M3 owns:
+
+- Light sensor access.
+- Actual lux reading.
+- Light matching.
+- Normalization.
+- Fusion.
+
+M2 must therefore store the configuration as data and not calculate sensor scores.
+
+---
+
+# 16. LIGHT SIGNATURE VALIDATION
+
+The UI should validate:
+
+```text
+minLux >= 0
+maxLux >= 0
+minLux <= maxLux
+```
+
+If the project contract defines an additional sensor range, M2 should use that shared range.
+
+Example:
+
+```kotlin
+if (minLux < 0) error("Minimum lux cannot be negative")
+if (maxLux < 0) error("Maximum lux cannot be negative")
+if (minLux > maxLux) error("Minimum lux cannot exceed maximum lux")
+```
+
+---
+
+# 17. CLUE
+
+The clue is the player-facing hint.
+
+Example:
+
+```text
+Clue:
+"Look for the place where knowledge sleeps beneath old stone."
+```
+
+M2 owns the creator input.
+
+M4 owns the player-side reveal/presentation.
+
+M2 should not implement the scan/reveal UI.
+
+---
+
+# 18. LORE
+
+Lore provides additional narrative information.
+
+Example:
+
+```text
+Lore:
+"This building has been part of campus life for decades..."
+```
+
+M2 stores the creator's text.
+
+M4 presents the content after successful discovery.
+
+---
+
+# 19. RARITY
+
+Checkpoint rarity is creator-configurable metadata.
+
+Example values may include:
+
+```text
+COMMON
+RARE
+EPIC
+LEGENDARY
+```
+
+The exact accepted values must match the shared project contract.
+
+M2 should avoid hard-coding display text in multiple places.
+
+Prefer a shared enum or controlled value set where the architecture supports it.
+
+---
+
+# 20. MOTION TYPE
+
+Motion type defines the intended physical interaction used during scanning.
+
+The current canonical default is:
+
+```text
+SWEEP
+```
+
+M2 stores the configuration.
+
+M3 interprets the sensor/motion behavior.
+
+M4 presents the gameplay state.
+
+M2 must not implement accelerometer processing.
+
+---
+
+# 21. CHECKPOINT ORDER
+
+Creators need to control checkpoint sequence.
+
+Example:
+
+```text
+1. Old Library
+2. Main Courtyard
+3. Engineering Building
+4. Science Block
+```
+
+The `order` field belongs to the checkpoint.
+
+When a creator reorders checkpoints:
+
+1. Update the local/editor state.
+2. Validate order uniqueness/consistency.
+3. Persist through the repository contract.
+4. Ensure the player receives the intended ordering.
+
+Do not assume checkpoint order is determined by document creation time.
+
+---
+
+# 22. EDIT CHECKPOINT
+
+When the creator selects Edit:
+
+```text
+Checkpoint List
+    ↓
+Checkpoint Editor
+    ↓
+Load existing checkpoint
+    ↓
+Modify fields
+    ↓
+Validate
+    ↓
+Save
+```
+
+The editor must distinguish:
+
+- New checkpoint.
+- Existing checkpoint.
+
+Avoid creating a new checkpoint accidentally when editing an existing one.
+
+---
+
+# 23. DELETE CHECKPOINT
+
+Before deletion, the UI should request confirmation.
+
+Example:
+
+```text
+Delete checkpoint?
+
+This checkpoint will be removed from this game.
+
+[Cancel] [Delete]
+```
+
+M2 owns the confirmation UX.
+
+M5/M6 own the underlying cloud/local persistence implementation.
+
+If the checkpoint is already part of an active/published game, deletion behavior must follow the product's lifecycle rules. M2 must not invent destructive production behavior independently.
+
+---
+
+# 24. DRAFT SUPPORT
+
+Drafts are important because creators may not finish an entire game in one session.
+
+The workflow should support:
+
+```text
+Create Game
+    ↓
+Save Draft
+    ↓
+Leave
+    ↓
+Return Later
+    ↓
+Edit
+    ↓
+Continue
+    ↓
+Publish
+```
+
+A draft may contain incomplete information.
+
+Therefore:
+
+```text
+Draft validation != Publish validation
+```
+
+A draft can be saved when publication requirements are not yet satisfied, subject to the agreed project rules.
+
+---
+
+# 25. SAVE DRAFT
+
+M2 triggers:
+
+```kotlin
+gameRepository.createGame(...)
+```
+
+or the appropriate update operation defined by the shared repository contract.
+
+For checkpoints:
+
+```kotlin
+gameRepository.createCheckpoint(...)
+```
+
+or:
+
+```kotlin
+gameRepository.updateCheckpoint(...)
+```
+
+M2 does not implement Firestore writes or Room DAOs.
+
+---
+
+# 26. LOCAL DRAFT SUPPORT
+
+If the application allows offline creator editing, M2 must use the repository boundary.
+
+The intended architecture is:
+
+```text
+Creator UI
+   ↓
+Creator ViewModel
+   ↓
+GameRepository
+   ↓
+Room / Firebase
+```
+
+M6 owns:
+
+- Local draft persistence.
+- Room entities.
+- DAO.
+- Pending sync.
+- Retry.
+- Conflict handling.
+
+M2 only needs to expose the appropriate UI states.
+
+---
+
+# 27. PUBLISH VALIDATION
+
+Publishing is more restrictive than saving a draft.
+
+Before publishing, validate the complete game.
+
+Conceptually:
+
+```text
+Game
+ ├─ valid title
+ ├─ valid description
+ ├─ at least required checkpoint count
+ ├─ every checkpoint has valid coordinates
+ ├─ every checkpoint has valid radius
+ ├─ every checkpoint has valid light signature
+ ├─ every checkpoint has required clue/lore
+ ├─ every checkpoint has valid order
+ └─ all required gameplay metadata configured
+```
+
+The exact minimum checkpoint count and field requirements must follow the canonical product specification.
+
+M2 should not invent a different publication rule.
+
+---
+
+# 28. PUBLISH VALIDATION UI
+
+If validation fails, present actionable errors.
+
+Example:
+
+```text
+Cannot publish yet.
+
+• Checkpoint 2 has no clue.
+• Checkpoint 3 has an invalid light range.
+• Checkpoint 4 has no location.
+```
+
+Prefer errors that identify the checkpoint and field.
+
+Do not show only:
+
+```text
+Invalid game.
+```
+
+when more useful information is available.
+
+---
+
+# 29. PUBLISH CONFIRMATION
+
+After validation:
+
+```text
+Publish Game?
+
+Once published, players will be able to discover and join this game.
+
+[Cancel] [Publish]
+```
+
+M2 owns this confirmation UI.
+
+M5 owns the backend publication operation.
+
+---
+
+# 30. PUBLISH OPERATION
+
+M2 calls the repository boundary:
+
+```kotlin
+gameRepository.publishGame(gameId)
+```
+
+The backend is responsible for the actual state transition:
+
+```text
+DRAFT → PUBLISHED
+```
+
+and related backend operations.
+
+The intended event flow is:
+
+```text
+Creator
+   ↓
+Publish
+   ↓
+Firestore game status = PUBLISHED
+   ↓
+New-game notification event
+   ↓
+FCM /topics/new_games
+   ↓
+Registered players
+```
+
+M5 owns Firebase/FCM.
+
+---
+
+# 31. PUBLISH SUCCESS STATE
+
+After successful publication:
+
+```text
+Game Published
+
+Your game is now available to players.
+
+[View Game]
+```
+
+The UI should not claim that notification delivery succeeded merely because the publish call succeeded.
+
+Backend notification delivery is M5's responsibility.
+
+---
+
+# 32. PUBLISH FAILURE
+
+Possible states:
+
+- Network unavailable.
+- Permission denied.
+- Backend validation failed.
+- Game changed before publication.
+- Unknown server error.
+
+M2 should translate repository results into useful UI states.
+
+Example:
+
+```kotlin
+sealed interface PublishResultUiState {
+    data object Idle : PublishResultUiState
+    data object Publishing : PublishResultUiState
+    data object Success : PublishResultUiState
+    data class Error(val message: String) : PublishResultUiState
+}
+```
+
+---
+
+# 33. VIEWMODEL RESPONSIBILITY
+
+M2 should use ViewModels to coordinate creator UI state.
+
+Conceptually:
+
+```text
+Creator Screen
+      ↓
+Creator ViewModel
+      ↓
+GameRepository
+      ↓
+Data layer
+```
+
+The ViewModel should handle:
+
+- Form state.
+- Validation.
+- Save requests.
+- Publish requests.
+- Loading states.
+- Error states.
+- Navigation events/state.
+- Checkpoint list state.
+
+The ViewModel should not contain:
+
+- Firestore SDK code.
+- Room DAO code.
+- SensorManager code.
+- FusedLocationProviderClient code.
+- Geofence registration code.
+
+---
+
+# 34. SUGGESTED VIEWMODELS
+
+Possible separation:
+
+```text
+CreatorGamesViewModel
+CreateGameViewModel
+CheckpointListViewModel
+CheckpointEditorViewModel
+```
+
+The exact number can be adjusted to the project's existing architecture.
+
+Do not create ViewModels simply to satisfy a naming convention; each should have a meaningful state-management responsibility.
+
+---
+
+# 35. CREATOR GAMES VIEWMODEL
+
+Responsibilities:
+
+- Load creator's games.
+- Expose draft/published lists.
+- Start create-game flow.
+- Open existing game.
+- Refresh state.
+- Handle repository errors.
+
+Conceptual state:
+
+```kotlin
+data class CreatorGamesUiState(
+    val games: List<Game> = emptyList(),
+    val isLoading: Boolean = false,
+    val error: String? = null
+)
+```
+
+---
+
+# 36. CREATE GAME VIEWMODEL
+
+Responsibilities:
+
+- Hold title/description.
+- Validate fields.
+- Save game.
+- Expose save state.
+- Navigate to checkpoint management after successful creation.
+
+The creator ID/name should be resolved through authenticated user context rather than typed into the form.
+
+---
+
+# 37. CHECKPOINT LIST VIEWMODEL
+
+Responsibilities:
+
+- Load checkpoints for a selected game.
+- Expose ordered checkpoints.
+- Add checkpoint navigation event.
+- Edit checkpoint navigation event.
+- Request deletion.
+- Handle reorder.
+- Refresh after changes.
+
+---
+
+# 38. CHECKPOINT EDITOR VIEWMODEL
+
+Responsibilities:
+
+- Load existing checkpoint.
+- Maintain form state.
+- Validate fields.
+- Convert UI strings into typed values.
+- Save new checkpoint.
+- Update existing checkpoint.
+- Report errors.
+
+For example:
+
+```text
+"20"
+```
+
+becomes:
+
+```kotlin
+20f
+```
+
+only after validation.
+
+Do not allow malformed UI strings to reach the domain/data layer.
+
+---
+
+# 39. NAVIGATION CONTRACT WITH M1
+
+M2 should define stable routes/arguments for creator screens.
+
+Example conceptual routes:
+
+```text
+creator/games
+creator/game/new
+creator/game/{gameId}
+creator/game/{gameId}/checkpoint/new
+creator/game/{gameId}/checkpoint/{checkpointId}/edit
+```
+
+These are contracts, not necessarily the final literal route syntax.
+
+Required arguments:
+
+- `gameId`
+- `checkpointId` where applicable.
+
+M1 integrates these routes into the application navigation shell.
+
+---
+
+# 40. MAP SELECTION CONTRACT WITH M3
+
+M2 may request a map/location picker.
+
+The interface should conceptually return:
+
+```kotlin
+data class SelectedLocation(
+    val latitude: Double,
+    val longitude: Double
+)
+```
+
+M2 then updates:
+
+```kotlin
+lat
+lng
+```
+
+M2 does not own the map engine or location provider.
+
+---
+
+# 41. REPOSITORY CONTRACT
 
 M2 consumes:
 
+```kotlin
+interface GameRepository {
+    suspend fun getAvailableGames(): List<Game>
+    suspend fun getGameDetails(gameId: String): Game?
+    suspend fun createGame(game: Game): Result<Game>
+    suspend fun createCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Checkpoint>
+    suspend fun updateCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Unit>
+    suspend fun publishGame(gameId: String): Result<Unit>
+    suspend fun joinGame(gameId: String): Result<Unit>
+    suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
+    suspend fun getFusionSignature(
+        gameId: String,
+        checkpointId: String
+    ): LightSignature
+    suspend fun recordDiscovery(
+        gameId: String,
+        checkpointId: String,
+        foundAt: Long
+    ): Result<Unit>
+    fun observeGameLeaderboard(
+        gameId: String
+    ): Flow<List<GameLeaderboardEntry>>
+    suspend fun syncPending()
+}
+```
+
+M2 mainly uses:
+
+- `createGame`
+- `getGameDetails`
+- `createCheckpoint`
+- `updateCheckpoint`
+- `publishGame`
+- `getGameCheckpoints`
+
+The interface may evolve through shared team agreement.
+
+---
+
+# 42. SECURITY BOUNDARY
+
+M2 must assume that client-side validation is not sufficient.
+
+A malicious client could bypass UI validation.
+
+M5 owns Firestore security and backend validation.
+
+The backend should enforce:
+
+- Creator ownership.
+- Valid game transitions.
+- Valid checkpoint ownership through game ownership.
+- Publication restrictions.
+- Appropriate access to draft games.
+
+M2 should surface backend rejection cleanly.
+
+---
+
+# 43. CREATOR OWNERSHIP
+
+The creator must only manage games belonging to the authenticated creator.
+
+Conceptually:
+
 ```text
-LocationResult / DistanceResult → M3
-GeofenceEvent → M3
-FusionResult → M4
-ScanState → M4
-Relic/light signature → M5/M6
-Saved progress → M6/M5
+authenticated user
+        ↓
+creatorId
+        ↓
+owned games
+        ↓
+owned checkpoints
+```
+
+M2 must never expose a free-form creator ID field that lets a user claim another creator's game.
+
+---
+
+# 44. GAME-SCOPED CHECKPOINTS
+
+Every checkpoint must be scoped to its game:
+
+```kotlin
+checkpoint.gameId == game.id
+```
+
+This prevents a checkpoint from accidentally appearing in another game.
+
+This is particularly important when the app contains multiple games.
+
+---
+
+# 45. MULTI-GAME ISOLATION
+
+Test:
+
+```text
+Game A
+  ├─ CP-A1
+  └─ CP-A2
+
+Game B
+  ├─ CP-B1
+  └─ CP-B2
+```
+
+Editing Game A must never modify Game B.
+
+Deleting CP-A1 must never delete CP-B1.
+
+Reordering Game A must never reorder Game B.
+
+---
+
+# 46. UI STATE REQUIREMENTS
+
+Every major creator operation should represent:
+
+```text
+Idle
+Loading
+Success
+Error
+```
+
+For save/publish operations also represent:
+
+```text
+Saving
+Publishing
+```
+
+Avoid allowing repeated rapid taps to submit duplicate operations.
+
+---
+
+# 47. DOUBLE-SUBMISSION PROTECTION
+
+For operations such as:
+
+- Create.
+- Save.
+- Publish.
+- Delete.
+
+the UI should disable or guard the operation while it is already executing.
+
+Example:
+
+```text
+Publishing...
+```
+
+instead of allowing:
+
+```text
+Publish
+Publish
+Publish
 ```
 
 ---
 
-# 4. Non-Ownership Boundary
+# 48. ERROR HANDLING
 
-M2 must not independently implement:
+Errors should be:
+
+- Human-readable.
+- Actionable.
+- Associated with the correct field when possible.
+- Recoverable when possible.
+
+Examples:
 
 ```text
-GPS
-Fused Location Provider
-geofence registration
-SensorManager
-accelerometer processing
-light sensor processing
-proximity sensor detection
-fusion mathematics
-Room DAO
-Firestore writes
-Firebase authentication
+Unable to save checkpoint.
+Check your connection and try again.
 ```
 
-If the UI needs one of these values, consume the agreed interface/state.
+or:
+
+```text
+Minimum lux must be less than or equal to maximum lux.
+```
+
+Do not expose raw Firebase exception messages to users unless intentionally mapped.
 
 ---
 
-# 5. Architecture
+# 49. OFFLINE BEHAVIOR
 
-Use:
+If offline creator editing is supported:
 
 ```text
 UI
@@ -117,179 +1283,40 @@ UI
 ViewModel
  ↓
 Repository
-```
-
-for application data.
-
-M2 should not place direct:
-
-```text
-Firestore
+ ↓
 Room
-sensor
-location
-```
-
-operations inside the UI layer.
-
----
-
-# 6. M2 Screen Map
-
-```text
-Quests
  ↓
-Quest Details
+Pending Sync
  ↓
-Scan
- ↓
-Reveal
- ↓
-Lore / Discovery
+Firebase
 ```
 
-Additional:
+M2 should not implement the synchronization engine.
+
+M6 owns pending synchronization and conflict/idempotency behavior.
+
+M2 should still provide UI states such as:
 
 ```text
-Quests → already discovered state
-Quests → unavailable/locked state
-Quests → completed state
+Saved locally
+Waiting for sync
+Synced
+Sync failed
 ```
+
+if those states are exposed by the repository contract.
 
 ---
 
-# 7. Quest List
+# 50. MOCK DATA FOR M2
 
-The Quest List should display the available relic quests.
-
-For each quest, consider showing:
+During UI development, M2 may use:
 
 ```text
-Relic name
-Rarity
-Short description
-Discovery state
-Distance/status where available
+demo-campus-quest
 ```
 
-Do not expose unnecessary technical sensor details on the main quest card.
-
----
-
-# 8. Quest Card
-
-A quest card should have:
-
-```text
-Title
-Rarity
-Short description
-Status
-Action
-```
-
-Example:
-
-```text
-Founder’s Bell
-COMMON
-
-A relic hidden within the historic campus grounds.
-
-[Explore]
-```
-
-The exact wording can follow the final UI design.
-
----
-
-# 9. Quest States
-
-At minimum support:
-
-```text
-Available
-Approaching
-Ready to scan
-Scanning
-Discovered
-```
-
-Potential additional states:
-
-```text
-Locked
-Unavailable
-Limited
-Error
-```
-
-Only display states that correspond to actual application state.
-
----
-
-# 10. Quest Details
-
-Quest Details should provide enough information for the user to understand the objective without revealing the entire solution.
-
-Possible content:
-
-```text
-Relic name
-Rarity
-Lore preview
-Discovery objective
-Location status
-Start/Explore action
-```
-
-Do not reveal the final relic before the user completes the scan.
-
----
-
-# 11. R001 Primary Test Quest
-
-Use:
-
-```text
-R001 — Founder’s Bell
-```
-
-for the primary UI/integration scenario.
-
-Canonical development data:
-
-```text
-Radius: 25 m
-Light signature: 180–320 lux
-Rarity: Common
-```
-
-Coordinates come from the shared mock catalog and must be physically validated before final demonstration.
-
----
-
-# 12. Additional Test Quests
-
-Use:
-
-```text
-R002 — Scholar’s Compass
-R003 — Heritage Key
-R004 — Old Library Seal
-R005 — Garden Chronicle
-R006 — Clock Tower Relic
-```
-
-Do not create alternate IDs for these canonical development relics.
-
----
-
-# 13. Quest List Mock Data
-
-Before M5/M6 are ready, M2 should use a mock repository.
-
-Expected mock result:
+and sample checkpoints such as:
 
 ```text
 R001
@@ -300,2366 +1327,814 @@ R005
 R006
 ```
 
-The UI must not depend on Firebase being available during initial development.
+However:
+
+**These are seed/demo records, not the production architecture.**
+
+M2 must ensure the UI works with:
+
+- 0 checkpoints.
+- 1 checkpoint.
+- 2 checkpoints.
+- Many checkpoints.
+- Long checkpoint names.
+- Missing optional data.
+- Validation errors.
+- Draft games.
+- Published games.
 
 ---
 
-# 14. Quest ViewModel
-
-A conceptual ViewModel may expose:
-
-```text
-quests
-loading
-error
-selectedQuest
-```
-
-Example conceptual state:
-
-```kotlin
-data class QuestListUiState(
-    val isLoading: Boolean = false,
-    val quests: List<Relic> = emptyList(),
-    val errorMessage: String? = null
-)
-```
-
-The exact implementation may differ.
-
----
-
-# 15. Quest Loading State
-
-When loading:
-
-```text
-show loading indicator/skeleton
-```
-
-Do not show a blank screen without explanation.
-
----
-
-# 16. Quest Error State
-
-If data cannot be loaded:
-
-```text
-Unable to load quests.
-Try again.
-```
-
-Provide retry where appropriate.
-
-Do not expose raw exceptions.
-
----
-
-# 17. Quest Empty State
-
-If there are no quests:
-
-```text
-No quests available.
-```
-
-Optionally provide:
-
-```text
-Refresh
-```
-
-if supported by the repository.
-
----
-
-# 18. Quest Detail Navigation
-
-Expected:
-
-```text
-Quest List
- ↓
-tap R001
- ↓
-Quest Details
-```
-
-The selected relic ID must be passed reliably.
-
-Do not use:
-
-```text
-array position
-```
-
-as the long-term identity of a relic.
-
-Use:
-
-```text
-relicId
-```
-
-such as:
-
-```text
-R001
-```
-
----
-
-# 19. Scan Entry
-
-Scan Mode should become available when the location/geofence conditions allow it according to the integrated design.
-
-M3 owns the location/geofence event.
-
-M2 owns how that state is presented.
-
----
-
-# 20. Geofence Boundary
-
-Important:
-
-```text
-Geofence ENTER
-```
-
-does not automatically mean:
-
-```text
-Relic revealed
-```
-
-It means the user can begin the scan experience.
-
----
-
-# 21. Scan Screen Objective
-
-The Scan screen should make the user understand:
-
-```text
-What is happening?
-What should I do?
-How close am I?
-How strong is the match?
-What is preventing completion?
-```
-
----
-
-# 22. Scan UI Structure
-
-Recommended conceptual structure:
-
-```text
-Top bar
- ↓
-Relic title
- ↓
-Instruction
- ↓
-Fusion meter
- ↓
-Sensor/status indicators
- ↓
-Dynamic guidance
- ↓
-Proximity confirmation
-```
-
-The final visual arrangement follows the approved UI design.
-
----
-
-# 23. Fusion Meter
-
-The central interaction should be a live:
-
-```text
-0–100%
-```
-
-score.
+# 51. ZERO-CHECKPOINT STATE
 
 Example:
 
 ```text
-MATCH
-87%
+No checkpoints yet.
+
+Add your first checkpoint to begin building the quest.
+
+[ + Add Checkpoint ]
 ```
 
-The meter is a visual representation of `FusionResult`.
-
-M2 must not independently calculate the percentage.
+Do not crash or display an empty screen with no explanation.
 
 ---
 
-# 24. Fusion Architecture
+# 52. MANY-CHECKPOINT STATE
 
-The actual signal flow is:
+The checkpoint list should remain usable when a creator adds many checkpoints.
 
-```text
-GPS
- +
-Light
- +
-Accelerometer
- ↓
-Fusion Engine
- ↓
-FusionResult
- ↓
-M2 Scan UI
-```
+Use the project's established list component.
 
-Proximity is separate:
+Avoid hard-coding six cards.
 
-```text
-Fusion threshold reached
- ↓
-Proximity check
- ↓
-Reveal
-```
+The implementation must support a dynamic list.
 
 ---
 
-# 25. Important Fusion Rule
+# 53. CHECKPOINT FORM VALIDATION MATRIX
 
-M2 should never implement:
+| Field | Draft | Publish |
+|---|---|---|
+| Name | Validate when entered | Required |
+| Latitude | May be incomplete if drafts allow | Required |
+| Longitude | May be incomplete if drafts allow | Required |
+| Radius | Validate if present | Required |
+| Min Lux | Validate if present | Required |
+| Max Lux | Validate if present | Required |
+| Clue | May be incomplete if drafts allow | Required if specified by product rules |
+| Lore | May be incomplete if drafts allow | Required if specified by product rules |
+| Order | Must remain consistent | Required |
+| Motion Type | Default may be used | Valid value |
+| Rarity | Default may be used | Valid value |
 
-```text
-GPS weight
-+
-light weight
-+
-accelerometer weight
-```
-
-inside the UI.
-
-M4 owns that calculation.
-
-M2 only displays:
-
-```text
-score
-state
-available signals
-guidance
-```
+The exact publication requirements must follow the canonical project specification.
 
 ---
 
-# 26. FusionResult
+# 54. TESTING — UNIT TESTS
 
-The shared conceptual result may contain:
-
-```text
-score
-location contribution
-light contribution
-motion contribution
-available signals
-threshold state
-```
-
-The final Kotlin model may differ if the team agrees.
-
----
-
-# 27. Scan States
-
-The shared specification proposes states such as:
-
-```text
-NOT_AVAILABLE
-READY
-SCANNING
-READY_FOR_PROXIMITY
-REVEALED
-LIMITED
-ERROR
-```
-
-M2 should map these states into user-facing UI.
-
----
-
-# 28. NOT_AVAILABLE
-
-Display:
-
-```text
-Scanning is currently unavailable.
-```
-
-Possible reasons:
-
-```text
-location unavailable
-required capability unavailable
-relic not ready
-```
-
-Use the actual reason where available.
-
----
-
-# 29. READY
-
-Display:
-
-```text
-Ready to scan
-```
-
-and explain the first action.
-
----
-
-# 30. SCANNING
-
-Display:
-
-```text
-live fusion score
-instruction
-sensor status
-```
-
-Example:
-
-```text
-Scanning...
-72%
-
-Move slowly around the area.
-```
-
----
-
-# 31. READY_FOR_PROXIMITY
-
-Display:
-
-```text
-Signal match found.
-Move closer to reveal.
-```
-
-This state is important because it explains why a high fusion score has not yet produced the reveal.
-
----
-
-# 32. REVEALED
-
-Display:
-
-```text
-Relic discovered
-```
-
-then transition to the relic reveal/lore experience.
-
----
-
-# 33. LIMITED
-
-Display:
-
-```text
-Limited sensor mode
-```
-
-Explain the experience without making the user believe all signals are available.
-
-Example:
-
-```text
-Some sensors are unavailable.
-The scan is using the available signals.
-```
-
-Exact wording may change.
-
----
-
-# 34. ERROR
-
-Display:
-
-```text
-Something went wrong.
-Try again.
-```
-
-where retry is meaningful.
-
----
-
-# 35. Sensor Status
-
-M4 may provide sensor availability.
-
-M2 may display:
-
-```text
-Location ✓
-Light ✓
-Motion ✓
-```
-
-or an equivalent visual representation.
-
-Avoid showing unnecessary technical jargon such as:
-
-```text
-TYPE_LIGHT
-TYPE_ACCELEROMETER
-```
-
-to normal users.
-
----
-
-# 36. Missing Light Sensor
-
-If light is unavailable:
-
-```text
-do not display fake light data
-```
-
-Instead:
-
-```text
-show limited mode
-```
-
-if the fusion engine supports degraded operation.
-
----
-
-# 37. Missing Accelerometer
-
-If accelerometer is unavailable:
-
-```text
-do not display fake motion data
-```
-
-Show the appropriate limited state.
-
----
-
-# 38. Missing Proximity Sensor
-
-Proximity is a final gate.
-
-If unavailable, M2 should display the agreed unsupported/limited state.
-
-Do not pretend:
-
-```text
-near
-```
-
-when no proximity measurement exists.
-
----
-
-# 39. Distance Presentation
-
-M3 may provide:
-
-```text
-DistanceResult
-```
-
-M2 can display user-friendly status such as:
-
-```text
-25 m away
-Approaching
-Within scan area
-```
-
-Do not display false precision.
-
-If accuracy is poor, show an appropriate low-confidence state.
-
----
-
-# 40. Scan Instructions
-
-Instructions should change with state.
-
-Example:
-
-### Far
-
-```text
-Move toward the relic area.
-```
-
-### Geofence entered
-
-```text
-You're close. Begin scanning.
-```
-
-### Low fusion
-
-```text
-Move slowly around the area.
-```
-
-### High fusion
-
-```text
-Strong signal. Keep scanning.
-```
-
-### Threshold reached
-
-```text
-Signal matched. Move closer.
-```
-
-### Proximity near
-
-```text
-Relic confirmed.
-```
-
----
-
-# 41. Avoid Overly Complex Instructions
-
-The user should not need to understand:
-
-```text
-sensor fusion
-weighted averages
-lux values
-accelerometer vectors
-```
-
-The technical implementation can remain invisible.
-
----
-
-# 42. Scan Animation
-
-Animation can be used to make the scan feel active.
+M2 should write tests for creator-specific business/UI logic.
 
 Examples:
 
 ```text
-meter animation
-subtle pulse
-scan indicator
-```
-
-Avoid animation that:
-
-```text
-drains battery
-blocks interaction
-causes frame drops
-```
-
----
-
-# 43. Scan Meter Updates
-
-The meter should respond smoothly to changing `FusionResult`.
-
-Avoid:
-
-```text
-87 → 22 → 94
-```
-
-visually jumping wildly if the underlying signal changes rapidly.
-
-M4 may smooth the result; M2 should not secretly implement a second fusion algorithm.
-
-If UI smoothing is required, it should be purely presentational and agreed with M4.
-
----
-
-# 44. Threshold Display
-
-The UI does not necessarily need to display the exact threshold.
-
-A user-facing state is usually clearer:
-
-```text
-Keep scanning
-```
-
-rather than:
-
-```text
-87/85 threshold
-```
-
-The exact threshold should remain a technical configuration.
-
----
-
-# 45. Proximity Gate
-
-When:
-
-```text
-FusionResult >= threshold
-```
-
-M2 should show:
-
-```text
-Ready for final confirmation
-```
-
-Then wait for:
-
-```text
-Proximity = NEAR
+blank title rejected
+valid title accepted
+invalid radius rejected
+negative radius rejected
+minLux > maxLux rejected
+valid light range accepted
+missing checkpoint location rejected for publish
+duplicate checkpoint order rejected if prohibited
+draft can save incomplete data where permitted
+publish blocked when required fields are missing
 ```
 
 ---
 
-# 46. Proximity Must Not Be Part of Fusion Meter
-
-Do not display:
-
-```text
-GPS 30%
-Light 30%
-Motion 30%
-Proximity 10%
-```
-
-if the agreed architecture defines proximity as a separate final gate.
-
-The meter represents:
-
-```text
-GPS + Light + Accelerometer
-```
-
-only.
-
----
-
-# 47. Successful Scan Example
-
-Primary test:
-
-```text
-R001
-distance = 18 m
-light = 250 lux
-motion = SCANNING
-fusion = 87
-proximity = NEAR
-```
-
-Expected:
-
-```text
-Scan success
- ↓
-Reveal
-```
-
----
-
-# 48. Failed Scan Example
-
-```text
-R001
-distance = 18 m
-light = 500 lux
-motion = STATIONARY
-```
-
-Expected:
-
-```text
-Low/insufficient fusion
-No reveal
-```
-
----
-
-# 49. Proximity Failure Example
-
-```text
-fusion = 87
-proximity = FAR
-```
-
-Expected:
-
-```text
-No reveal
-```
-
-UI should explain:
-
-```text
-Move closer.
-```
-
----
-
-# 50. Fusion Failure Example
-
-```text
-fusion = 55
-proximity = NEAR
-```
-
-Expected:
-
-```text
-No reveal
-```
-
-UI should explain:
-
-```text
-Continue scanning.
-```
-
----
-
-# 51. Reveal Screen
-
-The reveal should feel like the reward for completing the interaction.
-
-Suggested structure:
-
-```text
-Discovery success
- ↓
-Relic image/icon
- ↓
-Relic name
- ↓
-Rarity
- ↓
-Lore
- ↓
-Discovery time/progress
- ↓
-Continue
-```
-
-Exact design follows the approved UI.
-
----
-
-# 52. Lore
-
-Each relic should have narrative/lore content.
-
-Example:
-
-```text
-Founder’s Bell
-```
-
-with a short campus-history-style description.
-
-Do not make lore dependent on the scan algorithm.
-
-Lore comes from relic data/content.
-
----
-
-# 53. Rarity
-
-Canonical rarity values:
-
-```text
-Common
-Uncommon
-Rare
-```
-
-Use the relic dataset.
-
-Do not independently redefine rarity rules in the UI.
-
----
-
-# 54. Discovery Confirmation
-
-The user should receive a clear confirmation:
-
-```text
-Relic discovered!
-```
-
-The confirmation must not appear merely because the user entered a geofence.
-
----
-
-# 55. Duplicate Discovery
-
-If R001 is already discovered:
-
-```text
-show discovered state
-```
-
-Do not create another reward event.
-
----
-
-# 56. Already Discovered Quest
-
-Quest card may display:
-
-```text
-Discovered
-```
-
-and optionally:
-
-```text
-View Lore
-```
-
-Do not require the user to repeat the scan unnecessarily unless the final game design explicitly calls for replay.
-
----
-
-# 57. Progress
-
-M2 presents progress such as:
-
-```text
-3 / 6 relics discovered
-```
-
-The source should be the agreed repository/local-cloud state.
-
-M2 should not calculate progress from UI state alone.
-
----
-
-# 58. Leaderboard
-
-Where M2 owns leaderboard presentation, display:
-
-```text
-Rank
-Player
-Relics found
-```
-
-Example:
-
-```text
-1  Sahan Fernando   5
-2  Kavindi Silva   4
-3  Nimal Perera    3
-```
-
-Use shared cloud/local data.
-
----
-
-# 59. Leaderboard Mock Data
-
-Canonical development example:
-
-```text
-U003 = 5
-U002 = 4
-U001 = 3
-U004 = 2
-U005 = 0
-```
-
-Expected order:
-
-```text
-U003
-U002
-U001
-U004
-U005
-```
-
----
-
-# 60. Leaderboard Loading
-
-Display loading state while data is being obtained.
-
----
-
-# 61. Leaderboard Error
-
-If unavailable:
-
-```text
-Unable to load leaderboard.
-Try again.
-```
-
-If cached data is available, the final design may show it with an offline indicator.
-
----
-
-# 62. M2 ViewModels
-
-Potential ViewModels:
-
-```text
-QuestListViewModel
-QuestDetailsViewModel
-ScanViewModel
-RevealViewModel
-LeaderboardViewModel
-```
-
-Only create the ones required by the final architecture.
-
----
-
-# 63. ScanViewModel Responsibilities
-
-The ScanViewModel may:
-
-```text
-observe FusionResult
-observe ScanState
-observe location status
-observe proximity state
-trigger scan lifecycle
-request reveal through repository
-```
-
-It should not implement the sensor mathematics.
-
----
-
-# 64. ScanViewModel State
-
-Conceptual:
-
-```kotlin
-data class ScanUiState(
-    val relic: Relic? = null,
-    val fusionScore: Int = 0,
-    val scanState: ScanState = ScanState.NOT_AVAILABLE,
-    val proximity: Proximity = Proximity.UNKNOWN,
-    val errorMessage: String? = null
-)
-```
-
-This is illustrative; use the final shared model agreed by M2/M4.
-
----
-
-# 65. Scan Lifecycle
-
-When entering Scan:
-
-```text
-start observing scan state
-```
-
-When leaving Scan:
-
-```text
-stop observation/cleanup
-```
-
-M4 owns sensor listener lifecycle.
-
-M2 should not leave UI observers running unnecessarily.
-
----
-
-# 66. Screen Lifecycle
+# 55. VIEWMODEL TESTS
 
 Test:
 
 ```text
-Scan
- ↓
-background
- ↓
-foreground
+CreateGameViewModel
+CheckpointEditorViewModel
+CheckpointListViewModel
+CreatorGamesViewModel
 ```
 
-Expected:
+Verify:
+
+- Correct initial state.
+- Validation state.
+- Loading state.
+- Success state.
+- Error state.
+- Repository interaction.
+- No duplicate publish call.
+- Correct game/checkpoint IDs.
+
+---
+
+# 56. NAVIGATION TESTS
+
+Verify:
 
 ```text
-state remains coherent
-no duplicate observers
-no duplicate reveal
+Creator Games
+ → New Game
+ → Checkpoint List
+ → New Checkpoint
+ → Save
+ → Checkpoint List
+```
+
+and:
+
+```text
+Creator Games
+ → Existing Game
+ → Edit Checkpoint
+ → Save
+```
+
+Also verify invalid/missing IDs do not cause uncontrolled crashes.
+
+---
+
+# 57. INTEGRATION TESTS
+
+M2 should test with M5/M6 integration:
+
+```text
+Create game
+   ↓
+Persist
+   ↓
+Reload
+   ↓
+Create checkpoint
+   ↓
+Reload
+   ↓
+Edit checkpoint
+   ↓
+Reload
+   ↓
+Publish
+   ↓
+Verify published state
+```
+
+For offline support:
+
+```text
+Create/edit offline
+   ↓
+Local save
+   ↓
+Reconnect
+   ↓
+Sync
+   ↓
+Verify cloud state
 ```
 
 ---
 
-# 67. Navigation During Scan
+# 58. ACCEPTANCE TEST — CREATE GAME
 
-If the user leaves Scan:
+### Given
 
-```text
-stop or pause according to final design
-```
+Authenticated creator.
 
-Do not leave a hidden Scan process consuming resources indefinitely.
+### When
 
-Coordinate with M4.
+Creator enters valid title and description and saves.
 
----
+### Then
 
-# 68. Reveal Idempotency
-
-If the reveal action is triggered twice:
+A new draft game exists with:
 
 ```text
-record one discovery
-```
-
-The UI should prevent accidental repeated submissions.
-
-Use:
-
-```text
-isRevealing
-isRevealed
-```
-
-or equivalent state.
-
----
-
-# 69. Reveal Loading
-
-After a successful scan condition but before persistence completes, the UI may show:
-
-```text
-Saving discovery...
-```
-
-The exact behaviour depends on the local-first repository contract.
-
----
-
-# 70. Local-First Interaction
-
-The intended flow is:
-
-```text
-scan succeeds
- ↓
-record locally
- ↓
-mark pending if cloud sync unavailable
- ↓
-sync
-```
-
-The user should not lose the discovery merely because Firebase is temporarily unavailable.
-
----
-
-# 71. Offline Reveal
-
-If:
-
-```text
-Internet OFF
-```
-
-and the scan succeeds:
-
-```text
-show successful discovery
-```
-
-provided local persistence succeeds.
-
-The cloud synchronization can occur later.
-
----
-
-# 72. Offline UI
-
-After an offline discovery, optionally communicate:
-
-```text
-Saved on this device.
-Will sync when you're online.
-```
-
-This should reflect the actual M6 state.
-
----
-
-# 73. Firebase Failure
-
-If cloud write fails after local save:
-
-```text
-do not show "discovery failed"
-```
-
-if the local-first contract considers the discovery successful.
-
-Instead show an appropriate sync state.
-
----
-
-# 74. Data Boundary
-
-M2 should consume:
-
-```text
-QuestRepository
-```
-
-rather than directly using:
-
-```text
-Firestore
-Room
+creatorId = authenticated user
+status = DRAFT
 ```
 
 ---
 
-# 75. Repository Operations
+# 59. ACCEPTANCE TEST — CREATE CHECKPOINT
 
-Relevant conceptual operations include:
+### Given
+
+Existing draft game.
+
+### When
+
+Creator adds a valid checkpoint.
+
+### Then
+
+The checkpoint is associated with:
+
+```text
+gameId = current game ID
+```
+
+and appears in the ordered checkpoint list.
+
+---
+
+# 60. ACCEPTANCE TEST — EDIT CHECKPOINT
+
+### Given
+
+Existing checkpoint.
+
+### When
+
+Creator changes its clue and radius.
+
+### Then
+
+The same checkpoint ID remains associated with the game and the new values are persisted.
+
+---
+
+# 61. ACCEPTANCE TEST — PUBLISH
+
+### Given
+
+A valid draft game.
+
+### When
+
+Creator selects Publish and confirms.
+
+### Then
+
+The repository requests:
 
 ```kotlin
-suspend fun getRelics(): List<Relic>
-
-suspend fun getFusionSignature(
-    relicId: String
-): LightSignature
-
-suspend fun recordReveal(
-    relicId: String
-)
-
-fun observeLeaderboard():
-    Flow<List<LeaderboardEntry>>
-
-suspend fun syncPending()
+publishGame(gameId)
 ```
 
-The final shared contract may contain additional fields or differ slightly after team agreement.
+and the game transitions to the published state if backend validation succeeds.
 
 ---
 
-# 76. Mock Repository
+# 62. ACCEPTANCE TEST — INVALID PUBLISH
 
-M2 should have a mock repository that can return:
+### Given
 
-```text
-six relics
-success
-empty
-error
-offline
-already discovered
-```
+A game with a required field missing.
 
----
+### When
 
-# 77. Mock Fusion Provider
+Creator selects Publish.
 
-During early UI development, use fixed results:
+### Then
 
-```text
-20%
-45%
-72%
-87%
-95%
-```
-
-and states:
-
-```text
-READY
-SCANNING
-READY_FOR_PROXIMITY
-REVEALED
-LIMITED
-ERROR
-```
-
-This allows the complete UI to be built before M4 is integrated.
+Publication is blocked and the creator is told what must be fixed.
 
 ---
 
-# 78. Mock Scan Scenario
+# 63. ACCEPTANCE TEST — GAME ISOLATION
 
-Primary:
+### Given
 
-```text
-R001
-fusion = 87
-proximity = NEAR
-```
+Two games owned by the same creator.
 
-Expected:
+### When
 
-```text
-Reveal
-```
+Creator edits a checkpoint in Game A.
+
+### Then
+
+Game B remains unchanged.
 
 ---
 
-# 79. Mock Blocked Scenario
+# 64. ACCEPTANCE TEST — CREATOR OWNERSHIP
 
-```text
-R001
-fusion = 87
-proximity = FAR
-```
+### Given
 
-Expected:
+Authenticated creator A.
 
-```text
-Ready for proximity
-```
+### When
 
----
+Creator A attempts to edit a game owned by creator B.
 
-# 80. Mock Low-Fusion Scenario
+### Then
 
-```text
-R001
-fusion = 55
-proximity = NEAR
-```
-
-Expected:
-
-```text
-Continue scanning
-```
+The backend rejects the operation and the client handles the rejection safely.
 
 ---
 
-# 81. Mock Limited Scenario
+# 65. MATERIAL DESIGN / UI GUIDANCE
 
-```text
-light unavailable
-accelerometer available
-GPS available
-```
+Use the project's Material Design direction consistently.
 
-Expected:
+Relevant patterns include:
 
-```text
-Limited sensor mode
-```
+- App bars.
+- Cards.
+- Buttons.
+- FAB for creation where appropriate.
+- Clear form fields.
+- Dialog confirmation.
+- Lists for dynamic checkpoints.
+- Error/helper text.
+- Consistent spacing and typography.
 
-and the UI should render the degraded result supplied by M4.
+Do not redesign the product independently of the established Campus Quest UI/UX specification.
 
 ---
 
-# 82. Quest UI Test Cases
+# 66. ACCESSIBILITY
 
-## M2-001 — Quest List Loads
+Creator screens should support:
 
-Expected:
+- Meaningful content descriptions.
+- Adequate touch targets.
+- Readable text.
+- Clear error messages.
+- Keyboard-friendly text entry.
+- Avoiding color-only error indicators.
+- Logical focus order.
+
+---
+
+# 67. RESPONSIVE BEHAVIOR
+
+The creator UI should remain usable across supported Android screen sizes.
+
+Check:
+
+- Small phone.
+- Normal phone.
+- Large phone.
+- Rotation if the project supports it.
+
+Do not assume a fixed screen width.
+
+---
+
+# 68. IMPLEMENTATION ORDER
+
+Recommended order:
 
 ```text
-R001–R006 displayed
+1. Review shared contracts.
+2. Set up creator navigation contract.
+3. Build Creator Games screen.
+4. Build Create Game editor.
+5. Implement game form validation.
+6. Build checkpoint list.
+7. Build checkpoint editor.
+8. Add location-selection integration contract.
+9. Add radius/light configuration.
+10. Add clue/lore/rarity/motion configuration.
+11. Add edit/delete/reorder.
+12. Add draft save.
+13. Add publish validation.
+14. Add publish confirmation.
+15. Connect repository.
+16. Test Room/Firebase integration.
+17. Test multi-game isolation.
+18. Final integration with M1/M3/M5/M6.
 ```
 
 ---
 
-# 83. M2-002 — Quest List Loading
+# 69. DEPENDENCIES
 
-Expected:
+## M1
 
-```text
-loading indicator
-```
+Provides:
 
----
+- Shared navigation shell.
+- Authenticated-user navigation.
+- Shared UI components.
+- Player/creator navigation integration.
 
-# 84. M2-003 — Quest List Error
+## M3
 
-Expected:
+Provides:
 
-```text
-error state
-retry
-```
+- Map/location selection.
+- Location data contract.
+- Geospatial configuration support where needed.
 
-where supported.
+## M5
 
----
+Provides:
 
-# 85. M2-004 — Quest List Empty
+- Firebase Auth context.
+- Firestore repository/backend implementation.
+- Creator ownership validation.
+- Publish operation.
+- FCM publication event.
 
-Expected:
+## M6
 
-```text
-empty state
-```
+Provides:
 
----
-
-# 86. M2-005 — Select R001
-
-Expected:
-
-```text
-Quest Details for Founder’s Bell
-```
+- Room.
+- Local persistence.
+- Repository implementation/boundary.
+- Offline draft storage.
+- Synchronization.
 
 ---
 
-# 87. M2-006 — Already Discovered
+# 70. HANDOFF TO M1
 
-Expected:
+M2 should deliver:
 
 ```text
-Discovered state
+Creator route definitions
+Navigation arguments
+Creator screen list
+Expected navigation events
+Shared UI components required
 ```
+
+Example:
+
+```text
+GameCreated(gameId)
+CheckpointSaved(gameId, checkpointId)
+GamePublished(gameId)
+```
+
+The exact implementation may use the project's established navigation/event pattern.
 
 ---
 
-# 88. Scan UI Test Cases
+# 71. HANDOFF TO M3
 
-## M2-010 — Scan Ready
-
-Expected:
+M2 should document:
 
 ```text
-Ready to scan
+Checkpoint location selection input/output
+latitude
+longitude
+radiusM
 ```
+
+M3 should document any constraints on coordinate precision or radius.
 
 ---
 
-# 89. M2-011 — Scan Progress
-
-Input:
-
-```text
-20 → 45 → 72 → 87
-```
-
-Expected:
-
-```text
-meter updates
-```
-
----
-
-# 90. M2-012 — Ready for Proximity
-
-Input:
-
-```text
-fusion >= threshold
-proximity = FAR
-```
-
-Expected:
-
-```text
-Move closer
-```
-
----
-
-# 91. M2-013 — Successful Reveal
-
-Input:
-
-```text
-fusion >= threshold
-proximity = NEAR
-```
-
-Expected:
-
-```text
-Reveal
-```
-
----
-
-# 92. M2-014 — Low Fusion
-
-Input:
-
-```text
-fusion below threshold
-proximity = NEAR
-```
-
-Expected:
-
-```text
-Continue scanning
-```
-
----
-
-# 93. M2-015 — Limited Sensors
-
-Input:
-
-```text
-one sensor unavailable
-```
-
-Expected:
-
-```text
-limited state rendered
-```
-
----
-
-# 94. M2-016 — Sensor Error
-
-Expected:
-
-```text
-error/limited UI
-```
-
-No crash.
-
----
-
-# 95. M2-017 — Leave Scan
-
-Expected:
-
-```text
-no duplicated observer
-no unexpected reveal
-```
-
----
-
-# 96. M2-018 — Re-enter Scan
-
-Expected:
-
-```text
-correct current state
-```
-
----
-
-# 97. Reveal Test Cases
-
-## M2-020 — Reveal Content
-
-Expected:
-
-```text
-name
-rarity
-lore
-```
-
----
-
-# 98. M2-021 — Duplicate Reveal
-
-Expected:
-
-```text
-one discovery
-```
-
----
-
-# 99. M2-022 — Offline Reveal
-
-Expected:
-
-```text
-local success
-pending sync
-```
-
-where repository state supports it.
-
----
-
-# 100. M2-023 — Reveal Loading
-
-Expected:
-
-```text
-saving state
-```
-
-if required.
-
----
-
-# 101. Leaderboard Test Cases
-
-## M2-030
-
-Load leaderboard.
-
-Expected:
-
-```text
-correct ordering
-```
-
----
-
-# 102. M2-031
-
-Use:
-
-```text
-5,4,3,2,0
-```
-
-Expected descending order.
-
----
-
-# 103. M2-032
-
-Cloud unavailable.
-
-Expected:
-
-```text
-error or cached state
-```
-
-according to repository state.
-
----
-
-# 104. M2-033
-
-After discovery count increases.
-
-Expected:
-
-```text
-new count displayed after data refresh
-```
-
----
-
-# 105. Full M2 UI Flow
-
-Run:
-
-```text
-Quests
- ↓
-R001
- ↓
-Details
- ↓
-Scan
- ↓
-Fusion 20%
- ↓
-Fusion 45%
- ↓
-Fusion 72%
- ↓
-Fusion 87%
- ↓
-Proximity FAR
- ↓
-"Move closer"
- ↓
-Proximity NEAR
- ↓
-Reveal
- ↓
-Lore
- ↓
-Progress
-```
-
----
-
-# 106. Integration with M3
-
-M3 provides location/geofence state.
-
-M2 should consume:
-
-```text
-distance
-accuracy/status
-geofence event
-```
-
-Expected UI:
-
-```text
-Far
-Approaching
-Within area
-Ready to scan
-```
-
----
-
-# 107. Integration with M4
-
-M4 provides:
-
-```text
-FusionResult
-ScanState
-SensorAvailability
-Proximity
-```
-
-M2 maps these to:
-
-```text
-meter
-instructions
-status
-reveal transition
-```
-
----
-
-# 108. Integration with M5
-
-M5 provides:
-
-```text
-relic data
-authentication state
-cloud data
-```
-
-M2 consumes through the repository boundary.
-
----
-
-# 109. Integration with M6
-
-M6 provides:
-
-```text
-local discovery state
-offline state
-pending sync state
-```
-
-M2 displays appropriate progress/sync status.
-
----
-
-# 110. M2 Handoff to M1
+# 72. HANDOFF TO M5
 
 M2 should provide:
 
 ```text
-Quest destination
-Quest Details destination
-Scan destination
-Reveal destination
+Game object requirements
+Checkpoint object requirements
+Publish validation expectations
+Creator ownership assumptions
+Error cases
 ```
 
-and tell M1:
+M5 must confirm server-side validation.
+
+---
+
+# 73. HANDOFF TO M6
+
+M2 should provide:
 
 ```text
-required navigation arguments
+Required local game fields
+Required local checkpoint fields
+Draft behavior
+Save/update/delete expectations
+Offline UI states required
 ```
 
-Example:
+M6 maps these requirements into Room entities/DAOs.
+
+---
+
+# 74. GIT WORKFLOW
+
+Branch:
 
 ```text
-relicId = R001
+feature/m2-creator-game-management
 ```
 
----
-
-# 111. M2 Handoff to M4
-
-M2 should communicate:
+Commit examples:
 
 ```text
-required FusionResult fields
-required ScanState values
-required proximity state
+feat(creator): add creator games screen
+feat(creator): add game editor
+feat(creator): add checkpoint editor
+feat(creator): add checkpoint validation
+feat(creator): add checkpoint reorder support
+feat(creator): add publish validation
+feat(creator): add publish confirmation flow
+test(creator): add game editor validation tests
+test(creator): add checkpoint editor tests
 ```
 
-M4 should not need to know the visual implementation.
+Avoid mixing unrelated M3 sensor or M5 Firebase implementation into M2 commits.
 
 ---
 
-# 112. M2 Handoff to M6
+# 75. CHANGE CONTROL
 
-M2 communicates:
+Before changing shared models or interfaces:
+
+1. Identify the affected contract.
+2. Inform the team.
+3. Agree on the change.
+4. Update shared documentation.
+5. Update dependent code.
+6. Run affected tests.
+
+Do not silently create incompatible versions of:
+
+- `Game`.
+- `Checkpoint`.
+- `GameStatus`.
+- Repository methods.
+- Navigation arguments.
+
+---
+
+# 76. DEFINITION OF DONE
+
+M2 is complete when:
+
+### Creator entry
+
+- Creator can access creator functionality.
+- Navigation works through the shared app shell.
+
+### Game management
+
+- Creator can create a game.
+- Creator can edit game metadata.
+- Creator can save drafts.
+- Creator can reopen drafts.
+
+### Checkpoint management
+
+- Creator can add checkpoints.
+- Creator can edit checkpoints.
+- Creator can delete checkpoints.
+- Creator can reorder checkpoints.
+- Checkpoints are game-scoped.
+
+### Configuration
+
+- Coordinates can be configured.
+- Radius can be configured.
+- Ambient-light range can be configured.
+- Clue can be configured.
+- Lore can be configured.
+- Rarity can be configured.
+- Motion type can be configured.
+
+### Publication
+
+- Publish validation works.
+- Invalid games cannot be published.
+- Publish confirmation works.
+- Successful publication calls the repository contract.
+- Publish failures are handled.
+
+### Architecture
+
+- UI uses ViewModels.
+- ViewModels use repository contracts.
+- M2 does not own sensor/location internals.
+- M2 does not directly implement Room or Firebase.
+
+### Testing
+
+- Creator validation tests pass.
+- ViewModel tests pass.
+- Navigation flow works.
+- Multi-game isolation is tested.
+- Draft/publish behavior is tested.
+
+---
+
+# 77. WHAT M2 MUST NOT IMPLEMENT
+
+Do not duplicate these responsibilities:
 
 ```text
-when recordReveal() is called
-what relic ID is required
-what UI state follows local success
+FusedLocationProviderClient
+Geofence registration
+SensorManager
+Ambient light sensor reading
+Accelerometer processing
+Proximity sensor processing
+Fusion score calculation
+RoomDatabase
+Room DAO implementation
+Firestore SDK implementation
+FCM topic management
+Player scan HUD
+Player reveal screen
+Player leaderboard backend
 ```
 
-M6 handles persistence.
+M2 integrates with these features through shared contracts.
 
 ---
 
-# 113. M2 Handoff to M5
+# 78. LEGACY CLEANUP
 
-M2 may require:
+The old fixed relic/checkpoint implementation must not remain the primary creator architecture.
+
+If old code contains:
 
 ```text
-relic list
-light signature
-user information
-leaderboard
+Relic
+FoundRelic
+R001
+R002
+R003
+R004
+R005
+R006
 ```
 
-M5 supplies these through the agreed repository/cloud boundary.
+M2 should identify it for migration/removal where it conflicts with the dynamic model.
+
+The six sample IDs may remain in seed data for demonstration.
+
+They must not be required for creating a new game.
 
 ---
 
-# 114. M2 Git Branch
+# 79. FINAL CREATOR ARCHITECTURE
 
-Recommended:
+The complete M2 path is:
 
 ```text
-feature/quest-scan-ui
+Creator
+   ↓
+Creator Games UI
+   ↓
+Game Editor
+   ↓
+Checkpoint List
+   ↓
+Checkpoint Editor
+   ↓
+Creator ViewModels
+   ↓
+GameRepository
+   ↓
+Room / Firebase
 ```
 
----
-
-# 115. M2 Commit Examples
+For publication:
 
 ```text
-feat: add quest list
-feat: add quest details
-feat: add scan screen
-feat: render fusion meter
-feat: add relic reveal
-fix: prevent duplicate reveal
-fix: handle limited scan state
-test: add scan ui state tests
+Creator
+   ↓
+Validate
+   ↓
+Publish Confirmation
+   ↓
+GameRepository.publishGame(gameId)
+   ↓
+Firebase / Firestore
+   ↓
+GameStatus.PUBLISHED
+   ↓
+M5 FCM publication event
+   ↓
+Players notified
 ```
 
 ---
 
-# 116. M2 PR Checklist
+# 80. CORE DESIGN PRINCIPLE
 
-- [ ] Quest list works
-- [ ] Quest details works
-- [ ] Scan UI works with mock results
-- [ ] Reveal works with mock results
-- [ ] Fusion score is not recalculated in UI
-- [ ] No direct Firebase calls
-- [ ] No direct Room calls
-- [ ] Navigation contract documented
-- [ ] Error/loading states included
-- [ ] Relevant tests pass
-- [ ] Screenshots/video attached where useful
+M2 is responsible for **defining what a creator creates**, not for implementing how the player physically discovers it.
 
----
-
-# 117. M2 Daily Schedule — 13 September
-
-Start:
+The creator configures:
 
 ```text
-Quest UI structure
-Scan UI skeleton
+Game
+ ├─ title
+ ├─ description
+ └─ checkpoints
+       ├─ location
+       ├─ radius
+       ├─ light range
+       ├─ clue
+       ├─ lore
+       ├─ order
+       ├─ motion type
+       └─ rarity
 ```
 
-Use mock data.
-
----
-
-# 118. 14 September
-
-Implement:
+The player-side system later consumes that configuration:
 
 ```text
-Quest List
-Quest Card
-Quest Details
+Checkpoint configuration
+        ↓
+M3 location/sensor systems
+        ↓
+M4 scan gameplay
+        ↓
+Discovery
+        ↓
+M6 local persistence
+        ↓
+M5 cloud sync/leaderboard
 ```
+
+This separation keeps the six-member implementation manageable and prevents M2 from becoming coupled to hardware, Firebase, Room, and gameplay internals.
 
 ---
 
-# 119. 15 September
+# 81. DOCUMENTS M2 SHOULD KEEP IN SYNC
 
-Implement:
+If M2 changes creator behavior, check:
+
+- `00_MASTER_DEVELOPMENT_PLAN_UPDATED.md`
+- `SHARED_CONTRACTS_AND_INTEGRATION_INTERFACES.md`
+- `TRD_CAMPUS_QUEST.md`
+- `PRD_CAMPUS_QUEST.md`
+- `APP_FLOW_DOCUMENT_CAMPUS_QUEST.md`
+- `UI_UX_DESIGN_SPECIFICATION_CAMPUS_QUEST.md`
+- `MOCK_DATA_CATALOG_AND_SEED_DATA_SPECIFICATION.md`
+- `INTEGRATION_HANDOFF_AND_MILESTONE_PLAN.md`
+- `TESTING_AND_ACCEPTANCE_STRATEGY.md`
+
+Ownership changes alone do not require changing product behavior, but implementation/interface changes must be reflected in the appropriate source-of-truth documents.
+
+---
+
+# 82. M2 QUICK CHECKLIST
 
 ```text
-Scan Screen
-Fusion Meter
-Scan Instructions
-```
-
-using mock FusionResult.
-
----
-
-# 120. 16 September
-
-Implement:
-
-```text
-Scan states
-limited mode
-error state
-proximity state
-```
-
----
-
-# 121. 17 September
-
-Implement:
-
-```text
-Reveal
-Lore
-Progress
-```
-
----
-
-# 122. 18 September
-
-Integrate:
-
-```text
-M1 navigation
-```
-
-and test:
-
-```text
-Quest → Details → Scan → Reveal
-```
-
-with mocks.
-
----
-
-# 123. 19 September Checkpoint
-
-M2 must have:
-
-```text
-complete UI flow
-```
-
-using mock data.
-
-The flow must be demonstrable even if:
-
-```text
-GPS
-sensors
-Firebase
-```
-
-are not yet integrated.
-
----
-
-# 124. 20 September
-
-Integrate:
-
-```text
-M3 location state
-```
-
-Test:
-
-```text
-distance
-geofence
-scan availability
+[ ] Creator entry
+[ ] Creator games list
+[ ] Create game
+[ ] Edit game
+[ ] Save draft
+[ ] Checkpoint list
+[ ] Add checkpoint
+[ ] Edit checkpoint
+[ ] Delete checkpoint
+[ ] Reorder checkpoint
+[ ] Configure coordinates
+[ ] Configure geofence radius
+[ ] Configure minLux/maxLux
+[ ] Configure clue
+[ ] Configure lore
+[ ] Configure rarity
+[ ] Configure motion type
+[ ] Validate checkpoint
+[ ] Validate game
+[ ] Publish confirmation
+[ ] Publish request
+[ ] Publish success/error states
+[ ] Multi-game isolation
+[ ] Creator ownership handling
+[ ] ViewModel tests
+[ ] Validation tests
+[ ] Navigation tests
+[ ] Repository integration
+[ ] Room/offline integration
+[ ] Firebase integration
+[ ] Final handoff
 ```
 
 ---
 
-# 125. 21 September
+# 83. FINAL HANDOFF PACKAGE
 
-Integrate:
+At the end of M2 implementation, provide the team with:
 
-```text
-M4 FusionResult
-ScanState
-Proximity
-```
+1. Creator screens.
+2. Creator ViewModels.
+3. Navigation contracts.
+4. Game/checkpoint form validation.
+5. Repository calls used by creator functionality.
+6. Mock/seed data used during UI development.
+7. Tests.
+8. Known integration assumptions.
+9. List of unresolved issues.
+10. Any shared-contract changes.
 
-Test all major scan states.
-
----
-
-# 126. 22 September
-
-Run physical sensor integration.
-
-Focus on:
-
-```text
-meter stability
-instructions
-threshold transition
-proximity transition
-reveal
-```
+M2 should not hand over private implementation assumptions that other members cannot reproduce.
 
 ---
 
-# 127. 23 September
-
-Integrate:
-
-```text
-M5/M6 persistence
-progress
-offline state
-```
-
-Then freeze core UI architecture.
-
----
-
-# 128. 24 September
-
-Run functional tests:
-
-```text
-quest
-scan
-reveal
-duplicate
-error
-empty
-```
-
----
-
-# 129. 25 September
-
-Run device compatibility tests.
-
-At least:
-
-```text
-Device A
-Device B
-```
-
----
-
-# 130. 26 September
-
-Run resilience tests:
-
-```text
-offline
-Firebase failure
-sensor unavailable
-poor GPS
-background/foreground
-```
-
----
-
-# 131. 27 September
-
-Regression only.
-
-No new major UI features.
-
----
-
-# 132. 28 September
-
-Final:
-
-```text
-demo flow
-screenshots
-video evidence
-final build
-```
-
----
-
-# 133. M2 Acceptance Criteria — Quest
-
-- [ ] quest list loads
-- [ ] all canonical relics can be represented
-- [ ] quest detail opens
-- [ ] discovery state displayed
-- [ ] loading state works
-- [ ] empty state works
-- [ ] error state works
-
----
-
-# 134. M2 Acceptance Criteria — Scan
-
-- [ ] scan screen opens
-- [ ] scan instructions visible
-- [ ] fusion meter displays 0–100
-- [ ] score updates
-- [ ] scan states display correctly
-- [ ] limited state works
-- [ ] error state works
-
----
-
-# 135. M2 Acceptance Criteria — Reveal
-
-- [ ] fusion threshold alone does not reveal
-- [ ] proximity gate is respected
-- [ ] successful reveal works
-- [ ] relic name displayed
-- [ ] rarity displayed
-- [ ] lore displayed
-- [ ] duplicate discovery prevented
-
----
-
-# 136. M2 Acceptance Criteria — Persistence
-
-- [ ] successful discovery produces local success
-- [ ] offline discovery remains available
-- [ ] progress can be displayed
-- [ ] sync state can be displayed where required
-- [ ] leaderboard refresh works
-
----
-
-# 137. M2 Acceptance Criteria — Integration
-
-- [ ] M1 navigation integrated
-- [ ] M3 location integrated
-- [ ] M4 fusion integrated
-- [ ] M5 relic/cloud data integrated
-- [ ] M6 local persistence integrated
-- [ ] complete end-to-end flow tested
-
----
-
-# 138. M2 Performance
-
-Do not:
-
-```text
-perform repository calls repeatedly on every UI redraw
-start sensors from UI rendering
-perform heavy calculations on main thread
-```
-
-M4 handles sensor processing.
-
-M5/M6 handle data access.
-
-M2 presents state.
-
----
-
-# 139. M2 Lifecycle Safety
-
-When Scan is not visible:
-
-```text
-do not maintain unnecessary UI observers
-```
-
-Coordinate sensor start/stop with M4.
-
----
-
-# 140. M2 Accessibility
-
-Check:
-
-- [ ] buttons have meaningful labels
-- [ ] text is readable
-- [ ] important status is not communicated only by colour
-- [ ] touch targets are usable
-- [ ] dynamic scan state is understandable
-
----
-
-# 141. M2 Visual Consistency
-
-Use M1's:
-
-```text
-theme
-typography
-buttons
-cards
-spacing
-navigation
-```
-
-Do not create a second visual language.
-
----
-
-# 142. M2 Common Risks
-
-## Risk 1 — Waiting for M4
-
-Mitigation:
-
-```text
-MockFusionResult
-```
-
-## Risk 2 — Waiting for M3
-
-Mitigation:
-
-```text
-MockDistanceResult
-MockGeofenceEvent
-```
-
-## Risk 3 — Waiting for M5
-
-Mitigation:
-
-```text
-MockQuestRepository
-```
-
-## Risk 4 — Reveal logic duplicated
-
-Mitigation:
-
-```text
-centralized ScanState
-```
-
-## Risk 5 — Late UI redesign
-
-Mitigation:
-
-```text
-freeze by 23 Sep
-```
-
----
-
-# 143. What M2 Must Not Do
-
-Do not:
-
-```text
-create a second repository
-implement a second fusion engine
-calculate GPS distance independently
-write directly to Firestore
-write directly to Room
-hard-code Firebase documents
-use random relic IDs
-reveal on geofence alone
-include proximity in the fusion percentage
-```
-
----
-
-# 144. What M2 Should Do
-
-M2 should:
-
-```text
-consume shared contracts
-build against mocks
-make state visible
-keep the scan understandable
-handle errors
-handle limited mode
-coordinate with M1/M3/M4/M5/M6
-test continuously
-```
-
----
-
-# 145. Final M2 Demonstration
-
-The M2 portion should be demonstrable as:
-
-```text
-Open Quests
- ↓
-Select Founder’s Bell
- ↓
-View details
- ↓
-Enter scan
- ↓
-See live fusion score
- ↓
-Reach threshold
- ↓
-Move closer
- ↓
-Proximity confirmed
- ↓
-Relic revealed
- ↓
-Read lore
- ↓
-See progress
-```
-
----
-
-# 146. Final M2 Checklist
-
-## Quest
-
-- [ ] Quest list
-- [ ] Quest cards
-- [ ] Details
-- [ ] Discovery state
-- [ ] Loading
-- [ ] Empty
-- [ ] Error
-
-## Scan
-
-- [ ] Scan screen
-- [ ] Instructions
-- [ ] Fusion meter
-- [ ] Scan states
-- [ ] Limited mode
-- [ ] Proximity state
-- [ ] Error state
-
-## Reveal
-
-- [ ] Success
-- [ ] Relic information
-- [ ] Rarity
-- [ ] Lore
-- [ ] Duplicate protection
-
-## Integration
-
-- [ ] M1
-- [ ] M3
-- [ ] M4
-- [ ] M5
-- [ ] M6
-
-## Testing
-
-- [ ] Mock tests
-- [ ] Integration tests
-- [ ] Offline test
-- [ ] Sensor-degradation test
-- [ ] Two-device test
-- [ ] Full E2E test
-
----
-
-# 147. M2 Definition of Ready
-
-A task is ready when:
-
-- [ ] UI purpose is known
-- [ ] required input is known
-- [ ] output/state is known
-- [ ] dependency owner is known
-- [ ] mock data exists
-- [ ] acceptance criteria exist
-
----
-
-# 148. M2 Definition of Done
-
-A feature is done when:
-
-- [ ] UI implemented
-- [ ] mock flow works
-- [ ] relevant states handled
-- [ ] integration contract respected
-- [ ] relevant tests pass
-- [ ] real dependency integrated when available
-- [ ] device-tested
-- [ ] PR reviewed
-- [ ] documentation updated if contract changed
-
----
-
-# 149. Final Principle
-
-M2's responsibility is to make the sensor-fusion technology understandable and engaging to the user.
-
-The technical pipeline is:
-
-```text
-GPS
-+
-Light
-+
-Accelerometer
- ↓
-Fusion
- ↓
-Threshold
- ↓
-Proximity
- ↓
-Reveal
-```
-
-M2's responsibility is to turn that pipeline into a clear interaction:
-
-```text
-Approach
- ↓
-Scan
- ↓
-Improve match
- ↓
-Move closer
- ↓
-Discover
-```
-
-The UI should communicate the system accurately without exposing unnecessary technical complexity.
+**END OF MEMBER 2 CREATOR & GAME MANAGEMENT WORKPLAN**

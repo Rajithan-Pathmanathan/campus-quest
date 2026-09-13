@@ -1,427 +1,639 @@
-# Campus Quest — Integration & Handoff Plan
+# Campus Quest --- Integration & Handoff Plan
 
-**Document ID:** CQ-SHARED-05  
-**Document:** Integration and Handoff Plan  
-**Project:** Campus Quest  
-**Purpose:** Define exactly how six parallel workstreams become one working Android application supporting Game Creators (authoring, checkpoint configuration, publication, FCM broadcast) and Game Players (game discovery, dynamic checkpoint geofencing, sensor-fusion discovery, Room caching, Firestore sync, and game-specific leaderboards) without a last-minute integration bottleneck  
-**Development window:** 13 September 2026 – 28 September 2026  
-**Status:** Team execution specification  
-**Depends on:** `07_SHARED_CONTRACTS_AND_AGREEMENTS.md`, `08_MOCK_DATA_CATALOG.md`, `09_FIREBASE_SCHEMA_ENDPOINTS_AND_SECURITY.md`, `10_SENSOR_FUSION_AND_LOCATION_SPECIFICATION.md`
+**Document ID:** CQ-INTEGRATION-03\
+**Document:** `INTEGRATION_AND_HANDOFF_PLAN.md`\
+**Project:** Campus Quest\
+**Purpose:** Define how the six-member team integrates independently
+developed features into one working Android application without breaking
+shared contracts.\
+**Source of Truth:** `00_MASTER_DEVELOPMENT_PLAN.md`\
+**Supporting Contracts:** `FIREBASE_SCHEMA_ENDPOINTS_AND_SECURITY.md`,
+`SHARED_CONTRACTS_AND_AGREEMENTS.md`,
+`SENSOR_FUSION_AND_LOCATION_SPECIFICATION.md`, `MOCK_DATA_CATALOG.md`\
+**Status:** Team working specification\
+**Development Window:** 13 September 2026 -- 28 September 2026
 
----
+------------------------------------------------------------------------
 
 # 1. Purpose
 
-This document defines the team's integration strategy.
+This document defines the integration strategy for Campus Quest.
 
-The most important rule is:
+The project is divided among six members:
 
-> **Do not wait until the end to combine six completed modules.**
+``` text
+M1 — UI/UX & Navigation
+M2 — Quest/Scan UI
+M3 — Location & Geofencing
+M4 — Sensor Fusion
+M5 — Firebase Cloud & Sync
+M6 — Room Data & Integration
+```
 
-Campus Quest contains tightly connected features:
+The purpose of integration is not simply to merge six branches.
 
-```text
-Authentication
-     ↓
-Map
-     ↓
-Location
-     ↓
-Geofence
-     ↓
-Scan Mode
-     ↓
-Sensor Fusion
-     ↓
-Proximity
-     ↓
-Reveal
-     ↓
+The purpose is to produce one coherent application in which:
+
+``` text
+Game Creator
+    ↓
+Create Game
+    ↓
+Configure Checkpoints
+    ↓
+Publish
+    ↓
+New Game Notification
+    ↓
+Game Player
+    ↓
+Browse
+    ↓
+Join
+    ↓
+Play
+    ↓
+Discover Checkpoints
+    ↓
 Room
-     ↓
+    ↓
 Firestore
-     ↓
-Leaderboard
+    ↓
+Game-Specific Leaderboard
 ```
 
-If these are integrated only after every member says "my part is finished", the team can discover interface, lifecycle, permissions, data-model, and hardware problems too late.
+works as one vertical slice.
 
-The integration strategy therefore uses:
+------------------------------------------------------------------------
 
-```text
-parallel development
-+
-shared contracts
-+
-mock-first implementation
-+
-small integration checkpoints
-+
-continuous testing
-+
-feature freeze on 23 September
+# 2. Integration Principle
+
+Every member owns an implementation area, but no member owns an isolated
+application.
+
+The shared architecture is:
+
+``` text
+UI
+ ↓
+ViewModel
+ ↓
+Repository
+ ↓
+Room / Firebase / device services
 ```
 
----
+Integration must preserve this boundary.
 
-# 2. Integration Philosophy
+Do not solve integration problems by allowing:
 
-The project uses an **Agile-inspired iterative development approach**.
-
-The practical pattern is:
-
-```text
-Build a small piece
-      ↓
-Test it
-      ↓
-Integrate it
-      ↓
-Build the next piece
-      ↓
-Test again
+``` text
+UI → Firebase
+UI → Room DAO
+M2 → M3 private implementation
+M3 → Firebase
+M4 → Firestore
 ```
 
-Not:
+Instead use shared application-level contracts.
 
-```text
-M1 finishes everything
-M2 finishes everything
-M3 finishes everything
-M4 finishes everything
-M5 finishes everything
-M6 finishes everything
-      ↓
-Try to combine everything on Sep 23
+------------------------------------------------------------------------
+
+# 3. Primary Integration Goal
+
+The primary integration goal is:
+
+``` text
+One creator-created game
+        ↓
+published
+        ↓
+visible to another authenticated player
+        ↓
+player joins
+        ↓
+player loads dynamic checkpoints
+        ↓
+player reaches checkpoint
+        ↓
+geofence activates scan
+        ↓
+GPS + light + motion fusion
+        ↓
+proximity final gate
+        ↓
+checkpoint revealed
+        ↓
+Room persistence
+        ↓
+Firestore synchronization
+        ↓
+game-specific leaderboard
 ```
 
----
+This is the main vertical slice.
 
-# 3. Six-Person Integration Structure
+------------------------------------------------------------------------
 
-```text
-                       SHARED CONTRACTS
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        ↓                     ↓                     ↓
-   APPLICATION             DEVICE                 DATA
-    M1 + M2                M3 + M4               M5 + M6
-        │                     │                     │
-        └─────────────────────┼─────────────────────┘
-                              ↓
-                         INTEGRATION
-```
+# 4. Product Model
 
-Each pair has an internal dependency.
+Campus Quest is not a single fixed quest containing a permanent list of
+six relics.
 
-Cross-pair integration begins early.
+The production model is:
 
----
-
-# 4. Member Roles During Integration
-
-## M1 — App Shell
-
-Provides:
-
-```text
-navigation
-authentication UI
-main screen structure
-profile
-theme
-screen transitions
-```
-
-Receives:
-
-```text
-AuthState
+``` text
 User
+ ├── can create games
+ └── can play games
 ```
 
----
+A game contains:
 
-## M2 — Quest and Scan UI
-
-Provides:
-
-```text
-quest list
-quest details
-scan screen
-fusion meter
-reveal screen
-lore
-leaderboard presentation
+``` text
+Game
+ └── Checkpoints
 ```
 
-Receives:
+A player participates through:
 
-```text
-Relic
-FusionResult
-ScanState
-Progress
-LeaderboardEntry
+``` text
+GamePlayer
 ```
 
----
+A discovery is identified by:
 
-## M3 — Location
-
-Provides:
-
-```text
-current location
-distance
-map markers
-geofence events
-location state
+``` text
+User + Game + Checkpoint
 ```
 
-Receives:
+A leaderboard is identified by:
 
-```text
-Relic
+``` text
+Game + User
 ```
 
----
+------------------------------------------------------------------------
 
-## M4 — Sensors
+# 5. Canonical Integration Objects
 
-Provides:
+The primary shared objects are:
 
-```text
-sensor availability
-motion state
-light matching
-fusion score
-proximity state
-scan state
-```
-
-Receives:
-
-```text
-Relic
+``` text
+User
+Game
+Checkpoint
+GamePlayer
+CheckpointDiscovery
+GameLeaderboardEntry
 LightSignature
 DistanceResult
+FusionResult
+ScanState
+SensorAvailability
 ```
 
----
+The production integration layer must not use a global `Relic` object as
+the primary shared domain model.
 
-## M5 — Firebase
+------------------------------------------------------------------------
 
-Provides:
+# 6. Legacy Terminology
 
-```text
-authentication backend
-relic data
-cloud progress
-leaderboard
-cloud sync operations
+Older prototype material may contain:
+
+``` text
+Relic
+FoundRelic
+Quest
+R001
+R002
+...
+R006
 ```
 
----
+These are not the production architecture.
 
-## M6 — Room/Data Integration
+The six existing records may remain as sample checkpoint seed data
+inside a sample game.
 
-Provides:
+The canonical term is:
 
-```text
-Room database
-local relic/progress persistence
+``` text
+Checkpoint
+```
+
+------------------------------------------------------------------------
+
+# 7. Team Ownership
+
+## M1 --- UI/UX & Navigation Lead
+
+Owns:
+
+``` text
+App shell
+Navigation
+Game browsing
+Game details
+Join flow
+Creator wizard
+Checkpoint editor
+Publish UI
+Notification deep-link entry
+Leaderboard presentation
+```
+
+## M2 --- Quest/Scan UI Lead
+
+Owns:
+
+``` text
+Checkpoint detail UI
+Scan HUD
+Fusion meter
+Scan progress
+Reveal dialog
+Scan states
+Gameplay presentation
+```
+
+## M3 --- Location & Geofencing Lead
+
+Owns:
+
+``` text
+Location permission handling
+Fused Location Provider
+Google Maps
+Distance calculations
+Dynamic checkpoint geofences
+Geofence events
+Game-specific map markers
+```
+
+## M4 --- Sensor Fusion Lead
+
+Owns:
+
+``` text
+Accelerometer
+Light sensor
+Proximity sensor
+Light matching
+Motion detection
+Fusion engine
+Sensor availability
+Degraded-mode behavior
+Final proximity gate
+```
+
+## M5 --- Firebase Cloud & Sync Lead
+
+Owns:
+
+``` text
+Firebase Authentication
+Firestore
+FCM
+Cloud schema
+Security rules
+Cloud repository implementation
+Cloud progress
+Leaderboard persistence
+Notification trigger
+```
+
+## M6 --- Room Data & Integration Lead
+
+Owns:
+
+``` text
+Room
+Entities
+DAOs
+Offline cache
+Local discovery
 pendingSync
-offline behaviour
-integration support
+Room/Firebase synchronization
+Build stability
+Integration coordination
 ```
 
----
+------------------------------------------------------------------------
 
-# 5. Integration Ownership
+# 8. Shared Responsibility Rule
 
-Integration is **not M6's responsibility alone**.
-
-M6 coordinates integration activities, but:
-
-```text
-Each member integrates their own code.
-```
+Ownership does not mean isolation.
 
 For example:
 
-```text
-M3 does not hand an unfinished location module to M6
-and expect M6 to make it work.
-
-M3 integrates location into the shared application.
-
-M4 integrates sensor fusion into the shared application.
-
-M5 integrates Firebase.
-
-M6 integrates Room/sync.
+``` text
+M5 owns Firestore
+M6 owns Room
 ```
 
-M6's job is to help coordinate, identify conflicts, stabilize builds, and verify cross-module behaviour.
+but both must agree on:
 
----
-
-# 6. Definition of an Integration-Ready Feature
-
-A feature is ready to integrate only when:
-
-- [ ] it compiles
-- [ ] it runs independently
-- [ ] it uses the agreed contract
-- [ ] it uses canonical mock data
-- [ ] it handles its basic error state
-- [ ] it does not hard-code another member's implementation
-- [ ] it has been tested locally
-- [ ] its branch is up to date
-- [ ] the member can explain how the feature works
-- [ ] the member has told dependent members about the handoff
-
----
-
-# 7. Handoff Package
-
-Every handoff should contain:
-
-```text
-1. Feature name
-2. What it does
-3. Input contract
-4. Output contract
-5. Files/classes added
-6. Mock data used
-7. Error states
-8. How to test it
-9. Known limitations
-10. Dependencies
+``` text
+gameId
+checkpointId
+userId
+foundAt
+sync state
+duplicate handling
 ```
 
-Example:
+Similarly:
 
-```text
-Feature:
-SensorFusionEngine
+``` text
+M3 owns location
+M4 owns fusion
+```
 
-Input:
+but both must agree on:
+
+``` text
 DistanceResult
-LightSensor value
-MotionState
+```
 
-Output:
+------------------------------------------------------------------------
+
+# 9. Source of Truth Hierarchy
+
+When integrating conflicting information, use:
+
+``` text
+1. Master Development Plan
+2. Shared Contracts
+3. Firebase Schema
+4. Sensor/Location Specification
+5. Member Workplans
+6. Mock Data
+7. Individual implementation choices
+```
+
+If code contradicts the agreed contract, the code must be corrected
+unless the team explicitly changes the contract.
+
+------------------------------------------------------------------------
+
+# 10. Architecture Boundary
+
+The application must maintain:
+
+``` text
+UI
+ ↓
+ViewModel
+ ↓
+Repository
+ ↓
+Data sources
+```
+
+Data sources include:
+
+``` text
+Room
+Firebase
+Location APIs
+SensorManager
+```
+
+Device APIs may be wrapped in appropriate application services.
+
+------------------------------------------------------------------------
+
+# 11. Repository Boundary
+
+The repository is the main cross-feature data boundary.
+
+M1 and M2 should consume application models.
+
+M3 receives checkpoint configuration.
+
+M4 receives sensor configuration.
+
+M5 implements cloud behavior.
+
+M6 implements local persistence.
+
+The UI must not know:
+
+``` text
+Firestore collection paths
+Room table names
+Firebase SDK implementation details
+```
+
+------------------------------------------------------------------------
+
+# 12. Canonical Repository Contract
+
+The shared game repository should support:
+
+``` kotlin
+interface GameRepository {
+
+    suspend fun getAvailableGames(): List<Game>
+
+    suspend fun getGameDetails(
+        gameId: String
+    ): Game?
+
+    suspend fun createGame(
+        game: Game
+    ): Result<Game>
+
+    suspend fun createCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Checkpoint>
+
+    suspend fun updateCheckpoint(
+        gameId: String,
+        checkpoint: Checkpoint
+    ): Result<Unit>
+
+    suspend fun publishGame(
+        gameId: String
+    ): Result<Unit>
+
+    suspend fun joinGame(
+        gameId: String
+    ): Result<Unit>
+
+    suspend fun getGameCheckpoints(
+        gameId: String
+    ): List<Checkpoint>
+
+    suspend fun getFusionSignature(
+        gameId: String,
+        checkpointId: String
+    ): LightSignature
+
+    suspend fun recordDiscovery(
+        gameId: String,
+        checkpointId: String,
+        foundAt: Long
+    ): Result<Unit>
+
+    fun observeGameLeaderboard(
+        gameId: String
+    ): Flow<List<GameLeaderboardEntry>>
+
+    suspend fun syncPending()
+}
+```
+
+The exact implementation may use separate repositories, but
+responsibilities must remain equivalent.
+
+------------------------------------------------------------------------
+
+# 13. Why `gameId` Is Mandatory
+
+Checkpoint IDs are scoped to games.
+
+Therefore:
+
+``` kotlin
+getFusionSignature(checkpointId)
+```
+
+is insufficient.
+
+Correct:
+
+``` kotlin
+getFusionSignature(
+    gameId,
+    checkpointId
+)
+```
+
+Likewise:
+
+``` kotlin
+recordDiscovery(
+    gameId,
+    checkpointId,
+    foundAt
+)
+```
+
+must preserve the game context.
+
+------------------------------------------------------------------------
+
+# 14. Shared Data Model
+
+## Game
+
+``` kotlin
+data class Game(
+    val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus,
+    val checkpointCount: Int,
+    val createdAt: Long,
+    val publishedAt: Long?,
+    val updatedAt: Long
+)
+```
+
+## Checkpoint
+
+``` kotlin
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val radiusM: Float,
+    val lightSignature: LightSignature,
+    val clue: String,
+    val lore: String,
+    val order: Int,
+    val motionType: String,
+    val rarity: String
+)
+```
+
+------------------------------------------------------------------------
+
+# 15. Shared Sensor Contracts
+
+M3 produces:
+
+``` kotlin
+data class DistanceResult(
+    val distanceM: Float,
+    val accuracyM: Float
+)
+```
+
+M4 consumes this.
+
+M4 produces:
+
+``` text
 FusionResult
-
-Test:
-R001
-250 lux
-SCANNING
-18 m
-
-Expected:
-high fusion score
+ScanState
+SensorAvailability
 ```
 
----
+M2 consumes these.
 
-# 8. Contract-First Rule
+------------------------------------------------------------------------
 
-Before integration, both sides must agree on the interface.
+# 16. Integration Boundary Map
 
-Example:
-
-```text
-M3
-     ↓
-DistanceResult
-     ↓
-M4
-```
-
-Both members must agree on:
-
-```text
-distance unit = metres
-accuracy unit = metres
-```
-
-Do not integrate based on assumptions.
-
----
-
-# 9. Mock-First Rule
-
-Every integration boundary should work with mock data before the real dependency is connected.
-
-Example:
-
-```text
-M2
- ↓
-Mock FusionResult
- ↓
-Scan UI
-```
-
-Then:
-
-```text
-M4
- ↓
-Real FusionResult
- ↓
-Scan UI
-```
-
-If the UI works with the mock contract, replacing the source should be much easier.
-
----
-
-# 10. Integration Boundary Map
-
-The major boundaries are:
-
-```text
+``` text
 M1 ↔ M5
 Authentication
 
+M1 ↔ M5
+Games / creator / player data
+
 M2 ↔ M5/M6
-Relics / progress / leaderboard
+Checkpoint data / discovery / leaderboard
 
 M3 ↔ M5/M6
-Relic coordinates
+Checkpoint location data
 
 M3 ↔ M4
-Distance
-
-M4 ↔ M5/M6
-Light signature / relic
+DistanceResult
 
 M4 ↔ M2
 FusionResult / ScanState
 
+M4 ↔ M5/M6
+LightSignature
+
 M2 ↔ M6
-Record reveal
+Discovery persistence
 
 M5 ↔ M6
-Cloud sync
+Cloud/local synchronization
 ```
 
----
+------------------------------------------------------------------------
 
-# 11. Boundary 1 — M1 ↔ M5
+# 17. Boundary 1 --- M1 ↔ M5
 
 ## Purpose
 
-Authentication.
+Authentication and cloud-backed game data.
 
-Flow:
+Authentication flow:
 
-```text
+``` text
 Login screen
  ↓
 M1 ViewModel
@@ -435,76 +647,255 @@ AuthState
 M1 UI
 ```
 
-M1 should not call Firebase SDK directly.
+M1 must not call Firebase Authentication directly from the screen.
 
----
+------------------------------------------------------------------------
 
-# 12. Boundary 2 — M2 ↔ M5/M6
+# 18. M1 ↔ M5 Game List
+
+``` text
+Games Screen
+ ↓
+GamesViewModel
+ ↓
+GameRepository
+ ↓
+Firestore / Room
+ ↓
+List<Game>
+ ↓
+Games Screen
+```
+
+The game list must represent published games.
+
+------------------------------------------------------------------------
+
+# 19. M1 ↔ M5 Creator Flow
+
+``` text
+Creator UI
+ ↓
+Creator ViewModel
+ ↓
+GameRepository.createGame()
+ ↓
+Firestore
+ ↓
+Game
+```
+
+M1 owns presentation.
+
+M5 owns cloud persistence.
+
+------------------------------------------------------------------------
+
+# 20. M1 ↔ M5 Publish Flow
+
+``` text
+Publish Screen
+ ↓
+ViewModel
+ ↓
+GameRepository.publishGame(gameId)
+ ↓
+Firestore
+ ↓
+PUBLISHED
+```
+
+Notification generation is handled by the Firebase side.
+
+------------------------------------------------------------------------
+
+# 21. M1 ↔ M5 Notification Flow
+
+``` text
+FCM notification
+ ↓
+gameId
+ ↓
+notification/deep-link handler
+ ↓
+Game Details
+ ↓
+GameRepository.getGameDetails(gameId)
+```
+
+The notification must not contain a hard-coded checkpoint destination.
+
+------------------------------------------------------------------------
+
+# 22. Boundary 2 --- M2 ↔ M5/M6
 
 ## Purpose
 
-Quest and progress.
+Gameplay checkpoint data, discovery persistence and leaderboard data.
 
-Flow:
+Correct flow:
 
-```text
+``` text
 Repository
  ↓
-Relic
+Checkpoint
  ↓
-Quest screen
+Gameplay UI
 ```
 
-and:
+Not:
 
-```text
-Relic revealed
+``` text
+Repository
  ↓
-recordReveal()
+global Relic
+ ↓
+Quest Screen
+```
+
+------------------------------------------------------------------------
+
+# 23. M2 Checkpoint Selection
+
+M2 receives a selected:
+
+``` text
+gameId
+checkpointId
+```
+
+The ViewModel should maintain that context during the scan.
+
+------------------------------------------------------------------------
+
+# 24. M2 Discovery Flow
+
+After successful reveal:
+
+``` text
+Scan UI
+ ↓
+Gameplay ViewModel
+ ↓
+recordDiscovery(
+    gameId,
+    checkpointId,
+    foundAt
+)
+ ↓
+Repository
  ↓
 Room
  ↓
 Firestore
 ```
 
----
+M2 does not insert directly into a Room DAO.
 
-# 13. Boundary 3 — M3 ↔ M5/M6
+------------------------------------------------------------------------
+
+# 25. M2 Leaderboard Flow
+
+``` text
+GameLeaderboardScreen
+ ↓
+ViewModel
+ ↓
+observeGameLeaderboard(gameId)
+ ↓
+Repository
+ ↓
+Firestore / Room
+ ↓
+GameLeaderboardEntry
+ ↓
+UI
+```
+
+The leaderboard must remain scoped to the selected game.
+
+------------------------------------------------------------------------
+
+# 26. Boundary 3 --- M3 ↔ M5/M6
 
 M3 needs:
 
-```text
-Relic coordinates
-radius
+``` text
+gameId
+checkpointId
+lat
+lng
+radiusM
 ```
 
 Flow:
 
-```text
+``` text
 Repository
  ↓
-Relic
+Checkpoint
  ↓
-Map
+Map / Geofence system
 ```
 
-M3 does not need to know whether the Relic came from:
+M3 does not need to know whether the checkpoint came from:
 
-```text
+``` text
 Mock
 Room
 Firestore
 ```
 
----
+------------------------------------------------------------------------
 
-# 14. Boundary 4 — M3 ↔ M4
+# 27. Dynamic Map Requirement
 
-This is one of the most important technical boundaries.
+The map must be populated from the selected game's checkpoints.
+
+Correct:
+
+``` text
+selected game
+ ↓
+checkpoints
+ ↓
+markers
+```
+
+Incorrect:
+
+``` text
+map
+ ↓
+hard-coded R001–R006
+```
+
+------------------------------------------------------------------------
+
+# 28. Dynamic Geofence Requirement
+
+Geofences must be created from checkpoint configuration.
+
+``` text
+Checkpoint
+ ├── lat
+ ├── lng
+ └── radiusM
+        ↓
+Geofence
+```
+
+The geofence must not depend on a fixed production location list.
+
+------------------------------------------------------------------------
+
+# 29. Boundary 4 --- M3 ↔ M4
+
+This is a critical technical boundary.
 
 M3 provides:
 
-```text
+``` text
 DistanceResult
 ```
 
@@ -512,14 +903,14 @@ M4 consumes it.
 
 Example:
 
-```text
+``` text
 distanceM = 18
 accuracyM = 6
 ```
 
 Flow:
 
-```text
+``` text
 GPS
  ↓
 M3
@@ -531,13 +922,33 @@ M4
 FusionEngine
 ```
 
----
+------------------------------------------------------------------------
 
-# 15. Boundary 5 — M4 ↔ M2
+# 30. Distance Contract
+
+The distance result should represent:
+
+``` text
+distance from current location
+to selected checkpoint
+```
+
+It should not represent:
+
+``` text
+distance to the nearest arbitrary checkpoint
+```
+
+unless the gameplay design explicitly requests nearest-checkpoint
+behavior.
+
+------------------------------------------------------------------------
+
+# 31. Boundary 5 --- M4 ↔ M2
 
 M4 provides:
 
-```text
+``` text
 FusionResult
 ScanState
 SensorAvailability
@@ -547,72 +958,107 @@ M2 displays them.
 
 Example:
 
-```text
+``` text
 score = 87
 state = READY_FOR_PROXIMITY
 ```
 
-M2 should not recalculate the score.
+M2 must not recalculate the fusion score.
 
----
+------------------------------------------------------------------------
 
-# 16. Boundary 6 — M4 ↔ M5/M6
+# 32. Fusion Result Contract
+
+Conceptually:
+
+``` kotlin
+data class FusionResult(
+    val score: Int,
+    val gpsScore: Float,
+    val lightScore: Float,
+    val motionScore: Float,
+    val state: ScanState
+)
+```
+
+The exact fields may be adjusted as long as the contract remains stable.
+
+------------------------------------------------------------------------
+
+# 33. Boundary 6 --- M4 ↔ M5/M6
 
 M4 needs:
 
-```text
+``` text
 LightSignature
 ```
 
 Flow:
 
-```text
+``` text
 Repository
  ↓
-Relic
+Checkpoint
+ ↓
+LightSignature
  ↓
 M4
  ↓
 Light matching
 ```
 
-The source can initially be:
+The signature is configured per checkpoint.
 
-```text
-MockQuestRepository
+------------------------------------------------------------------------
+
+# 34. Light Signature
+
+The signature is:
+
+``` text
+minLux
+maxLux
 ```
 
-and later:
+It represents expected ambient light.
 
-```text
-Room/Firebase repository
-```
+It does not represent light emitted by the checkpoint.
 
----
+------------------------------------------------------------------------
 
-# 17. Boundary 7 — M2 ↔ M6
+# 35. Boundary 7 --- M2 ↔ M6
 
-When the user successfully reveals a relic:
+Successful discovery:
 
-```text
+``` text
 M2/ViewModel
  ↓
-recordReveal(R001)
+recordDiscovery(
+    gameId,
+    checkpointId,
+    foundAt
+)
  ↓
 Repository
  ↓
 Room
 ```
 
-M2 should not insert directly into a Room DAO.
+M2 does not access:
 
----
+``` text
+FoundCheckpointDao
+```
 
-# 18. Boundary 8 — M5 ↔ M6
+directly.
+
+------------------------------------------------------------------------
+
+# 36. Boundary 8 --- M5 ↔ M6
 
 Cloud/local synchronization:
 
-```text
+``` text
 Room
  ↓
 pendingSync
@@ -628,385 +1074,166 @@ M5 owns cloud persistence.
 
 They must agree on:
 
-```text
-relicId
-foundAt
+``` text
+gameId
+checkpointId
 userId
+foundAt
 success/failure
 retry
 duplicate handling
 ```
 
----
+------------------------------------------------------------------------
 
-# 19. Integration Phases
+# 37. Integration Object: Checkpoint Discovery
 
-The integration schedule has five phases:
+The canonical identity is:
 
-```text
-Phase 1 — Foundation
-13–14 Sep
-
-Phase 2 — Feature Development
-15–19 Sep
-
-Phase 3 — Incremental Integration
-20–23 Sep
-
-Phase 4 — Testing and Stabilization
-24–27 Sep
-
-Phase 5 — Finalization
-28 Sep
+``` text
+userId + gameId + checkpointId
 ```
 
----
+The local and cloud systems must preserve all three.
 
-# 20. Phase 1 — Foundation
+------------------------------------------------------------------------
 
-## 13 September
+# 38. Integration Object: Game Player
 
-Every member establishes:
+The canonical identity is:
 
-```text
-branch
-module/package structure
-shared contracts
-mock data
-basic compile
+``` text
+gameId + userId
 ```
 
-M6 checks:
+A user can join multiple games.
 
-```text
-project builds
+Therefore:
+
+``` text
+User A + Game A
 ```
 
----
+is different from:
 
-# 21. 13 Sep Integration Check
-
-At the end of the day:
-
-```text
-git clone works
-Android Studio opens project
-Gradle builds
-application launches
-shared models compile
+``` text
+User A + Game B
 ```
 
-Do not wait until Sep 20 to discover a build configuration problem.
+------------------------------------------------------------------------
 
----
+# 39. Integration Object: Leaderboard Entry
 
-# 22. 14 September
+The canonical identity is:
 
-The team verifies:
-
-```text
-M1 navigation skeleton
-M3 map skeleton
-M4 sensor skeleton
-M5 Firebase initialization
-M6 Room skeleton
+``` text
+gameId + userId
 ```
 
-No full integration is expected yet.
+A player may have multiple leaderboard entries across games.
 
-But every subsystem should be independently runnable.
+They must never be merged into one global score.
 
----
+------------------------------------------------------------------------
 
-# 23. Phase 2 — Feature Development
+# 40. Creator-to-Player Integration Flow
 
-## 15–17 September
-
-Members work in parallel.
-
-M1:
-
-```text
-app shell
-login
-navigation
-```
-
-M2:
-
-```text
-quest UI
-scan UI
-```
-
-M3:
-
-```text
-GPS
-map
-distance
-```
-
-M4:
-
-```text
-sensors
-fusion
-```
-
-M5:
-
-```text
-Auth
-Firestore
-```
-
-M6:
-
-```text
-Room
-repository
-offline
-```
-
----
-
-# 24. First Cross-Team Integration
-
-Target:
-
-**17 September**
-
-Connect one simple path:
-
-```text
-Mock Relic
+``` text
+Creator Login
  ↓
-Repository
+Create Game
  ↓
-Map
+Add Checkpoints
+ ↓
+Save Draft
+ ↓
+Publish
+ ↓
+Notification
+ ↓
+Player Login
+ ↓
+Browse Games
+ ↓
+Open Game Details
+ ↓
+Join Game
+ ↓
+Game Map
 ```
 
-This tests the domain model and repository boundary.
+This flow must be integrated before advanced polish.
 
----
+------------------------------------------------------------------------
 
-# 25. Second Cross-Team Integration
+# 41. Gameplay Integration Flow
 
-Target:
-
-**18 September**
-
-Connect:
-
-```text
-Mock Distance
+``` text
+Game Map
  ↓
-Mock Fusion
+Selected Checkpoint
  ↓
-Scan UI
-```
-
-Expected:
-
-```text
-18 m
-87%
-```
-
-appears correctly in the application.
-
-This is a deliberately artificial integration test.
-
----
-
-# 26. Third Cross-Team Integration
-
-Target:
-
-**19 September**
-
-Connect:
-
-```text
+Approach
+ ↓
 Geofence ENTER
  ↓
 Scan Mode
-```
-
-The goal is not yet complete sensor fusion.
-
-The goal is to prove:
-
-```text
-location event
-```
-
-can correctly trigger:
-
-```text
-scan state
-```
-
----
-
-# 27. Phase 3 — Incremental Integration
-
-## 20 September
-
-Integrate:
-
-```text
-M1 + M5
-```
-
-Authentication.
-
-Verify:
-
-```text
-Login
  ↓
-Authenticated
+GPS distance
  ↓
-Main app
-```
-
----
-
-# 28. 20 September — Data Integration
-
-Also integrate:
-
-```text
-M2 + M5/M6
-```
-
-Verify:
-
-```text
-Relic list
+Light matching
  ↓
-Quest details
-```
-
-using real repository data.
-
----
-
-# 29. 21 September — Location Integration
-
-Integrate:
-
-```text
-M3 + repository
-```
-
-Verify:
-
-```text
-Firebase/Room relic
+Motion gesture
  ↓
-Map marker
+Fusion score
  ↓
-distance
-```
-
-No hard-coded map relics should remain in the production path.
-
----
-
-# 30. 21 September — Sensor Integration
-
-Integrate:
-
-```text
-M3
+Fusion threshold
  ↓
-DistanceResult
- ↓
-M4
-```
-
-Then:
-
-```text
-M4
- ↓
-FusionResult
- ↓
-M2
-```
-
----
-
-# 31. 22 September — Full Scan Integration
-
-Target flow:
-
-```text
-Relic
- ↓
-Map
- ↓
-Distance
- ↓
-Geofence ENTER
- ↓
-Scan
- ↓
-GPS
- ↓
-Light
- ↓
-Motion
- ↓
-Fusion
- ↓
-Threshold
- ↓
-Proximity
+Proximity final gate
  ↓
 Reveal
 ```
 
-This is the most important integration day.
+------------------------------------------------------------------------
 
----
+# 42. Persistence Integration Flow
 
-# 32. 22 September — Calibration
-
-The team should test the scan at the selected physical campus location.
-
-Record:
-
-```text
-GPS accuracy
-distance
-light value
-motion behaviour
-fusion score
-proximity behaviour
+``` text
+Reveal
+ ↓
+recordDiscovery()
+ ↓
+Room
+ ↓
+pendingSync
+ ↓
+Firestore
+ ↓
+leaderboard
 ```
 
-M3 and M4 adjust only through the agreed change-control process.
+This is the persistence vertical slice.
 
----
+------------------------------------------------------------------------
 
-# 33. 23 September — End-to-End MVP
+# 43. Complete Integration Flow
 
-By the end of:
-
-**23 September**
-
-the complete core loop must work:
-
-```text
-Login
+``` text
+Creator
+ ↓
+Game
+ ↓
+Checkpoints
+ ↓
+Publish
+ ↓
+FCM
+ ↓
+Player
+ ↓
+Join
  ↓
 Map
- ↓
-Find relic
  ↓
 Geofence
  ↓
@@ -1018,206 +1245,1357 @@ Proximity
  ↓
 Reveal
  ↓
-Save
+Room
  ↓
-Sync
+Firestore
  ↓
 Leaderboard
 ```
 
----
+------------------------------------------------------------------------
 
-# 34. 23 September — HARD FEATURE FREEZE
+# 44. Integration Phase Strategy
 
-After 23 September:
+The integration schedule has five phases:
 
-```text
-NO new core features.
+``` text
+Phase 1 — Foundation
+13–14 Sep
+
+Phase 2 — Feature Development
+15–19 Sep
+
+Phase 3 — Incremental Integration
+20–23 Sep
+
+Phase 4 — Testing & Stabilization
+24–27 Sep
+
+Phase 5 — Finalization
+28 Sep
 ```
 
-Only:
+The dates are planning targets.
 
-```text
-bug fixes
-usability fixes
-performance fixes
-compatibility fixes
-documentation
-testing
+The team should integrate continuously rather than waiting for the final
+phase.
+
+------------------------------------------------------------------------
+
+# 45. Phase 1 --- Foundation
+
+Every member establishes:
+
+``` text
+branch
+package structure
+shared contracts
+mock data
+basic compile
 ```
 
-No new architecture.
+M6 checks:
 
-No new database redesign.
-
-No new sensor mechanic.
-
-No new navigation redesign.
-
----
-
-# 35. Why Feature Freeze Is Necessary
-
-Without a freeze:
-
-```text
-Sep 24
-new feature
-
-Sep 25
-new feature breaks integration
-
-Sep 26
-fix
-
-Sep 27
-new bug
-
-Sep 28
-demo
+``` text
+project builds
 ```
 
-The team needs four full days of stability work.
+------------------------------------------------------------------------
 
----
+# 46. 13 September Integration Check
 
-# 36. Integration Test Order
+At the end of the foundation setup:
 
-Always test from the outside toward the core:
-
-```text
-1. App launches
-2. Login
-3. Navigation
-4. Map
-5. Relic data
-6. Location
-7. Geofence
-8. Scan
-9. Fusion
-10. Proximity
-11. Reveal
-12. Room
-13. Firestore
-14. Leaderboard
+``` text
+Git clone works
+Android Studio opens
+Gradle builds
+Application launches
+Shared models compile
 ```
 
-This makes failures easier to localize.
+Do not wait until feature integration to discover a build configuration
+problem.
 
----
+------------------------------------------------------------------------
 
-# 37. Integration Failure Diagnosis
+# 47. Phase 1 Shared Contract Freeze
 
-If the scan does not start:
+Before feature work expands:
 
-Check:
-
-```text
-permission
- ↓
-location
- ↓
-geofence
- ↓
+``` text
+Game
+Checkpoint
+GamePlayer
+CheckpointDiscovery
+GameLeaderboardEntry
+LightSignature
+DistanceResult
+FusionResult
 ScanState
 ```
 
-If the fusion does not change:
+should have agreed definitions.
 
-Check:
+------------------------------------------------------------------------
 
-```text
-sensor availability
+# 48. Phase 2 --- Feature Development
+
+During feature development:
+
+``` text
+M1 → UI/navigation
+M2 → scan/gameplay UI
+M3 → location/geofencing
+M4 → sensor fusion
+M5 → Firebase/FCM
+M6 → Room/integration
+```
+
+Each member should test their feature against mock or local contracts
+before requesting full integration.
+
+------------------------------------------------------------------------
+
+# 49. Feature Development Rule
+
+A feature is not considered ready merely because:
+
+``` text
+screen exists
+```
+
+or:
+
+``` text
+class compiles
+```
+
+It should have:
+
+``` text
+implementation
++
+basic test
++
+error handling
++
+shared contract compatibility
+```
+
+------------------------------------------------------------------------
+
+# 50. Phase 3 --- Incremental Integration
+
+Integrate one boundary at a time.
+
+Recommended order:
+
+``` text
+1. Authentication
+2. Game creation
+3. Game browsing
+4. Checkpoint loading
+5. Game joining
+6. Map/location
+7. Geofence
+8. Sensor fusion
+9. Scan UI
+10. Discovery → Room
+11. Room → Firestore
+12. Leaderboard
+13. FCM
+14. Full creator/player flow
+```
+
+------------------------------------------------------------------------
+
+# 51. Authentication Integration
+
+First integration:
+
+``` text
+M1 + M5
+```
+
+Test:
+
+``` text
+Login
  ↓
-M3 distance
+AuthRepository
  ↓
-light
+Firebase Auth
  ↓
-motion
+Authenticated state
+ ↓
+Main UI
+```
+
+Acceptance:
+
+``` text
+login works
+logout works
+auth state survives restart appropriately
+protected screens require authentication
+```
+
+------------------------------------------------------------------------
+
+# 52. Game Creation Integration
+
+Next:
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Creator UI
+ ↓
+Create Game
+ ↓
+GameRepository
+ ↓
+Firestore
+ ↓
+Game DRAFT
+```
+
+Acceptance:
+
+``` text
+game receives unique ID
+creatorId is authenticated UID
+status = DRAFT
+game can be reopened
+```
+
+------------------------------------------------------------------------
+
+# 53. Checkpoint Creation Integration
+
+Next:
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Checkpoint Editor
+ ↓
+Checkpoint
+ ↓
+GameRepository
+ ↓
+games/{gameId}/checkpoints/{checkpointId}
+```
+
+Acceptance:
+
+``` text
+checkpoint belongs to selected game
+location persists
+radius persists
+light signature persists
+order persists
+```
+
+------------------------------------------------------------------------
+
+# 54. Game Publishing Integration
+
+Next:
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Draft
+ ↓
+Validate
+ ↓
+Publish
+ ↓
+Firestore PUBLISHED
+```
+
+Acceptance:
+
+``` text
+draft becomes published
+invalid game cannot publish
+creator ownership is preserved
+```
+
+------------------------------------------------------------------------
+
+# 55. Published Game Browsing Integration
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Games Screen
+ ↓
+getAvailableGames()
+ ↓
+Firestore
+ ↓
+PUBLISHED games
+```
+
+Acceptance:
+
+``` text
+published game appears
+draft does not appear
+game details open correctly
+```
+
+------------------------------------------------------------------------
+
+# 56. Game Joining Integration
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Game Details
+ ↓
+Join
+ ↓
+gamePlayers/{gameId}_{uid}
+ ↓
+Joined state
+```
+
+Acceptance:
+
+``` text
+join succeeds
+repeat join is safe
+membership belongs to current user
+```
+
+------------------------------------------------------------------------
+
+# 57. Checkpoint Loading Integration
+
+``` text
+M1/M2 + M5/M6
+```
+
+Flow:
+
+``` text
+selected gameId
+ ↓
+getGameCheckpoints(gameId)
+ ↓
+Checkpoint list
+```
+
+Acceptance:
+
+``` text
+only selected game's checkpoints load
+```
+
+------------------------------------------------------------------------
+
+# 58. Map Integration
+
+``` text
+M3 + M5/M6
+```
+
+Flow:
+
+``` text
+Game
+ ↓
+Checkpoint list
+ ↓
+M3
+ ↓
+Map markers
+```
+
+Acceptance:
+
+``` text
+markers correspond to selected game
+coordinates are correct
+no hard-coded R001–R006 dependency
+```
+
+------------------------------------------------------------------------
+
+# 59. Geofence Integration
+
+``` text
+M3
+```
+
+Flow:
+
+``` text
+Checkpoint
+ ↓
+lat/lng/radius
+ ↓
+Geofence
+ ↓
+ENTER event
+ ↓
+Scan enabled
+```
+
+Acceptance:
+
+``` text
+correct checkpoint triggers scan
+unrelated checkpoint does not trigger selected scan
+```
+
+------------------------------------------------------------------------
+
+# 60. Distance Integration
+
+``` text
+M3 + M4
+```
+
+Flow:
+
+``` text
+Fused Location Provider
+ ↓
+distance calculation
+ ↓
+DistanceResult
  ↓
 FusionEngine
 ```
 
-If reveal does not happen:
+Acceptance:
 
-Check:
-
-```text
-fusion threshold
- ↓
-proximity
- ↓
-ScanState
+``` text
+distance changes as user moves
+accuracy is available
+selected checkpoint is used
 ```
 
-If discovery disappears:
+------------------------------------------------------------------------
 
-Check:
+# 61. Sensor Fusion Integration
 
-```text
+``` text
+M4
+```
+
+Inputs:
+
+``` text
+DistanceResult
+LightSignature
+Accelerometer
+```
+
+Output:
+
+``` text
+FusionResult
+```
+
+Acceptance:
+
+``` text
+score changes with valid inputs
+sensor availability is reported
+threshold behavior is deterministic
+```
+
+------------------------------------------------------------------------
+
+# 62. Proximity Integration
+
+Proximity is a final gate.
+
+Correct:
+
+``` text
+Fusion score reaches threshold
+ ↓
+Proximity check
+ ↓
+Reveal
+```
+
+Do not add proximity as a fourth weighted fusion component unless the
+product contract is explicitly changed.
+
+------------------------------------------------------------------------
+
+# 63. Scan UI Integration
+
+``` text
+M4 + M2
+```
+
+Flow:
+
+``` text
+FusionResult
+ ↓
+ScanState
+ ↓
+M2
+ ↓
+HUD / meter
+```
+
+Acceptance:
+
+``` text
+meter displays actual fusion state
+UI does not recalculate score
+sensor errors are represented correctly
+```
+
+------------------------------------------------------------------------
+
+# 64. Reveal Integration
+
+``` text
+M2 + M6
+```
+
+Flow:
+
+``` text
+Scan success
+ ↓
+Reveal UI
+ ↓
+recordDiscovery()
+ ↓
+Room
+```
+
+Acceptance:
+
+``` text
+discovery is stored
+gameId retained
+checkpointId retained
+userId retained
+```
+
+------------------------------------------------------------------------
+
+# 65. Room Integration
+
+``` text
+M6
+```
+
+Required local concepts:
+
+``` text
+GameEntity
+CheckpointEntity
+GamePlayerEntity
+FoundCheckpointEntity
+```
+
+Discovery identity:
+
+``` text
+gameId + userId + checkpointId
+```
+
+------------------------------------------------------------------------
+
+# 66. Room/Firebase Sync Integration
+
+``` text
+M6 + M5
+```
+
+Flow:
+
+``` text
 Room
  ↓
 pendingSync
  ↓
+repository
+ ↓
 Firestore
+ ↓
+success
+ ↓
+pendingSync = false
 ```
 
----
+Acceptance:
 
-# 38. One Boundary at a Time
+``` text
+offline discovery survives
+network recovery syncs
+duplicate sync does not create duplicate progress
+```
 
-Do not connect everything simultaneously.
+------------------------------------------------------------------------
 
-Bad:
+# 67. Leaderboard Integration
 
-```text
+``` text
+M2 + M5/M6
+```
+
+Flow:
+
+``` text
+Discovery
+ ↓
+game-scoped progress
+ ↓
+leaderboard entry
+ ↓
+GameLeaderboardScreen
+```
+
+Acceptance:
+
+``` text
+selected game only
+correct discovered count
+correct total
+correct ordering
+```
+
+------------------------------------------------------------------------
+
+# 68. FCM Integration
+
+``` text
+M1 + M5
+```
+
+Flow:
+
+``` text
+Creator publishes
+ ↓
+trusted notification trigger
+ ↓
+/topics/new_games
+ ↓
+player device
+ ↓
+notification tap
+ ↓
+Game Details(gameId)
+```
+
+Acceptance:
+
+``` text
+published game notification can be received
+notification opens correct game
+draft does not trigger notification
+```
+
+------------------------------------------------------------------------
+
+# 69. Integration Sequence
+
+The preferred complete sequence is:
+
+``` text
+M1 + M5
+Authentication
+        ↓
+M1 + M5
+Game creation/publishing
+        ↓
+M1 + M5
+Player browse/join
+        ↓
+M3 + M5/M6
+Checkpoint/map
+        ↓
+M3
+Geofence
+        ↓
+M3 + M4
+Distance → Fusion
+        ↓
+M4 + M2
+Fusion → Scan UI
+        ↓
+M2 + M6
+Reveal → Room
+        ↓
+M5 + M6
+Room → Firestore
+        ↓
+M2 + M5
+Leaderboard
+        ↓
+M1 + M5
+FCM notification
+```
+
+------------------------------------------------------------------------
+
+# 70. Why Incremental Integration Is Required
+
+If everything is integrated simultaneously:
+
+``` text
 GPS
 Firebase
 Room
-sensors
+Sensors
 UI
-leaderboard
+Leaderboard
+FCM
 ```
 
-all on one branch.
+then a failure becomes difficult to locate.
 
-Better:
+Instead:
 
-```text
-Relic → Map
+``` text
+Game → Checkpoint
 ```
 
 then:
 
-```text
+``` text
+Checkpoint → Map
+```
+
+then:
+
+``` text
 Distance → Fusion
 ```
 
 then:
 
-```text
-Fusion → Scan UI
+``` text
+Fusion → UI
 ```
 
 then:
 
-```text
+``` text
 Reveal → Room
 ```
 
 then:
 
-```text
+``` text
 Room → Firebase
 ```
 
----
+then:
 
-# 39. Integration Branch Strategy
+``` text
+Firebase → Leaderboard
+```
+
+------------------------------------------------------------------------
+
+# 71. Integration Test Order
+
+Always test from the outside toward the core:
+
+``` text
+1. App launches
+2. Authentication
+3. Navigation
+4. Game list
+5. Game details
+6. Join
+7. Game checkpoints
+8. Map
+9. Location
+10. Geofence
+11. Scan
+12. Fusion
+13. Proximity
+14. Reveal
+15. Room
+16. Firestore
+17. Leaderboard
+18. Notification
+```
+
+------------------------------------------------------------------------
+
+# 72. Failure Diagnosis --- App Does Not Launch
+
+Check:
+
+``` text
+Gradle
+ ↓
+dependencies
+ ↓
+manifest
+ ↓
+resource compilation
+ ↓
+Kotlin compilation
+```
+
+M6 coordinates the initial diagnosis.
+
+------------------------------------------------------------------------
+
+# 73. Failure Diagnosis --- Login
+
+Check:
+
+``` text
+Firebase configuration
+ ↓
+authentication provider
+ ↓
+AuthRepository
+ ↓
+AuthState
+ ↓
+ViewModel
+ ↓
+UI
+```
+
+------------------------------------------------------------------------
+
+# 74. Failure Diagnosis --- Game Not Appearing
+
+Check:
+
+``` text
+Firestore game exists
+ ↓
+status == PUBLISHED
+ ↓
+query filter
+ ↓
+repository mapping
+ ↓
+ViewModel state
+ ↓
+UI
+```
+
+------------------------------------------------------------------------
+
+# 75. Failure Diagnosis --- Checkpoints Missing
+
+Check:
+
+``` text
+correct gameId
+ ↓
+Firestore path
+ ↓
+checkpoint documents
+ ↓
+repository query
+ ↓
+Room cache
+ ↓
+ViewModel
+```
+
+------------------------------------------------------------------------
+
+# 76. Failure Diagnosis --- Map Marker Missing
+
+Check:
+
+``` text
+checkpoint data
+ ↓
+lat/lng
+ ↓
+permission
+ ↓
+Google Maps
+ ↓
+marker creation
+```
+
+------------------------------------------------------------------------
+
+# 77. Failure Diagnosis --- Geofence Not Triggering
+
+Check:
+
+``` text
+location permission
+ ↓
+background/required permission behavior
+ ↓
+geofence registration
+ ↓
+correct coordinates
+ ↓
+correct radius
+ ↓
+selected game/checkpoint
+ ↓
+geofence event
+```
+
+------------------------------------------------------------------------
+
+# 78. Failure Diagnosis --- Fusion Not Changing
+
+Check:
+
+``` text
+sensor availability
+ ↓
+M3 DistanceResult
+ ↓
+light sensor
+ ↓
+LightSignature
+ ↓
+accelerometer
+ ↓
+FusionEngine
+```
+
+------------------------------------------------------------------------
+
+# 79. Failure Diagnosis --- Reveal Does Not Happen
+
+Check:
+
+``` text
+fusion threshold
+ ↓
+proximity gate
+ ↓
+ScanState
+ ↓
+reveal condition
+```
+
+------------------------------------------------------------------------
+
+# 80. Failure Diagnosis --- Discovery Disappears
+
+Check:
+
+``` text
+Room
+ ↓
+FoundCheckpointEntity
+ ↓
+pendingSync
+ ↓
+repository
+ ↓
+Firestore
+```
+
+------------------------------------------------------------------------
+
+# 81. Failure Diagnosis --- Leaderboard Wrong
+
+Check:
+
+``` text
+selected gameId
+ ↓
+progress path
+ ↓
+discovery count
+ ↓
+leaderboard update
+ ↓
+leaderboard query
+ ↓
+UI
+```
+
+Never begin by changing the UI ranking code without checking game scope.
+
+------------------------------------------------------------------------
+
+# 82. Failure Diagnosis --- Notification Opens Wrong Game
+
+Check:
+
+``` text
+FCM payload
+ ↓
+gameId
+ ↓
+intent/deep link
+ ↓
+navigation argument
+ ↓
+Game Details ViewModel
+```
+
+------------------------------------------------------------------------
+
+# 83. Cross-Game Isolation Test
+
+Create:
+
+``` text
+Game A
+2 checkpoints
+```
+
+and:
+
+``` text
+Game B
+3 checkpoints
+```
+
+Player discovers:
+
+``` text
+Game A → 1
+Game B → 2
+```
+
+Expected:
+
+``` text
+Game A = 1/2
+Game B = 2/3
+```
+
+There must be no:
+
+``` text
+global = 3/5
+```
+
+leaderboard representation.
+
+------------------------------------------------------------------------
+
+# 84. Creator Isolation Test
+
+Create:
+
+``` text
+Creator A → Game A
+Creator B → Game B
+```
+
+Attempt:
+
+``` text
+Creator A edits Game B
+```
+
+Expected:
+
+``` text
+denied
+```
+
+------------------------------------------------------------------------
+
+# 85. Player Isolation Test
+
+Player A attempts to write:
+
+``` text
+Player B's progress
+```
+
+Expected:
+
+``` text
+denied
+```
+
+------------------------------------------------------------------------
+
+# 86. Draft Visibility Test
+
+Creator creates:
+
+``` text
+Game C
+status = DRAFT
+```
+
+Player checks games.
+
+Expected:
+
+``` text
+Game C not visible
+```
+
+Creator checks own games.
+
+Expected:
+
+``` text
+Game C visible
+```
+
+------------------------------------------------------------------------
+
+# 87. Dynamic Checkpoint Test
+
+Create a game with:
+
+``` text
+1 checkpoint
+```
+
+Play it.
+
+Then create another game with:
+
+``` text
+4 checkpoints
+```
+
+Play it.
+
+The application must work without code changes.
+
+------------------------------------------------------------------------
+
+# 88. Variable Checkpoint Count Test
+
+Test:
+
+``` text
+1 checkpoint
+2 checkpoints
+3 checkpoints
+6 checkpoints
+```
+
+The application must use:
+
+``` text
+totalCheckpoints
+```
+
+rather than a hard-coded number.
+
+------------------------------------------------------------------------
+
+# 89. Seed Data Test
+
+The sample six records may be used:
+
+``` text
+R001
+R002
+R003
+R004
+R005
+R006
+```
+
+but the gameplay code must still work if these records are replaced
+with:
+
+``` text
+checkpoint_A
+checkpoint_B
+```
+
+------------------------------------------------------------------------
+
+# 90. Offline Integration Test
+
+Procedure:
+
+``` text
+Join game online
+ ↓
+Cache game/checkpoints
+ ↓
+Disable network
+ ↓
+Discover checkpoint
+ ↓
+Room stores discovery
+ ↓
+pendingSync = true
+ ↓
+Restore network
+ ↓
+Firestore sync
+```
+
+Expected:
+
+``` text
+discovery remains
+cloud record appears
+leaderboard updates
+pendingSync clears
+```
+
+------------------------------------------------------------------------
+
+# 91. Duplicate Discovery Test
+
+Perform:
+
+``` text
+discover checkpoint
+sync
+sync again
+```
+
+Expected:
+
+``` text
+one logical discovery
+```
+
+not:
+
+``` text
+two discoveries
+```
+
+------------------------------------------------------------------------
+
+# 92. Restart Integration Test
+
+Procedure:
+
+``` text
+Discover checkpoint
+ ↓
+close app
+ ↓
+reopen
+```
+
+Expected:
+
+``` text
+local discovery remains
+```
+
+After network:
+
+``` text
+cloud state remains consistent
+```
+
+------------------------------------------------------------------------
+
+# 93. Permission Integration Test
+
+Test:
+
+``` text
+location permission denied
+```
+
+Expected:
+
+``` text
+clear UI explanation
+no crash
+```
+
+Test:
+
+``` text
+sensor unavailable
+```
+
+Expected:
+
+``` text
+SensorAvailability reported
+graceful behavior
+```
+
+------------------------------------------------------------------------
+
+# 94. Device Integration
+
+At minimum test on:
+
+``` text
+one development emulator
+one physical Android device
+```
+
+Physical testing is required for:
+
+``` text
+GPS
+geofence
+light sensor
+accelerometer
+proximity sensor
+```
+
+because emulator behavior may not accurately represent physical sensors.
+
+------------------------------------------------------------------------
+
+# 95. Integration Environment
+
+All members should use:
+
+``` text
+same repository
+same branch strategy
+same package/module conventions
+same shared model names
+same Firebase environment
+```
+
+unless a documented reason requires otherwise.
+
+------------------------------------------------------------------------
+
+# 96. Branch Strategy
 
 Recommended:
 
-```text
+``` text
 main
 │
 ├── feature/ui-navigation
@@ -1228,15 +2606,36 @@ main
 └── feature/room-data
 ```
 
-Each member works primarily on their own feature branch.
+Each member works primarily on their assigned branch.
 
----
+------------------------------------------------------------------------
 
-# 40. Pull Request Rule
+# 97. Branch Naming
+
+Use stable names:
+
+``` text
+feature/ui-navigation
+feature/quest-scan-ui
+feature/location-geofence
+feature/sensor-fusion
+feature/firebase-cloud
+feature/room-data
+```
+
+Bug fixes may use:
+
+``` text
+fix/<short-description>
+```
+
+------------------------------------------------------------------------
+
+# 98. Pull Request Flow
 
 Use:
 
-```text
+``` text
 Feature branch
  ↓
 Commit
@@ -1247,1480 +2646,2441 @@ Pull Request
  ↓
 Review
  ↓
+Build/test
+ ↓
 Merge
 ```
 
 Do not use:
 
-```text
+``` text
 direct push to main
 ```
 
----
+for normal feature development.
 
-# 41. Before Opening a Pull Request
+------------------------------------------------------------------------
 
-The developer should:
+# 99. Commit Rule
 
-```text
-1. Pull/rebase latest main as agreed
+Commits should be:
+
+``` text
+small
+focused
+buildable where practical
+descriptive
+```
+
+Avoid one enormous commit containing:
+
+``` text
+UI
+Firebase
+Room
+GPS
+sensor
+```
+
+all at once.
+
+------------------------------------------------------------------------
+
+# 100. Before Opening a PR
+
+The developer must:
+
+``` text
+1. Update from latest agreed main
 2. Resolve conflicts locally
 3. Build project
 4. Run relevant tests
 5. Test feature
-6. Check no debug credentials are committed
-7. Check no temporary hard-coded data is unintentionally used
-8. Open PR
+6. Check no credentials are committed
+7. Check no unintended hard-coded data
+8. Check shared contracts
+9. Open PR
 ```
 
----
+------------------------------------------------------------------------
 
-# 42. Reviewer Checklist
+# 101. Reviewer Checklist
 
 Reviewer checks:
 
-- [ ] project builds
-- [ ] shared contract respected
-- [ ] correct IDs
-- [ ] no direct Firebase from UI
-- [ ] no direct Room DAO from UI
-- [ ] no unrelated changes
-- [ ] lifecycle handled
-- [ ] permissions handled
-- [ ] errors handled
-- [ ] mock data consistent
-- [ ] feature tested
-
----
-
-# 43. Integration Order by Member
-
-## First
-
-```text
-M1 + M5
+``` text
+[ ] Project builds
+[ ] Shared contract respected
+[ ] Correct IDs
+[ ] gameId preserved
+[ ] No direct Firebase from UI
+[ ] No direct Room DAO from UI
+[ ] No unrelated changes
+[ ] Lifecycle handled
+[ ] Permissions handled
+[ ] Errors handled
+[ ] Mock data consistent
+[ ] Tests run
+[ ] No hard-coded R001 dependency
 ```
 
-Authentication.
+------------------------------------------------------------------------
 
-## Second
+# 102. Shared Contract Changes
 
-```text
-M2 + M5/M6
+Do not silently change:
+
+``` text
+Game
+Checkpoint
+Repository signatures
+Firestore paths
+Room identity
+FusionResult
+DistanceResult
 ```
 
-Quest data.
+If a breaking change is necessary:
 
-## Third
-
-```text
-M3 + M5/M6
-```
-
-Relic coordinates.
-
-## Fourth
-
-```text
-M3 + M4
-```
-
-GPS to fusion.
-
-## Fifth
-
-```text
-M4 + M2
-```
-
-Fusion to UI.
-
-## Sixth
-
-```text
-M2 + M6
-```
-
-Reveal to local storage.
-
-## Seventh
-
-```text
-M6 + M5
-```
-
-Local to cloud.
-
----
-
-# 44. Full Integration Dependency Graph
-
-```text
-                 Firebase/Auth
-                     │
-                     ↓
-                    M1
-                     │
-                     ↓
-                  Main App
-                     │
-          ┌──────────┴──────────┐
-          ↓                     ↓
-         M3                     M2
-      Location              Quest UI
-          │                     │
-          ↓                     ↓
-      Distance              Scan UI
-          │                     ↑
-          ↓                     │
-         M4 ────────────────────┘
-      Sensor Fusion
-          │
-          ↓
-      Proximity Gate
-          │
-          ↓
-        Reveal
-          │
-          ↓
-         M6
-        Room
-          │
-          ↓
-         M5
-      Firestore
-          │
-          ↓
-     Leaderboard
-          │
-          ↓
-         M2
-```
-
----
-
-# 45. Integration Environment
-
-The team should maintain one agreed development environment.
-
-At minimum document:
-
-```text
-Android Studio version
-JDK version
-Gradle/AGP version
-compile SDK
-minimum SDK
-Firebase project
-Google Maps configuration
-package/application ID
-```
-
-Do not let each member independently upgrade major build dependencies during integration week.
-
----
-
-# 46. Dependency Freeze
-
-After:
-
-**20 September**
-
-avoid unnecessary changes to:
-
-```text
-Gradle
-AGP
-Kotlin
-Android SDK
-major libraries
-Firebase dependencies
-Maps dependencies
-Room dependencies
-```
-
-unless fixing a blocking issue.
-
----
-
-# 47. Shared Package Structure
-
-A reasonable conceptual structure is:
-
-```text
-com.campusquest
-├── data
-│   ├── local
-│   ├── remote
-│   ├── repository
-│   └── mock
-├── domain
-│   ├── model
-│   ├── location
-│   └── sensor
-├── ui
-│   ├── auth
-│   ├── map
-│   ├── quest
-│   ├── scan
-│   ├── leaderboard
-│   └── profile
-└── util
-```
-
-The exact package structure may differ.
-
-The principle is separation of concerns.
-
-The module architecture material specifically teaches separation between UI, ViewModel/logic, and data/repository responsibilities. fileciteturn11file0L178-L190
-
----
-
-# 48. ViewModel Integration Rule
-
-ViewModels should expose observable UI state.
-
-Conceptually:
-
-```text
-Repository
+``` text
+announce
  ↓
-ViewModel
+discuss
  ↓
-StateFlow
+update shared contract
  ↓
-UI
+update dependent members
+ ↓
+integrate
 ```
 
-The architecture material identifies observable state such as `LiveData` or `StateFlow` as a mechanism for keeping UI state synchronized with the ViewModel. fileciteturn11file0L102-L106
+------------------------------------------------------------------------
 
----
+# 103. Breaking Change Example
 
-# 49. Avoid Activity/Fragment Business Logic
+Changing:
 
-Do not put:
-
-```text
-fusion calculation
-Firestore queries
-Room insertion
-geofence business rules
-```
-
-inside Activities/Fragments.
-
-Activities/Fragments should primarily:
-
-```text
-display state
-forward user actions
-observe ViewModel
-```
-
-This follows the module's separation-of-concerns principle. fileciteturn11file0L178-L183
-
----
-
-# 50. Integration With XML UI
-
-If the team uses XML/View-based layouts, keep the UI layer responsible for presentation.
-
-The Android layout guide identifies ConstraintLayout as a modern option for responsive interfaces and notes that FrameLayout is useful for fragment/overlay containers. fileciteturn11file1L341-L378
-
-Do not mix layout implementation with data-access logic.
-
----
-
-# 51. Integration With RecyclerView
-
-For quest and leaderboard lists:
-
-```text
-Repository
- ↓
-ViewModel
- ↓
-List state
- ↓
-RecyclerView adapter
- ↓
-UI
-```
-
-The adapter should not query Firebase or Room.
-
----
-
-# 52. Scan Integration Contract
-
-The scan screen should conceptually consume:
-
-```kotlin
-data class ScanUiState(
-    val relic: Relic?,
-    val scanState: ScanState,
-    val fusionScore: Int,
-    val proximity: Proximity,
-    val sensorAvailability: SensorAvailability
+``` kotlin
+recordDiscovery(
+    gameId,
+    checkpointId,
+    foundAt
 )
-```
-
-The exact model may be adjusted.
-
-M2 owns presentation.
-
-M4 owns sensor-derived values.
-
----
-
-# 53. Reveal Integration
-
-The reveal should happen only when the required conditions are satisfied.
-
-Conceptually:
-
-```text
-fusionScore >= threshold
-AND
-proximity == NEAR
-```
-
-Then:
-
-```text
-Reveal
- ↓
-recordReveal(relicId)
-```
-
-Do not let M2 create a fake successful discovery simply because the user tapped a button.
-
-A UI-only demo button may exist during mock development but must not remain the real success path.
-
----
-
-# 54. Room Integration
-
-M6 should provide:
-
-```text
-RelicDao
-FoundRelicDao
-```
-
-through repository-level operations.
-
-The UI should never do:
-
-```kotlin
-database.foundRelicDao().insert(...)
-```
-
-directly.
-
----
-
-# 55. Firebase Integration
-
-M5 provides the cloud implementation behind the repository.
-
-M6 provides the local implementation.
-
-The application should be able to switch:
-
-```text
-Mock
 ```
 
 to:
 
-```text
-Room + Firebase
+``` kotlin
+recordDiscovery(
+    checkpointId
+)
 ```
 
-without rewriting screen logic.
+is a breaking change.
 
----
+It removes game scope.
 
-# 56. Local-First Discovery Integration
+Do not make this change casually.
 
-The final flow should be:
+------------------------------------------------------------------------
 
-```text
-Reveal
- ↓
-recordReveal()
- ↓
-Room insert
- ↓
-UI updates immediately
- ↓
-pendingSync = true
- ↓
-cloud upload
- ↓
-success
- ↓
-pendingSync = false
+# 104. Non-Breaking Change Example
+
+Adding an optional field:
+
+``` text
+Game.updatedAt
 ```
 
-If upload fails:
+may be non-breaking if all consumers remain compatible.
 
-```text
-pendingSync remains true
+------------------------------------------------------------------------
+
+# 105. Integration Freeze
+
+Before final stabilization, freeze:
+
+``` text
+Firestore paths
+Room keys
+Repository signatures
+Game lifecycle
+Checkpoint model
+Leaderboard scope
+Notification routing
+Sensor fusion contract
 ```
 
----
+After freeze, only bug fixes should normally be merged.
 
-# 57. Leaderboard Integration
+------------------------------------------------------------------------
 
-After cloud progress is successfully recorded:
+# 106. Daily Integration Check
 
-```text
-progress
- ↓
-leaderboard update
- ↓
-observeLeaderboard()
- ↓
-M2
- ↓
-leaderboard UI
+At the end of each development day:
+
+``` text
+[ ] main builds
+[ ] application launches
+[ ] no critical merge conflicts
+[ ] shared models compile
+[ ] Firebase config works
+[ ] Room schema works
+[ ] current vertical slice still works
 ```
 
-The team must avoid multiple competing leaderboard calculations.
+------------------------------------------------------------------------
 
----
+# 107. Integration Log
 
-# 58. Integration Test: R001
+Maintain a simple record:
+
+``` text
+Date
+Integrated features
+Known issues
+Blocked members
+Next integration target
+```
+
+This prevents the team from repeatedly rediscovering the same problems.
+
+------------------------------------------------------------------------
+
+# 108. Handoff Principle
+
+A handoff must transfer:
+
+``` text
+what the feature does
+what inputs it expects
+what outputs it provides
+what dependencies it has
+how to test it
+known limitations
+```
+
+Do not hand off only source files.
+
+------------------------------------------------------------------------
+
+# 109. M1 Handoff to M2
+
+M1 provides:
+
+``` text
+navigation route
+gameId
+checkpointId
+selected Game
+selected Checkpoint
+```
+
+M2 should not have to reconstruct navigation context.
+
+------------------------------------------------------------------------
+
+# 110. M1 Handoff to M3
+
+M1/M2 provide:
+
+``` text
+selected game
+selected checkpoint
+```
+
+M3 uses that context to obtain location configuration.
+
+------------------------------------------------------------------------
+
+# 111. M3 Handoff to M4
+
+M3 provides:
+
+``` text
+DistanceResult
+```
+
+M4 must not duplicate the location-distance calculation.
+
+------------------------------------------------------------------------
+
+# 112. M4 Handoff to M2
+
+M4 provides:
+
+``` text
+FusionResult
+ScanState
+SensorAvailability
+```
+
+M2 renders the state.
+
+------------------------------------------------------------------------
+
+# 113. M2 Handoff to M6
+
+M2 provides:
+
+``` text
+gameId
+checkpointId
+foundAt
+```
+
+M6 persists it.
+
+------------------------------------------------------------------------
+
+# 114. M5 Handoff to M6
+
+M5 provides:
+
+``` text
+Firestore schema
+cloud models
+repository cloud behavior
+sync expectations
+security rules
+```
+
+M6 provides:
+
+``` text
+Room models
+DAOs
+pendingSync
+local state
+```
+
+------------------------------------------------------------------------
+
+# 115. M6 Handoff to M5
+
+M6 must define:
+
+``` text
+what counts as pending
+when sync is attempted
+how success is acknowledged
+how duplicate sync is handled
+```
+
+------------------------------------------------------------------------
+
+# 116. M5/M6 Synchronization Contract
+
+Canonical discovery:
+
+``` text
+userId
+gameId
+checkpointId
+foundAt
+```
+
+Local:
+
+``` text
+pendingSync
+```
+
+Cloud:
+
+``` text
+progress/{uid}/games/{gameId}/checkpoints/{checkpointId}
+```
+
+------------------------------------------------------------------------
+
+# 117. No Duplicate Local/Cloud Models
+
+Avoid having:
+
+``` text
+Relic
+FoundRelic
+Checkpoint
+FoundCheckpoint
+```
+
+all treated as independent production models.
+
+Canonical:
+
+``` text
+Checkpoint
+CheckpointDiscovery
+```
+
+------------------------------------------------------------------------
+
+# 118. No Global Progress Object
+
+Avoid:
+
+``` text
+FoundRelics
+```
+
+as the application-level progress model.
+
+Progress must be represented with:
+
+``` text
+gameId
+```
+
+------------------------------------------------------------------------
+
+# 119. No Global Leaderboard Object
+
+Avoid:
+
+``` text
+GlobalLeaderboard
+```
+
+for gameplay ranking.
 
 Use:
 
-```text
-R001
-Founder's Bell
+``` text
+GameLeaderboard
 ```
 
-Scenario:
+scoped by:
 
-```text
-User U001
-Distance 18 m
-Light 250 lux
-Motion SCANNING
-Fusion 87
-Proximity NEAR
+``` text
+gameId
 ```
 
-Expected:
+------------------------------------------------------------------------
 
-```text
-Reveal R001
+# 120. No Global Checkpoint Map
+
+The map should represent:
+
+``` text
+selected game checkpoints
+```
+
+not every checkpoint in Firebase.
+
+------------------------------------------------------------------------
+
+# 121. Creator-Player Role Integration
+
+The same authenticated account can be:
+
+``` text
+Creator for Game A
+Player in Game B
+```
+
+Do not create separate Firebase users for these roles unless the product
+is explicitly changed.
+
+------------------------------------------------------------------------
+
+# 122. Creator Draft Integration
+
+A creator's draft should be accessible through:
+
+``` text
+creatorId
+```
+
+and:
+
+``` text
+status = DRAFT
+```
+
+The creator should see their own drafts.
+
+Other players should not.
+
+------------------------------------------------------------------------
+
+# 123. Published Game Integration
+
+Once published:
+
+``` text
+status = PUBLISHED
+```
+
+the game becomes player-visible.
+
+The player receives:
+
+``` text
+Game
+Checkpoint list
+```
+
+through the repository.
+
+------------------------------------------------------------------------
+
+# 124. Published Configuration Stability
+
+Avoid changing checkpoint definitions while players are actively using a
+published game.
+
+This reduces:
+
+``` text
+cache mismatch
+geofence mismatch
+leaderboard mismatch
+```
+
+------------------------------------------------------------------------
+
+# 125. Game Closure Integration
+
+If a game is finished:
+
+``` text
+status = CLOSED
+```
+
+rather than destructively deleting all related data.
+
+Historical progress can remain available.
+
+------------------------------------------------------------------------
+
+# 126. Notification Handoff
+
+M5 provides:
+
+``` text
+notification payload
+```
+
+M1 provides:
+
+``` text
+deep-link destination
+```
+
+Shared requirement:
+
+``` text
+gameId
+```
+
+------------------------------------------------------------------------
+
+# 127. Notification Test
+
+Test:
+
+``` text
+publish Game A
+```
+
+Notification:
+
+``` text
+gameId = Game A
+```
+
+Tap:
+
+``` text
+Game A Details
 ```
 
 Then:
 
-```text
-Room contains R001
-pendingSync handled
-Firestore contains R001
-leaderboard count increases
+``` text
+publish Game B
 ```
 
----
+Tap:
 
-# 59. Integration Test: Failed Reveal
-
-Use:
-
-```text
-Distance 18 m
-Light 250 lux
-Motion SCANNING
-Fusion 87
-Proximity FAR
+``` text
+Game B Details
 ```
 
-Expected:
+The navigation must never reuse stale Game A context.
 
-```text
-No reveal
-No discovery record
+------------------------------------------------------------------------
+
+# 128. Game Context Propagation
+
+During gameplay, preserve:
+
+``` text
+gameId
+checkpointId
 ```
 
----
+through:
 
-# 60. Integration Test: Offline Reveal
-
-Use:
-
-```text
-Internet OFF
-```
-
-Successful scan:
-
-```text
-R001 revealed
-```
-
-Expected:
-
-```text
-Room:
-R001
-pendingSync = true
-```
-
-Close/reopen app.
-
-Expected:
-
-```text
-R001 remains discovered
-```
-
-Restore internet.
-
-Expected:
-
-```text
-sync succeeds
-pendingSync = false
-```
-
----
-
-# 61. Integration Test: Missing Sensor
-
-Use a device without the required sensor where possible.
-
-Expected:
-
-```text
-Sensor availability detected
+``` text
+navigation
  ↓
-degraded mode/fallback
+ViewModel
  ↓
-no crash
+location
+ ↓
+fusion
+ ↓
+reveal
+ ↓
+persistence
 ```
 
-Do not claim a sensor was used if the hardware is absent.
+Losing `gameId` at any boundary can cause cross-game corruption.
 
----
+------------------------------------------------------------------------
 
-# 62. Integration Test: Permission Denied
+# 129. Game Context Debugging
 
-Location permission:
+When diagnosing a gameplay bug, log or inspect:
 
-```text
-DENIED
+``` text
+current gameId
+current checkpointId
+current userId
+```
+
+Do not log sensitive authentication credentials.
+
+------------------------------------------------------------------------
+
+# 130. Location Debugging
+
+M3 should be able to show:
+
+``` text
+selected gameId
+selected checkpointId
+target coordinates
+current coordinates
+distance
+accuracy
+geofence status
+```
+
+during development.
+
+Debug UI/logging should be disabled or minimized for final release.
+
+------------------------------------------------------------------------
+
+# 131. Sensor Debugging
+
+M4 should be able to inspect:
+
+``` text
+light reading
+expected minLux
+expected maxLux
+motion state
+GPS score
+light score
+motion score
+fusion score
+proximity state
+```
+
+during development.
+
+------------------------------------------------------------------------
+
+# 132. Room Debugging
+
+M6 should be able to inspect:
+
+``` text
+gameId
+userId
+checkpointId
+foundAt
+pendingSync
+```
+
+for local records.
+
+------------------------------------------------------------------------
+
+# 133. Firebase Debugging
+
+M5 should be able to inspect:
+
+``` text
+gameId
+creatorId
+status
+checkpoint count
+membership
+progress
+leaderboard
+notification payload
+```
+
+without exposing credentials.
+
+------------------------------------------------------------------------
+
+# 134. End-to-End Debug Record
+
+For one test discovery:
+
+``` text
+gameId = game_demo_001
+checkpointId = checkpoint_001
+userId = test-user
+```
+
+Trace:
+
+``` text
+Map
+ ↓
+Geofence
+ ↓
+Fusion
+ ↓
+Reveal
+ ↓
+Room
+ ↓
+Firestore
+ ↓
+Leaderboard
+```
+
+All stages must retain the same identifiers.
+
+------------------------------------------------------------------------
+
+# 135. Integration Test Data
+
+Minimum test dataset:
+
+``` text
+Game A
+ ├── Checkpoint A1
+ └── Checkpoint A2
+
+Game B
+ ├── Checkpoint B1
+ ├── Checkpoint B2
+ └── Checkpoint B3
+```
+
+Players:
+
+``` text
+Player A
+Player B
+```
+
+Creator:
+
+``` text
+Creator A
+```
+
+Additional creators/players may be added.
+
+------------------------------------------------------------------------
+
+# 136. Multi-Game Test
+
+``` text
+Creator A
+ ↓
+Game A
+```
+
+and:
+
+``` text
+Creator A
+ ↓
+Game B
+```
+
+Player:
+
+``` text
+joins both
+```
+
+This proves that one user can create and play multiple games.
+
+------------------------------------------------------------------------
+
+# 137. Multi-Creator Test
+
+``` text
+Creator A → Game A
+Creator B → Game B
+```
+
+Player sees:
+
+``` text
+Game A
+Game B
+```
+
+but creators retain independent ownership.
+
+------------------------------------------------------------------------
+
+# 138. Multi-Player Leaderboard Test
+
+``` text
+Game A
+ ├── Player A → 2/3
+ ├── Player B → 1/3
+ └── Player C → 0/3
+```
+
+Expected ranking:
+
+``` text
+1. Player A
+2. Player B
+3. Player C
+```
+
+------------------------------------------------------------------------
+
+# 139. Cross-Game Leaderboard Test
+
+``` text
+Game A:
+Player A → 2/3
+
+Game B:
+Player A → 1/2
 ```
 
 Expected:
 
-```text
-No location-dependent operation
-Clear message
-Retry path
-No crash
+``` text
+Game A leaderboard
+Player A → 2/3
+
+Game B leaderboard
+Player A → 1/2
 ```
 
----
+No merged score.
 
-# 63. Integration Test: App Restart
+------------------------------------------------------------------------
 
-Sequence:
+# 140. Game-Specific Map Test
 
-```text
-Discover R001
+Game A:
+
+``` text
+A1
+A2
+```
+
+Game B:
+
+``` text
+B1
+B2
+B3
+```
+
+When Game A is selected:
+
+``` text
+only A1/A2
+```
+
+should be represented as its gameplay checkpoints.
+
+------------------------------------------------------------------------
+
+# 141. Dynamic Geofence Test
+
+Select:
+
+``` text
+Game A / A1
+```
+
+Geofence:
+
+``` text
+A1 coordinates + A1 radius
+```
+
+Select:
+
+``` text
+Game B / B1
+```
+
+Geofence:
+
+``` text
+B1 coordinates + B1 radius
+```
+
+The geofence must update with selected context.
+
+------------------------------------------------------------------------
+
+# 142. Fusion Test
+
+For selected checkpoint:
+
+``` text
+GPS score
++
+light score
++
+motion score
+```
+
+produces:
+
+``` text
+fusion score
+```
+
+Then:
+
+``` text
+proximity
+```
+
+gates final reveal.
+
+------------------------------------------------------------------------
+
+# 143. Sensor Degradation Test
+
+If the light sensor is unavailable:
+
+``` text
+SensorAvailability
  ↓
-Close app
+FusionEngine
+```
+
+should use the documented degraded behavior.
+
+M2 should display the resulting state rather than inventing a value.
+
+------------------------------------------------------------------------
+
+# 144. Location Accuracy Test
+
+If GPS accuracy is poor:
+
+``` text
+DistanceResult.accuracyM
+```
+
+must be available to the fusion system.
+
+M4 decides how the configured fusion logic handles it.
+
+------------------------------------------------------------------------
+
+# 145. Permission Recovery Test
+
+Procedure:
+
+``` text
+deny location
  ↓
-Reopen
+show permission explanation
+ ↓
+grant permission
+ ↓
+retry
 ```
 
 Expected:
 
-```text
-R001 still appears discovered
+``` text
+location becomes available
 ```
 
-This verifies local persistence.
+without requiring an unnecessary application reinstall.
 
----
+------------------------------------------------------------------------
 
-# 64. Integration Test: Duplicate Discovery
-
-Sequence:
-
-```text
-Discover R001
- ↓
-Attempt R001 again
-```
-
-Expected:
-
-```text
-one discovery
-```
-
-not:
-
-```text
-two progress entries
-```
-
----
-
-# 65. Integration Test: Firebase Failure
-
-Simulate:
-
-```text
-Firestore unavailable
-```
-
-Expected:
-
-```text
-local discovery retained
-pendingSync remains true
-app remains usable
-retry possible
-```
-
----
-
-# 66. Integration Test: Geofence Exit
-
-Sequence:
-
-```text
-ENTER R001
- ↓
-Scan
- ↓
-EXIT R001
-```
-
-Expected:
-
-```text
-active scan handled appropriately
-```
-
-Previously discovered relics must remain discovered.
-
----
-
-# 67. Integration Test: Lifecycle
+# 146. Lifecycle Test
 
 Test:
 
-```text
-Scan screen
- ↓
+``` text
+open map
 background app
- ↓
 return
 ```
 
-Check:
+and:
 
-```text
-sensor listeners
-location updates
-UI state
-ViewModel state
+``` text
+open scan
+background app
+return
 ```
 
-The application architecture should avoid losing important state when an Activity/view is recreated. The module material highlights ViewModel's role in surviving configuration changes. fileciteturn11file0L102-L106
+Ensure sensors/location resources are handled safely.
 
----
+------------------------------------------------------------------------
 
-# 68. Integration Test: Rotation
+# 147. Rotation/Configuration Test
 
-If the application supports rotation:
+Where applicable:
 
-```text
-Open scan
-Rotate
+``` text
+screen recreation
 ```
 
-Expected:
+must not lose:
 
-```text
-important UI state remains coherent
-```
-
-Do not rely on Activity fields for persistent UI state.
-
----
-
-# 69. Daily Integration Rhythm
-
-From:
-
-**20–23 September**
-
-use:
-
-```text
-Morning
-↓
-10–15 minute integration sync
-
-Development
-↓
-
-Midday
-↓
-quick build/integration check
-
-Development
-↓
-
-Evening
-↓
-build + smoke test
-```
-
-The team does not need a long meeting.
-
-The goal is early detection.
-
----
-
-# 70. Integration Meeting Questions
-
-Every integration sync should answer:
-
-```text
-1. What did I integrate?
-2. What contract did I consume/provide?
-3. Does it compile?
-4. What is blocked?
-5. Did I change a shared contract?
-6. What must another member test?
-```
-
----
-
-# 71. Blocker Escalation
-
-If a member is blocked for more than a short focused debugging session:
-
-```text
-Stop working alone
- ↓
-Tell dependent member
- ↓
-Show exact error
- ↓
-Check contract
- ↓
-Use mock implementation
- ↓
-Find smallest failing boundary
-```
-
-Do not spend an entire day silently debugging an integration issue.
-
----
-
-# 72. Temporary Fallbacks
-
-During integration, a temporary fallback may be used:
-
-```text
-MockRepository
-MockFusionEngine
-MockLocationService
-```
-
-but it must be clearly marked:
-
-```text
-DEVELOPMENT ONLY
-```
-
-and replaced before final acceptance.
-
----
-
-# 73. Debug Logging
-
-During development, log useful information such as:
-
-```text
-relicId
-distance
-accuracy
-light value
-motion state
-fusion score
-proximity
+``` text
+gameId
+checkpointId
 scan state
-sync state
 ```
 
-Example:
+if the active gameplay design expects continuity.
 
-```text
-R001
-distance=18m
-accuracy=6m
-light=250lux
-motion=SCANNING
-fusion=87
-proximity=NEAR
-state=REVEALED
+------------------------------------------------------------------------
+
+# 148. App Restart Test
+
+After restart:
+
+``` text
+authenticated state
+cached game data
+local discoveries
 ```
 
-Remove excessive debug output before final submission where appropriate.
+should behave according to the agreed persistence model.
 
----
+------------------------------------------------------------------------
 
-# 74. Integration Evidence
+# 149. Network Transition Test
 
-Each member should capture evidence of their contribution.
+Test:
 
-Examples:
-
-### M1
-
-```text
-login
-navigation
-profile
+``` text
+online
+ ↓
+offline
+ ↓
+online
 ```
 
-### M2
+during:
 
-```text
-quest
-scan
-reveal
-leaderboard
-```
-
-### M3
-
-```text
-map
-marker
-distance
-geofence
-```
-
-### M4
-
-```text
-sensor readings
-fusion score
-proximity
-degradation
-```
-
-### M5
-
-```text
-Firebase Auth
-Firestore
-security rules
+``` text
+game browsing
+gameplay
+discovery
 sync
 ```
 
-### M6
+------------------------------------------------------------------------
 
-```text
+# 150. FCM Offline Test
+
+If a notification is delayed or missed:
+
+``` text
+Games list
+```
+
+must still show the published game when online.
+
+FCM is not the authoritative source for game availability.
+
+------------------------------------------------------------------------
+
+# 151. Final Vertical Slice Test
+
+The complete test:
+
+``` text
+1. Creator logs in
+2. Creator creates game
+3. Creator adds checkpoints
+4. Creator saves draft
+5. Creator publishes
+6. Player receives notification
+7. Player opens Game Details
+8. Player joins
+9. Player opens map
+10. Player approaches checkpoint
+11. Geofence enters
+12. Scan starts
+13. GPS/light/motion produce fusion
+14. Fusion threshold reached
+15. Proximity gate passes
+16. Checkpoint revealed
+17. Discovery saved to Room
+18. Discovery synced to Firestore
+19. Leaderboard updates
+20. Player sees game-specific ranking
+```
+
+This is the final integration acceptance path.
+
+------------------------------------------------------------------------
+
+# 152. Minimum Demonstration Slice
+
+If time is limited, demonstrate:
+
+``` text
+Creator Login
+ ↓
+Create Game
+ ↓
+Add 1 Checkpoint
+ ↓
+Publish
+ ↓
+Player sees Game
+ ↓
+Join
+ ↓
+Map
+ ↓
+Reach checkpoint
+ ↓
+Scan
+ ↓
+Fusion
+ ↓
+Proximity
+ ↓
+Reveal
+ ↓
 Room
-offline
-pendingSync
-duplicate prevention
+ ↓
+Firestore
+ ↓
+Leaderboard
 ```
 
----
+This proves the architecture without requiring a six-checkpoint game.
 
-# 75. Integration Evidence Naming
+------------------------------------------------------------------------
 
-Use consistent names:
+# 153. Stretch Integration
 
-```text
-M1_Login.png
-M1_Navigation.png
+Only after the core slice is stable consider:
 
-M2_Quest.png
-M2_Scan.png
-M2_Reveal.png
-
-M3_Map.png
-M3_Geofence.png
-
-M4_Fusion.png
-M4_Proximity.png
-
-M5_Firebase.png
-M5_Security.png
-
-M6_Room.png
-M6_OfflineSync.png
+``` text
+multiple simultaneous games
+richer creator editing
+advanced notification settings
+relay/team features
+additional analytics
 ```
 
-This makes final documentation easier.
+These must not destabilize the MVP.
 
----
+------------------------------------------------------------------------
 
-# 76. Integration Completion Criteria
+# 154. Integration Priority
 
-By the end of:
+Priority order:
 
-**23 September**
+``` text
+P0
+Build + authentication
 
-all of these must work:
+P0
+Game creation/publishing
 
-- [ ] application launches
-- [ ] authentication
-- [ ] navigation
-- [ ] map
-- [ ] relic data
-- [ ] location
-- [ ] geofence
-- [ ] scan mode
-- [ ] GPS contribution
-- [ ] light contribution
-- [ ] motion contribution
-- [ ] fusion score
-- [ ] threshold
-- [ ] proximity gate
-- [ ] reveal
-- [ ] Room save
-- [ ] Firebase sync
-- [ ] leaderboard
-- [ ] basic error handling
+P0
+Game browsing/join
 
----
+P0
+Dynamic checkpoints
 
-# 77. Phase 4 — Testing and Stabilization
+P0
+Location/geofence
 
-## 24 September
+P0
+Sensor fusion
 
-Functional testing.
+P0
+Discovery persistence
 
-Test:
+P0
+Game leaderboard
 
-```text
-normal successful flow
-failed scan
-duplicate discovery
-navigation
-authentication
+P0
+Security
+
+P1
+FCM polish
+
+P1
+Offline robustness
+
+P1
+UI refinement
+
+P2
+Stretch features
 ```
 
----
+------------------------------------------------------------------------
 
-# 78. 25 September
+# 155. Integration Definition of Done
 
-Device testing.
+A boundary is done when:
 
-Test at least two Android devices where possible:
-
-```text
-GPS
-sensors
-permissions
-screen
-performance
+``` text
+contract exists
+implementation exists
+consumer integrated
+producer integrated
+basic test passes
+failure case handled
+no direct layer violation
 ```
 
----
+------------------------------------------------------------------------
 
-# 79. 26 September
+# 156. Feature Definition of Done
 
-Resilience testing.
+A feature is done when:
 
-Test:
-
-```text
-offline
-Firebase failure
-sensor unavailable
-location unavailable
-app restart
-background/foreground
+``` text
+[ ] implemented
+[ ] compiles
+[ ] tested
+[ ] integrated with repository
+[ ] error state handled
+[ ] lifecycle handled
+[ ] shared IDs preserved
+[ ] documentation consistent
 ```
 
----
+------------------------------------------------------------------------
 
-# 80. 27 September
+# 157. Final Stabilization Phase
 
-Regression testing.
+During 24--27 September:
 
-Run the complete flow repeatedly:
-
-```text
-Login
-→ Map
-→ Find
-→ Scan
-→ Reveal
-→ Save
-→ Sync
-→ Leaderboard
+``` text
+feature development slows
+integration testing increases
+breaking changes stop
+bugs are prioritized
 ```
 
-Fix only remaining issues.
+The team should avoid adding major architecture changes during
+stabilization.
 
-Do not add new functionality.
+------------------------------------------------------------------------
 
----
-
-# 81. 28 September
-
-Finalization.
-
-Each member provides:
-
-```text
-final contribution
-test evidence
-documentation
-known limitations
-```
-
-M6 coordinates:
-
-```text
-final build
-final branch
-final APK/package
-final documentation package
-```
-
----
-
-# 82. Integration Risk Table
-
-| Risk | Impact | Prevention |
-|---|---|---|
-| Different models | High | Shared contracts |
-| Different IDs | High | Mock catalog |
-| Late integration | Critical | Early checkpoints |
-| Firebase unavailable | High | Mock + Room |
-| Sensor missing | High | Graceful degradation |
-| GPS inaccurate | High | Accuracy handling |
-| Merge conflicts | Medium | Feature branches |
-| Dependency changes | High | Dependency freeze |
-| Direct database access | High | Repository rule |
-| UI contains business logic | Medium | MVVM |
-| Last-minute features | Critical | Feature freeze |
-
----
-
-# 83. If Integration Is Behind on 20 September
-
-Do not panic and do not start adding people randomly to every feature.
+# 158. Bug Priority
 
 Use:
 
-```text
-Identify failing boundary
- ↓
-Replace dependency with mock
- ↓
-Make interface work
- ↓
-Integrate
- ↓
-Reconnect real dependency
+``` text
+P0 — app cannot build/launch
+P1 — core gameplay broken
+P2 — major feature incorrect
+P3 — UI/edge-case issue
+P4 — cosmetic issue
 ```
 
----
+Fix P0/P1 before P3/P4.
 
-# 84. If Integration Is Behind on 21 September
+------------------------------------------------------------------------
 
-Prioritize:
+# 159. Critical P0 Examples
 
-```text
-Login
+``` text
+Gradle build failure
+Firebase configuration failure
+application crash on launch
+database migration crash
+```
+
+------------------------------------------------------------------------
+
+# 160. Critical P1 Examples
+
+``` text
+cannot create game
+cannot publish
+published game invisible
+cannot join
+geofence never works
+scan cannot complete
+discovery not saved
+leaderboard corrupt
+```
+
+------------------------------------------------------------------------
+
+# 161. P2 Examples
+
+``` text
+notification formatting issue
+incorrect empty state
+minor cache delay
+secondary navigation problem
+```
+
+------------------------------------------------------------------------
+
+# 162. P3/P4 Examples
+
+``` text
+spacing
+animation
+icon alignment
+minor wording
+```
+
+Do not spend final integration days on P4 issues while P1 gameplay
+remains broken.
+
+------------------------------------------------------------------------
+
+# 163. Final Regression Pass
+
+Before final demonstration:
+
+``` text
+[ ] authentication
+[ ] creator flow
+[ ] player flow
+[ ] dynamic game list
+[ ] dynamic checkpoints
+[ ] map
+[ ] geofence
+[ ] sensor fusion
+[ ] proximity
+[ ] reveal
+[ ] Room
+[ ] Firestore
+[ ] leaderboard
+[ ] FCM
+[ ] offline
+[ ] permissions
+[ ] restart
+[ ] security
+```
+
+------------------------------------------------------------------------
+
+# 164. Documentation Consistency Check
+
+Before final freeze, search the documentation for obsolete production
+terminology:
+
+``` text
+global relic list
+fixed quest
+R001-only flow
+global leaderboard
+global progress
+relicId-only discovery
+hard-coded locations
+```
+
+These may appear in historical/seed-data explanations, but must not
+remain as the production architecture.
+
+------------------------------------------------------------------------
+
+# 165. Code Consistency Check
+
+Search the codebase for:
+
+``` text
+RelicEntity
+FoundRelicEntity
+getRelics()
+recordReveal(R001)
+leaderboard/{uid}
+relics/{relicId}
+```
+
+Any remaining occurrence must be classified as:
+
+``` text
+legacy compatibility
+test/seed data
+or
+incorrect production implementation
+```
+
+------------------------------------------------------------------------
+
+# 166. Required Final Repository Search
+
+Before final merge, search for hard-coded:
+
+``` text
+R001
+R002
+R003
+R004
+R005
+R006
+```
+
+Production gameplay code should not depend on them.
+
+Seed/demo data may use them.
+
+------------------------------------------------------------------------
+
+# 167. Required Final Firestore Search
+
+Verify the live schema uses:
+
+``` text
+users
+games
+games/{gameId}/checkpoints
+gamePlayers
+progress/{uid}/games/{gameId}/checkpoints
+leaderboards/{gameId}/entries
+```
+
+Do not leave an old global schema as the active production path.
+
+------------------------------------------------------------------------
+
+# 168. Required Final Room Search
+
+Verify the local architecture uses:
+
+``` text
+GameEntity
+CheckpointEntity
+GamePlayerEntity
+FoundCheckpointEntity
+```
+
+with game-scoped identities.
+
+------------------------------------------------------------------------
+
+# 169. Required Final Navigation Search
+
+Verify navigation supports:
+
+``` text
+Games
+Game Details
+Join
+Game Map
+Checkpoint/Scan
+Leaderboard
+Creator Game Management
+Checkpoint Editor
+Publish
+```
+
+Notification entry must carry:
+
+``` text
+gameId
+```
+
+------------------------------------------------------------------------
+
+# 170. Required Final Sensor Search
+
+Verify:
+
+``` text
+GPS
+Light
+Motion
+```
+
+are the fusion inputs.
+
+Verify:
+
+``` text
+Proximity
+```
+
+is the final gate.
+
+------------------------------------------------------------------------
+
+# 171. Required Final Firebase Search
+
+Verify:
+
+``` text
+creatorId
+gameId
+checkpointId
+userId
+```
+
+are preserved wherever required.
+
+------------------------------------------------------------------------
+
+# 172. Integration Meeting Protocol
+
+When a member is blocked by another member:
+
+``` text
+1. Identify exact boundary.
+2. State expected input.
+3. State actual input.
+4. Identify contract mismatch.
+5. Agree smallest correction.
+6. Update shared contract if necessary.
+7. Re-test boundary.
+```
+
+Do not solve cross-member conflicts by creating hidden duplicate models.
+
+------------------------------------------------------------------------
+
+# 173. Integration Handoff Template
+
+Every handoff should contain:
+
+``` text
+Feature:
+Owner:
+Consumer:
+Inputs:
+Outputs:
+Repository method:
+Data model:
+Dependencies:
+Test procedure:
+Known limitations:
+```
+
+------------------------------------------------------------------------
+
+# 174. M1 Handoff Example
+
+``` text
+Feature:
+Game Details → Join
+
+Owner:
+M1
+
+Consumer:
+M1 gameplay navigation / M5 repository
+
+Inputs:
+gameId
+
+Output:
+joined state
+
+Repository:
+joinGame(gameId)
+
+Dependency:
+authenticated user
+
+Test:
+open published game → Join → membership exists
+```
+
+------------------------------------------------------------------------
+
+# 175. M3 Handoff Example
+
+``` text
+Feature:
+Checkpoint geofence
+
+Owner:
+M3
+
+Consumer:
+M2/M4
+
+Inputs:
+Checkpoint location/radius
+
+Output:
+geofence ENTER event / DistanceResult
+
+Dependencies:
+location permissions
+
+Test:
+enter configured radius → selected scan becomes available
+```
+
+------------------------------------------------------------------------
+
+# 176. M4 Handoff Example
+
+``` text
+Feature:
+Fusion engine
+
+Owner:
+M4
+
+Consumer:
+M2
+
+Inputs:
+DistanceResult
+LightSignature
+Motion data
+
+Output:
+FusionResult
+ScanState
+SensorAvailability
+
+Test:
+valid inputs → expected score/state
+```
+
+------------------------------------------------------------------------
+
+# 177. M5 Handoff Example
+
+``` text
+Feature:
+Cloud progress
+
+Owner:
+M5
+
+Consumer:
+M6/M2
+
+Inputs:
+userId
+gameId
+checkpointId
+foundAt
+
+Output:
+cloud progress
+
+Path:
+progress/{uid}/games/{gameId}/checkpoints/{checkpointId}
+
+Test:
+discovery sync → cloud record
+```
+
+------------------------------------------------------------------------
+
+# 178. M6 Handoff Example
+
+``` text
+Feature:
+Offline discovery
+
+Owner:
+M6
+
+Consumer:
+M2/M5
+
+Inputs:
+gameId
+userId
+checkpointId
+foundAt
+
+Output:
+local discovery + pendingSync
+
+Test:
+offline discovery → restart → reconnect → cloud sync
+```
+
+------------------------------------------------------------------------
+
+# 179. Shared Integration Checklist
+
+``` text
+[ ] Game model stable
+[ ] Checkpoint model stable
+[ ] GamePlayer model stable
+[ ] Discovery model stable
+[ ] Leaderboard model stable
+[ ] Repository contract stable
+[ ] Auth contract stable
+[ ] Sensor contract stable
+[ ] Firebase schema stable
+[ ] Room schema stable
+```
+
+------------------------------------------------------------------------
+
+# 180. Final Security Integration
+
+Integration is not complete until security is tested.
+
+Test:
+
+``` text
+anonymous user
+cross-user user
+non-owner creator
+cross-game player
+forged IDs
+draft access
+published access
+```
+
+------------------------------------------------------------------------
+
+# 181. Final Data Integrity Integration
+
+Verify:
+
+``` text
+checkpoint.gameId == parent game
+membership.gameId == selected game
+membership.userId == authenticated UID
+progress.gameId == selected game
+progress.checkpointId == selected checkpoint
+progress.userId == authenticated UID
+leaderboard.gameId == selected game
+leaderboard.userId == authenticated UID
+```
+
+------------------------------------------------------------------------
+
+# 182. Final Offline Integration
+
+Verify:
+
+``` text
+Room survives temporary network failure
+pendingSync is retained
+sync retries
+successful sync clears pending state
+duplicate sync remains idempotent
+```
+
+------------------------------------------------------------------------
+
+# 183. Final Notification Integration
+
+Verify:
+
+``` text
+publish
+ ↓
+notification
+ ↓
+gameId
+ ↓
+correct Game Details
+```
+
+Also verify:
+
+``` text
+draft save
+ ↓
+no notification
+```
+
+------------------------------------------------------------------------
+
+# 184. Final Creator Integration
+
+Verify:
+
+``` text
+creator can create
+creator can edit draft
+creator can add checkpoints
+creator can publish
+creator cannot edit another creator's game
+```
+
+------------------------------------------------------------------------
+
+# 185. Final Player Integration
+
+Verify:
+
+``` text
+player can browse
+player can open details
+player can join
+player can play
+player can discover
+player can see game-specific progress
+player can see game-specific leaderboard
+```
+
+------------------------------------------------------------------------
+
+# 186. Final Game Isolation Integration
+
+Verify:
+
+``` text
+Game A data stays in Game A
+Game B data stays in Game B
+```
+
+This applies to:
+
+``` text
+checkpoints
+membership
+progress
+leaderboards
+map markers
+geofences
+scan configuration
+```
+
+------------------------------------------------------------------------
+
+# 187. Final Dynamic Configuration Integration
+
+Verify that a newly created game works without:
+
+``` text
+new Kotlin code
+new hard-coded coordinates
+new hard-coded checkpoint ID
+new hard-coded leaderboard
+```
+
+The application should consume configuration from the data model.
+
+------------------------------------------------------------------------
+
+# 188. Final Demo Preparation
+
+Prepare:
+
+``` text
+one creator account
+two player accounts
+one sample game
+three or more checkpoints if physically practical
+Firebase project
+physical Android device
+network connection
+backup test data
+```
+
+The six-checkpoint sample can be used if convenient.
+
+------------------------------------------------------------------------
+
+# 189. Demo Fallback
+
+If live FCM fails:
+
+``` text
+show published game in Games list
+```
+
+If network fails during discovery:
+
+``` text
+demonstrate Room/offline save
+```
+
+The demo should not depend on one fragile external component.
+
+------------------------------------------------------------------------
+
+# 190. Demo Evidence
+
+Capture evidence for:
+
+``` text
+Creator game creation
+Checkpoint configuration
+Published status
+Notification
+Player join
 Map
 Geofence
-Scan
-Fusion
-Proximity
+Fusion meter
 Reveal
-Room
-Firebase
+Room/local state
+Firestore progress
+Leaderboard
 ```
 
-Cut:
+------------------------------------------------------------------------
 
-```text
-stretch features
-badge polish
-advanced routing
-relay mechanics
-CameraX
+# 191. Final Build Candidate
+
+The final candidate must:
+
+``` text
+build from clean checkout
+install
+launch
+authenticate
+create/play a game
+persist discoveries
+display leaderboard
 ```
 
----
+A developer-specific local configuration must not be required unless
+documented.
 
-# 85. If Integration Is Behind on 22 September
+------------------------------------------------------------------------
 
-The only acceptable goal is:
+# 192. Clean Checkout Test
 
-```text
-one complete relic
+Use a fresh checkout:
+
+``` text
+git clone
+ ↓
+open Android Studio
+ ↓
+sync
+ ↓
+build
+ ↓
+install
+ ↓
+launch
 ```
 
-working end-to-end.
+This catches:
 
-Use:
-
-```text
-R001
+``` text
+ignored files
+missing configuration
+local-only dependencies
 ```
 
-Do not attempt to make all six relics perfect first.
+------------------------------------------------------------------------
 
----
+# 193. Final Git Hygiene
 
-# 86. If Integration Is Behind on 23 September
+Before submission:
 
-Freeze the smallest viable product:
+``` text
+[ ] no passwords
+[ ] no service account keys
+[ ] no API secrets
+[ ] no debug dumps
+[ ] no local absolute paths
+[ ] no unnecessary generated files
+[ ] no temporary test code
+```
 
-```text
-U001
-R001
+------------------------------------------------------------------------
+
+# 194. Final Integration Freeze
+
+After final candidate is accepted:
+
+``` text
+main
+ ↓
+release candidate
+```
+
+Only critical fixes should be merged.
+
+Every critical fix should be:
+
+``` text
+tested
+reviewed
+documented
+```
+
+------------------------------------------------------------------------
+
+# 195. Final Responsibility Matrix
+
+  -------------------------------------------------------------------------------
+  Area                  M1         M2         M3         M4         M5         M6
+  ------------- ---------- ---------- ---------- ---------- ---------- ----------
+  Navigation          Lead    Support         \-         \-         \-         \-
+
+  Game browsing       Lead    Support         \-       Data       Data      Cache
+
+  Creator flow        Lead         \-         \-         \-      Cloud      Local
+
+  Checkpoint          Lead    Support   Location     Sensor      Cloud      Local
+  editor                                             fields            
+
+  Scan UI               \-       Lead    Support    Support         \-         \-
+
+  Location              \-         \-       Lead      Input       Data      Cache
+
+  Geofence              \-    Support       Lead         \-         \-         \-
+
+  Sensor fusion         \-    Display      Input       Lead         \-         \-
+
+  Auth                  UI         \-         \-         \-       Lead    Support
+
+  Firestore             \-         \-         \-         \-       Lead    Support
+
+  FCM              UI/deep         \-         \-         \-       Lead         \-
+                      link                                             
+
+  Room                  \-   Consumer         \-         \-    Support       Lead
+
+  Offline sync          \-   Consumer         \-         \-      Cloud       Lead
+
+  Leaderboard           UI    Lead UI         \-         \-      Cloud      Cache
+
+  Integration      Support    Support    Support    Support    Support       Lead
+  -------------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+
+# 196. Communication Rules
+
+When communicating an integration issue, use:
+
+``` text
+BOUNDARY:
+M3 → M4
+
+EXPECTED:
+DistanceResult
+
+ACTUAL:
+raw distance Float
+
+IMPACT:
+Fusion module cannot consume location data
+
+REQUEST:
+Use agreed DistanceResult contract
+```
+
+This is better than:
+
+``` text
+"Your code doesn't work."
+```
+
+------------------------------------------------------------------------
+
+# 197. Conflict Resolution Rule
+
+When two implementations disagree:
+
+``` text
+1. Check shared contract.
+2. Check master plan.
+3. Prefer canonical model.
+4. Avoid duplicate compatibility layers unless temporary.
+5. Update dependent code.
+6. Re-run integration tests.
+```
+
+------------------------------------------------------------------------
+
+# 198. Avoid Integration by Duplication
+
+Do not create:
+
+``` text
+M2Checkpoint
+M3Checkpoint
+M4Checkpoint
+M5Checkpoint
+M6Checkpoint
+```
+
+as separate representations of the same domain object.
+
+Use the shared:
+
+``` text
+Checkpoint
+```
+
+model where appropriate.
+
+------------------------------------------------------------------------
+
+# 199. Avoid Integration by Direct Access
+
+Do not solve:
+
+``` text
+M2 needs data
 ```
 
 with:
 
-```text
-Login
-Map
-Geofence
-Fusion
-Proximity
-Reveal
-Room
-Firebase
-Leaderboard
+``` text
+M2 → Firestore
 ```
 
-Then use the remaining time to stabilize it.
+or:
 
-A reliable one-relic end-to-end demonstration is more valuable than six partially working relics.
-
----
-
-# 87. If Integration Is Behind on 24–25 September
-
-Cut stretch functionality immediately.
-
-Keep only:
-
-```text
-core quest loop
+``` text
+M2 → Room DAO
 ```
-
-Then focus on:
-
-```text
-crashes
-permissions
-sensor failure
-offline
-sync
-```
-
----
-
-# 88. If Integration Is Behind on 26 September
-
-Stop changing architecture.
-
-Only fix:
-
-```text
-critical bugs
-demo blockers
-data-loss issues
-crashes
-permission failures
-```
-
----
-
-# 89. If Integration Is Behind on 27 September
-
-No new features.
-
-Only:
-
-```text
-regression
-demo rehearsal
-final bug fixes
-```
-
----
-
-# 90. Integration Communication Template
-
-Use this format in the team chat:
-
-```text
-[INTEGRATION]
-
-Feature:
-Status:
-Contract:
-Input:
-Output:
-Tested with:
-Result:
-Blocked by:
-Need from:
-```
-
-Example:
-
-```text
-[INTEGRATION]
-
-Feature: GPS → Sensor Fusion
-Status: Ready
-Contract: DistanceResult
-Input: 18m / 6m accuracy
-Output: FusionResult
-Tested with: R001
-Result: 87%
-Blocked by: none
-Need from: M2 verification
-```
-
----
-
-# 91. Contract Change Template
 
 Use:
 
-```text
-[CONTRACT CHANGE]
-
-Changed by:
-Date:
-Contract:
-Old:
-New:
-Reason:
-Affected members:
-Tests requiring update:
-Approved by:
+``` text
+M2 → ViewModel → Repository
 ```
 
-No silent interface changes.
+------------------------------------------------------------------------
 
----
+# 200. Avoid Integration by Hard-Coding
 
-# 92. Integration Definition of Done
+Do not solve:
 
-The integration is complete when:
-
-```text
-Every core feature
-        ↓
-uses shared contract
-        ↓
-works with real implementation
-        ↓
-works with expected failure states
-        ↓
-is integrated into main application
-        ↓
-has been tested
+``` text
+Firebase not ready
 ```
 
----
+by permanently hard-coding:
 
-# 93. Final End-to-End Acceptance Test
-
-## Setup
-
-```text
-User:
-U001
-
-Relic:
+``` text
 R001
-
-Internet:
-ON
-
-Location:
-GRANTED
-
-Sensors:
-AVAILABLE
+R002
 ```
 
-## Execute
+Use mock repository implementations behind the same contract if
+necessary.
 
-```text
-1. Launch app
-2. Login
-3. Open Map
-4. Locate R001
-5. Approach
-6. Enter geofence
-7. Open/enter Scan Mode
-8. Perform scan motion
-9. Match light environment
-10. Reach fusion threshold
-11. Bring device close
-12. Reveal relic
-13. Save discovery
-14. Sync cloud
-15. Open leaderboard
+------------------------------------------------------------------------
+
+# 201. Mock Repository Strategy
+
+During early integration:
+
+``` text
+MockGameRepository
 ```
 
-## Expected
+may return:
 
-```text
-R001 discovered
-U001 progress = 1
-leaderboard reflects discovery
-```
-
----
-
-# 94. Final Failure Acceptance Tests
-
-The application must also survive:
-
-```text
-Location denied
-Sensor unavailable
-Poor GPS
-No internet
-Firebase failure
-Duplicate discovery
-App restart
-Background/foreground
-```
-
-A feature is not considered complete merely because its happy path works.
-
----
-
-# 95. Final Integration Checklist
-
-## Architecture
-
-- [ ] MVVM separation maintained
-- [ ] repository boundary maintained
-- [ ] UI does not directly access storage
-- [ ] ViewModel owns UI-related state
-
-## Location
-
-- [ ] map
-- [ ] GPS
-- [ ] distance
-- [ ] geofence
-- [ ] permission
-
-## Sensors
-
-- [ ] light
-- [ ] accelerometer
-- [ ] proximity
-- [ ] fusion
-- [ ] degradation
-
-## Data
-
-- [ ] Room
-- [ ] Firebase
-- [ ] sync
-- [ ] duplicate prevention
-
-## UI
-
-- [ ] login
-- [ ] map
-- [ ] quest
-- [ ] scan
-- [ ] reveal
-- [ ] leaderboard
-- [ ] profile
-
-## Reliability
-
-- [ ] offline
-- [ ] Firebase failure
-- [ ] sensor missing
-- [ ] GPS poor accuracy
-- [ ] app restart
-- [ ] permissions
-
-## Process
-
-- [ ] PR review
-- [ ] shared contracts respected
-- [ ] mock data consistent
-- [ ] feature freeze observed
-- [ ] final regression completed
-
----
-
-# 96. Final Integration Principle
-
-The team should always be able to answer:
-
-```text
-What is broken?
-```
-
-with a specific boundary:
-
-```text
-Auth
-Map
-Location
-Geofence
-Sensor
-Fusion
-UI
-Room
-Firebase
-Sync
+``` text
+Game
+Checkpoint
 Leaderboard
 ```
 
-rather than:
+using the same application-level interfaces.
 
-```text
-"The whole app doesn't work."
+Later:
+
+``` text
+Firebase/Room repository
 ```
 
-That is the purpose of incremental integration.
+can replace the mock.
 
-The final application is not six separate projects merged together.
+The consumer should not need to change.
 
-It is:
+------------------------------------------------------------------------
 
-```text
-Six developers
-      ↓
-Shared contracts
-      ↓
-Independent modules
-      ↓
-Frequent integration
-      ↓
-One tested application
+# 202. Mock-to-Real Transition
+
+``` text
+Mock Repository
+ ↓
+UI integration
+ ↓
+M3/M4 integration
+ ↓
+Room integration
+ ↓
+Firebase integration
 ```
+
+The contract stays stable.
+
+------------------------------------------------------------------------
+
+# 203. Mock Data Rule
+
+Mock data should represent the new model:
+
+``` text
+Game
+Checkpoint
+GamePlayer
+Progress
+Leaderboard
+```
+
+R001--R006 may exist as seed checkpoint IDs.
+
+They must belong to a game.
+
+------------------------------------------------------------------------
+
+# 204. Mock Multi-Game Data
+
+Minimum mock scenario:
+
+``` text
+GAME_A
+ ├── A1
+ └── A2
+
+GAME_B
+ ├── B1
+ ├── B2
+ └── B3
+```
+
+Players:
+
+``` text
+PLAYER_A
+PLAYER_B
+```
+
+This should be sufficient to test game isolation.
+
+------------------------------------------------------------------------
+
+# 205. Repository Swap Test
+
+The UI should work with:
+
+``` text
+MockGameRepository
+```
+
+and:
+
+``` text
+RealGameRepository
+```
+
+without changing the UI contract.
+
+This proves the repository boundary is working.
+
+------------------------------------------------------------------------
+
+# 206. Firebase/Room Swap Test
+
+The repository may initially use:
+
+``` text
+Mock
+```
+
+then:
+
+``` text
+Room
+```
+
+then:
+
+``` text
+Room + Firebase
+```
+
+without changing the consumer-level model.
+
+------------------------------------------------------------------------
+
+# 207. Integration Completion Criteria
+
+Integration is complete when:
+
+``` text
+[ ] Creator flow works
+[ ] Player flow works
+[ ] Dynamic game data works
+[ ] Dynamic checkpoints work
+[ ] Location works
+[ ] Geofencing works
+[ ] Sensor fusion works
+[ ] Proximity gate works
+[ ] Discovery works
+[ ] Room works
+[ ] Firestore works
+[ ] Leaderboard works
+[ ] FCM works
+[ ] Offline sync works
+[ ] Security works
+```
+
+------------------------------------------------------------------------
+
+# 208. Final Vertical Slice Acceptance
+
+The application must demonstrate:
+
+``` text
+Creator
+  ↓
+Game
+  ↓
+Checkpoint
+  ↓
+Publish
+  ↓
+Notification
+  ↓
+Player
+  ↓
+Join
+  ↓
+Location
+  ↓
+Geofence
+  ↓
+Scan
+  ↓
+Fusion
+  ↓
+Proximity
+  ↓
+Reveal
+  ↓
+Room
+  ↓
+Firestore
+  ↓
+Leaderboard
+```
+
+------------------------------------------------------------------------
+
+# 209. Final Cross-Game Acceptance
+
+The application must also demonstrate:
+
+``` text
+Game A
+ └── Player progress A
+
+Game B
+ └── Player progress B
+```
+
+with no cross-game contamination.
+
+------------------------------------------------------------------------
+
+# 210. Final Documentation Acceptance
+
+Every final document must agree on:
+
+``` text
+Game Creator
+Game Player
+Game
+Checkpoint
+GamePlayer
+game-scoped progress
+game-specific leaderboard
+FCM new-game notification
+Room + Firestore
+GPS + Light + Motion
+Proximity final gate
+```
+
+------------------------------------------------------------------------
+
+# 211. Final Integration Statement
+
+Campus Quest is integrated successfully when the six members'
+implementations behave as one system rather than six independent
+features.
+
+The target system is:
+
+``` text
+                         CAMPUS QUEST
+                              |
+               +--------------+--------------+
+               |                             |
+         GAME CREATOR                   GAME PLAYER
+               |                             |
+         Create Game                    Browse Games
+               |                             |
+        Configure Checkpoints            Game Details
+               |                             |
+            Save Draft                     Join
+               |                             |
+            Publish                     Game Map
+               |                             |
+         FCM Notification              Geofence
+                                             |
+                                            Scan
+                                             |
+                                   GPS + Light + Motion
+                                             |
+                                      Fusion Threshold
+                                             |
+                                      Proximity Gate
+                                             |
+                                          Reveal
+                                             |
+                                           Room
+                                             |
+                                         Firestore
+                                             |
+                                  Game Leaderboard
+```
+
+The integration strategy therefore prioritizes:
+
+``` text
+shared contracts
++
+game-scoped identity
++
+incremental boundaries
++
+repository abstraction
++
+offline persistence
++
+cloud synchronization
++
+repeatable end-to-end testing
+```
+
+The final application must not depend on the old fixed six-relic
+architecture.
+
+The six sample records may remain as demonstration seed data, but the
+integrated application must work with arbitrary creator-defined games
+and checkpoints.
