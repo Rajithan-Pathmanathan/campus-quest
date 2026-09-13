@@ -5,7 +5,26 @@
     android:id="@+id/main_coordinator"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@color/bg_dark_base"
     tools:context=".ui.common.MainActivity">
+
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/bg_dark_surface"
+        app:elevation="4dp">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/topAppBar"
+            style="@style/Widget.CampusQuest.Toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:title="Campus Quest"
+            app:titleCentered="false"
+            app:titleTextColor="@color/primary_cyan" />
+
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
@@ -13,6 +32,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:defaultNavHost="true"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
         app:navGraph="@navigation/nav_graph" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

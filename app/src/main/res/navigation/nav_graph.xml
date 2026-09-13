@@ -55,6 +55,9 @@
         <argument
             android:name="gameId"
             app:argType="string" />
+        <deepLink
+            android:id="@+id/deepLink_gameDetail"
+            app:uri="campusquest://game/{gameId}" />
         <action
             android:id="@+id/action_gameDetail_to_campusMap"
             app:destination="@id/campusMapFragment" />
@@ -107,7 +110,7 @@
             app:nullable="true" />
     </fragment>
 
-    <!-- Location & Campus Map (M3) -->
+    <!-- Location & Campus Map (M1 Map UI + M3 Data Provider) -->
     <fragment
         android:id="@+id/campusMapFragment"
         android:name="com.campusquest.ui.map.CampusMapFragment"
@@ -121,7 +124,7 @@
             app:destination="@id/questScanFragment" />
     </fragment>
 
-    <!-- Live Quest & Scan Gameplay (M4) -->
+    <!-- Live Quest & Scan Gameplay (M4 Scan HUD + M3 Sensors) -->
     <fragment
         android:id="@+id/questScanFragment"
         android:name="com.campusquest.ui.quest.QuestScanFragment"
