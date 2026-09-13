@@ -4,22 +4,30 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.TextView
+import androidx.core.os.bundleOf
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import androidx.recyclerview.widget.RecyclerView
-import com.campusquest.CampusQuestApplication
 import com.campusquest.R
-import com.campusquest.data.mock.MockDataCatalog
 import com.campusquest.databinding.FragmentGamesListBinding
-import com.campusquest.domain.model.Game
-import com.google.android.material.button.MaterialButton
+import com.campusquest.domain.model.GameStatus
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+/**
+ * Player Quest Discovery Screen.
+ * Allows players to search, filter, and discover active quests across campus.
+ */
 class GamesListFragment : Fragment() {
 
     private var _binding: FragmentGamesListBinding? = null
     private val binding get() = _binding!!
+
+    private val viewModel: GamesListViewModel by viewModels()
+    private lateinit var adapter: GamesAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -33,48 +41,67 @@ class GamesListFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        setupRecyclerView()
+        setupSearchAndFilters()
+        observeUiState()
+
+        binding.btnRetry.setOnClickListener {
+            viewModel.refresh()
+        }
+    }
+
+    private fun setupRecyclerView() {
+        adapter = GamesAdapter { game ->
+            val args = bundleOf("gameId" to game.id)
+            findNavController().navigate(R.id.action_gamesList_to_gameDetail, args)
+        }
+
         binding.rvGames.layoutManager = LinearLayoutManager(requireContext())
-        val games = MockDataCatalog.allSampleGames
-        binding.rvGames.adapter = GamesAdapter(games) { game ->
-            val bundle = Bundle().apply {
-                putString("gameId", game.id)
+        binding.rvGames.adapter = adapter
+    }
+
+    private fun setupSearchAndFilters() {
+        binding.etSearch.doAfterTextChanged { text ->
+            viewModel.onSearchQueryChanged(text?.toString().orEmpty())
+        }
+
+        binding.chipGroupStatus.setOnCheckedStateChangeListener { _, checkedIds ->
+            val status = when {
+                checkedIds.contains(R.id.chip_published) -> GameStatus.PUBLISHED
+                checkedIds.contains(R.id.chip_drafts) -> GameStatus.DRAFT
+                else -> null // All
             }
-            findNavController().navigate(R.id.action_gamesList_to_gameDetail, bundle)
+            viewModel.onStatusFilterChanged(status)
+        }
+    }
+
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collectLatest { state ->
+                // Progress Bar
+                binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+
+                // Empty State
+                binding.layoutEmptyState.visibility = if (state.isEmpty) View.VISIBLE else View.GONE
+
+                // Error State
+                if (state.errorMessage != null) {
+                    binding.layoutErrorState.visibility = View.VISIBLE
+                    binding.tvErrorMessage.text = state.errorMessage
+                    binding.rvGames.visibility = View.GONE
+                } else {
+                    binding.layoutErrorState.visibility = View.GONE
+                    binding.rvGames.visibility = if (state.isEmpty) View.GONE else View.VISIBLE
+                }
+
+                // Update List
+                adapter.submitList(state.filteredGames)
+            }
         }
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null
-    }
-
-    private class GamesAdapter(
-        private val items: List<Game>,
-        private val onClick: (Game) -> Unit
-    ) : RecyclerView.Adapter<GamesAdapter.ViewHolder>() {
-
-        class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-            val tvTitle: TextView = view.findViewById(R.id.tv_game_title)
-            val tvCreator: TextView = view.findViewById(R.id.tv_game_creator)
-            val tvDescription: TextView = view.findViewById(R.id.tv_game_description)
-            val tvCheckpointCount: TextView = view.findViewById(R.id.tv_checkpoint_count)
-            val btnViewDetails: MaterialButton = view.findViewById(R.id.btn_view_details)
-        }
-
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-            val view = LayoutInflater.from(parent.context).inflate(R.layout.item_game_card, parent, false)
-            return ViewHolder(view)
-        }
-
-        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val game = items[position]
-            holder.tvTitle.text = game.title
-            holder.tvCreator.text = "By ${game.creatorName}"
-            holder.tvDescription.text = game.description
-            holder.tvCheckpointCount.text = "📍 ${game.checkpointCount} Checkpoints"
-            holder.btnViewDetails.setOnClickListener { onClick(game) }
-        }
-
-        override fun getItemCount() = items.size
     }
 }

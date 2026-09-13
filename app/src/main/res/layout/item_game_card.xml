@@ -4,66 +4,118 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="@dimen/spacing_xs"
-    app:cardCornerRadius="@dimen/card_corner_radius"
-    app:cardElevation="@dimen/elevation_standard">
+    android:layout_marginHorizontal="16dp"
+    android:layout_marginVertical="8dp"
+    app:cardBackgroundColor="@color/bg_dark_card"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="4dp"
+    app:strokeColor="@color/border_cyber"
+    app:strokeWidth="1dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_m">
+        android:padding="16dp">
 
-        <TextView
-            android:id="@+id/tv_game_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Campus Heritage Quest"
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
-
-        <TextView
-            android:id="@+id/tv_game_creator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="By Prof. Alan Turing"
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="2dp" />
-
-        <TextView
-            android:id="@+id/tv_game_description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Discover historical relics and hidden secrets across engineering quad."
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_s"
-            android:maxLines="2"
-            android:ellipsize="end" />
-
+        <!-- Top Badges Row -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="@dimen/spacing_m"
             android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/tv_checkpoint_count"
+                android:id="@+id/tv_checkpoint_count_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_emerald"
+                android:text="📍 5 Checkpoints"
+                android:textColor="@color/primary_emerald"
+                android:textSize="12sp"
+                android:textStyle="bold" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <TextView
+                android:id="@+id/tv_game_status_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_badge_cyan"
+                android:text="PUBLISHED"
+                android:textColor="@color/primary_cyan"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Game Title -->
+        <TextView
+            android:id="@+id/tv_game_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="Colombo Heritage Trail"
+            android:textColor="@color/text_primary"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <!-- Creator Name -->
+        <TextView
+            android:id="@+id/tv_game_creator"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="By Prof. Alan Turing"
+            android:textColor="@color/primary_cyan_dark"
+            android:textSize="12sp" />
+
+        <!-- Description -->
+        <TextView
+            android:id="@+id/tv_game_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:ellipsize="end"
+            android:maxLines="2"
+            android:text="Discover historical relics and hidden sensor resonance spots across the campus."
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
+
+        <!-- Divider -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="12dp"
+            android:background="@color/divider" />
+
+        <!-- Action Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/tv_quest_mode_hint"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="📍 5 Checkpoints"
-                android:textColor="@color/primary_emerald"
-                android:textStyle="bold" />
+                android:text="⚡ GPS + Sensors Active"
+                android:textColor="@color/text_hint"
+                android:textSize="12sp" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_details"
+                android:id="@+id/btn_explore_quest"
+                style="@style/Widget.CampusQuest.Button.Primary"
                 android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="View Quest"
-                android:backgroundTint="@color/primary_emerald" />
+                android:layout_height="40dp"
+                android:paddingHorizontal="16dp"
+                android:text="Explore"
+                android:textSize="13sp" />
         </LinearLayout>
 
     </LinearLayout>
