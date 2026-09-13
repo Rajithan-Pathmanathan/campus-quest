@@ -6,6 +6,7 @@ import com.campusquest.domain.model.SensorSignalType
 /**
  * Pure mathematical calculator for multi-sensor weighted scoring.
  * Implements generalized missing-sensor weight normalization without static branch ladders.
+ * Proximity is strictly separated as a physical confirmation gate outside the weighted calculation.
  */
 class GeneralizedFusionCalculator(
     private val baseGpsWeight: Float = 0.40f,
@@ -13,11 +14,14 @@ class GeneralizedFusionCalculator(
     private val baseMotionWeight: Float = 0.30f,
     private val thresholdCutoff: Float = 0.85f // 85% to reach threshold
 ) {
-    data class SignalInputs(
+    data class FusionInputs(
         val gpsScore: Float,              // 0.0f .. 1.0f (derived from distance / geofence)
         val lightMatched: Boolean?,       // null if sensor unavailable
-        val motionDetected: Boolean?,     // null if sensor unavailable
-        val proximityNear: Boolean        // Final close-range confirmation gate
+        val motionDetected: Boolean?      // null if sensor unavailable
+    )
+
+    data class PhysicalGateState(
+        val proximityNear: Boolean?       // Final close-range confirmation gate (null if unavailable)
     )
 
     /**
@@ -26,7 +30,8 @@ class GeneralizedFusionCalculator(
     fun calculate(
         gameId: String,
         checkpointId: String,
-        inputs: SignalInputs
+        inputs: FusionInputs,
+        gateState: PhysicalGateState = PhysicalGateState(proximityNear = false)
     ): FusionResult {
         val activeWeights = mutableMapOf<SensorSignalType, Float>()
         val activeScores = mutableMapOf<SensorSignalType, Float>()
@@ -61,6 +66,13 @@ class GeneralizedFusionCalculator(
         val progressPercent = (clampedTotalScore * 100).toInt().coerceIn(0, 100)
         val thresholdReached = clampedTotalScore >= thresholdCutoff
 
+        val allActiveSignals = mutableSetOf<SensorSignalType>().apply {
+            addAll(activeWeights.keys)
+            if (gateState.proximityNear != null) {
+                add(SensorSignalType.PROXIMITY_GATE)
+            }
+        }
+
         return FusionResult(
             gameId = gameId,
             checkpointId = checkpointId,
@@ -70,8 +82,8 @@ class GeneralizedFusionCalculator(
             totalScore = clampedTotalScore,
             progressPercent = progressPercent,
             thresholdReached = thresholdReached,
-            proximityNear = inputs.proximityNear,
-            activeSignals = activeWeights.keys
+            proximityNear = gateState.proximityNear ?: false,
+            activeSignals = allActiveSignals
         )
     }
 }

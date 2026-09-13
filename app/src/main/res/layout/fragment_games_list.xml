@@ -2,23 +2,23 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layoutWidth="match_parent"
-    android:layoutHeight="match_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/background_light">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:background="@color/primary_emerald"
         app:title="@string/nav_explore_games"
         app:titleTextColor="@color/on_primary_emerald" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_games"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="0dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="@dimen/spacing_s"
         android:clipToPadding="false"
@@ -26,8 +26,8 @@
 
     <ProgressBar
         android:id="@+id/progress_bar"
-        android:layoutWidth="wrap_content"
-        android:layoutHeight="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:visibility="gone" />
 

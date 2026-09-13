@@ -25,33 +25,37 @@ class GeneralizedFusionCalculatorTest {
 
     @Test
     fun allSensorsAvailable_allSatisfied_producesHundredPercentAndThreshold() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = true,
-            motionDetected = true,
+            motionDetected = true
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = true
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         assertEquals(1.0f, result.totalScore, 0.001f)
         assertEquals(100, result.progressPercent)
         assertTrue(result.thresholdReached)
         assertTrue(result.proximityNear)
         assertTrue(result.canClaimDiscovery)
-        assertEquals(3, result.activeSignals.size)
+        assertEquals(4, result.activeSignals.size)
     }
 
     @Test
     fun allSensorsAvailable_gpsAndLightSatisfied_scoresSeventyPercent_belowThreshold() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = true,
-            motionDetected = false,
+            motionDetected = false
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = false
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         // 0.40 * 1.0 + 0.30 * 1.0 + 0.30 * 0.0 = 0.70
         assertEquals(0.70f, result.totalScore, 0.001f)
@@ -62,14 +66,16 @@ class GeneralizedFusionCalculatorTest {
 
     @Test
     fun missingLightSensor_normalizesWeightsToGpsAndMotion() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = null, // Sensor missing
-            motionDetected = true,
+            motionDetected = true
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = true
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         // Active weights: GPS (0.4) + Motion (0.3) = 0.7
         // Normalized: GPS = 0.4/0.7 = 0.5714, Motion = 0.3/0.7 = 0.4286
@@ -84,14 +90,16 @@ class GeneralizedFusionCalculatorTest {
 
     @Test
     fun missingLightSensor_gpsOnlyMatched_calculatesExactNormalizedScore() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = null,
-            motionDetected = false,
+            motionDetected = false
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = false
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         // Total = 0.4 / 0.7 = ~0.5714 (57%)
         assertEquals(0.5714f, result.totalScore, 0.005f)
@@ -101,14 +109,16 @@ class GeneralizedFusionCalculatorTest {
 
     @Test
     fun gpsOnlyDevice_bothLightAndMotionMissing_normalizesGpsToHundredPercent() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = null,
-            motionDetected = null,
+            motionDetected = null
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = false
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         assertEquals(1.0f, result.totalScore, 0.001f)
         assertTrue(result.thresholdReached)
@@ -117,14 +127,16 @@ class GeneralizedFusionCalculatorTest {
 
     @Test
     fun thresholdReached_butProximityFar_cannotClaimDiscovery() {
-        val inputs = GeneralizedFusionCalculator.SignalInputs(
+        val inputs = GeneralizedFusionCalculator.FusionInputs(
             gpsScore = 1.0f,
             lightMatched = true,
-            motionDetected = true,
+            motionDetected = true
+        )
+        val gateState = GeneralizedFusionCalculator.PhysicalGateState(
             proximityNear = false // Not near
         )
 
-        val result = calculator.calculate("G1", "CP1", inputs)
+        val result = calculator.calculate("G1", "CP1", inputs, gateState)
 
         assertTrue(result.thresholdReached)
         assertFalse("Proximity is not near", result.proximityNear)
