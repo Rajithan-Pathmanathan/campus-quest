@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="@dimen/spacing_m"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="@dimen/elevation_standard"
+    app:cardBackgroundColor="@color/bg_dark_card"
+    app:strokeColor="@color/primary_cyan"
+    app:strokeWidth="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/spacing_l"
+        android:gravity="center_horizontal">
+
+        <!-- Holographic Discovery Header Icon & Badge -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✨ 🏛️ ✨"
+            android:textSize="36sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="RELIC RESONANCE CONFIRMED"
+            android:textColor="@color/primary_emerald"
+            android:textSize="12sp"
+            android:textStyle="bold"
+            android:layout_marginTop="4dp" />
+
+        <!-- Checkpoint Title -->
+        <TextView
+            android:id="@+id/tv_reveal_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Historic Clock Tower"
+            android:textColor="@color/text_primary"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            android:textAlignment="center"
+            android:layout_marginTop="8dp" />
+
+        <!-- Badges Row: Sequence Order & Points Earned -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginTop="8dp">
+
+            <TextView
+                android:id="@+id/tv_reveal_sequence_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="WAYPOINT 1 OF 3"
+                android:textColor="@color/on_primary_emerald"
+                android:background="@drawable/bg_badge_emerald"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp" />
+
+            <TextView
+                android:id="@+id/tv_reveal_points"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="💎 +100 PTS"
+                android:textColor="@color/on_secondary_amber"
+                android:background="@drawable/bg_badge_gold"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
+
+        <!-- Historical Lore Revelation Card -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_m"
+            app:cardCornerRadius="@dimen/card_corner_radius"
+            app:cardBackgroundColor="@color/bg_dark_card_elevated"
+            app:strokeColor="@color/border_cyber"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_m">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📜 HISTORICAL INSCRIPTION UNLOCKED"
+                    android:textColor="@color/primary_cyan"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_reveal_lore"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Erected in 1857 as a navigational lighthouse and clock tower, this monument stood as the guardian of Colombo's maritime trade."
+                    android:textColor="@color/text_primary"
+                    android:textSize="13sp"
+                    android:lineSpacingExtra="3dp"
+                    android:layout_marginTop="6dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Primary Action: Continue Navigation -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_continue_navigation"
+            style="@style/Widget.Material3.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🧭 Continue Quest Navigation"
+            android:backgroundTint="@color/primary_emerald"
+            android:textColor="@color/on_primary_emerald"
+            android:layout_marginTop="@dimen/spacing_m" />
+
+        <!-- Secondary Action: View Leaderboard -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_view_leaderboard"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="🏆 View Quest Leaderboard"
+            android:textColor="@color/primary_cyan"
+            android:layout_marginTop="4dp" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -93,12 +93,12 @@ class QuestScanFragment : Fragment() {
         binding.btnClaimDiscovery.setOnClickListener {
             val success = viewModel.claimDiscovery()
             if (success) {
-                Toast.makeText(
-                    requireContext(),
-                    "✨ Relic Discovered! Checkpoint Completed (+100 pts).",
-                    Toast.LENGTH_LONG
-                ).show()
-                findNavController().navigateUp()
+                val state = viewModel.uiState.value
+                val revealDialog = DiscoveryRevealDialogFragment.newInstance(
+                    gameId = state.gameId,
+                    checkpointId = state.checkpointId
+                )
+                revealDialog.show(childFragmentManager, "DiscoveryRevealDialog")
             }
         }
     }
