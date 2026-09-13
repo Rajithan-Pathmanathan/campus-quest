@@ -32,6 +32,10 @@ class CampusQuestApplication : Application() {
         )
     }
 
+    val authRepository: com.campusquest.domain.repository.AuthRepository by lazy {
+        com.campusquest.data.repository.AuthRepositoryImpl()
+    }
+
     override fun onCreate() {
         super.onCreate()
         instance = this

@@ -1,0 +1,46 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    // Games collection
+    match /games/{gameId} {
+      allow read: if resource.data.status == 'PUBLISHED' || (isAuthenticated() && resource.data.creatorId == request.auth.uid);
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.creatorId == request.auth.uid;
+
+      // Checkpoints subcollection
+      match /checkpoints/{checkpointId} {
+        allow read: if true;
+        allow create, update, delete: if isAuthenticated() && 
+          get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
+      }
+    }
+
+    // Player Progress
+    match /progress/{progressId} {
+      allow read, write: if isAuthenticated() && progressId.matches('^' + request.auth.uid + '_.*');
+    }
+
+    // Quest Leaderboards
+    match /leaderboards/{gameId}/entries/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+  }
+}
