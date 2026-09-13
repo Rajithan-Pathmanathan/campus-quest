@@ -51,6 +51,7 @@ campus-quest/
     ├── TRD_CAMPUS_QUEST.md
     ├── UI_UX_DESIGN_SPECIFICATION_CAMPUS_QUEST.md
     ├── APP_FLOW_DOCUMENT_CAMPUS_QUEST.md
+    ├── Campus_Quest_Detailed_Team_Task_Schedule.md
     ├── Member1_UI_UX_NAVIGATION_WORKPLAN.md
     ├── Member2_QUEST_SCAN_UI_WORKPLAN.md
     ├── Member3_LOCATION_GEOFENCING_WORKPLAN.md
@@ -121,6 +122,7 @@ campus-quest/
 
 | Document | Description |
 | :--- | :--- |
+| 📄 [Campus_Quest_Detailed_Team_Task_Schedule.md](./documentation/Campus_Quest_Detailed_Team_Task_Schedule.md) | **Detailed Team Task Schedule & Blocker Plan** — Day-by-day M1–M6 execution timeline, dependency blockers, Definition of Done, and milestone gates (13 Sep – 28 Sep). |
 | 📄 [INTEGRATION_AND_HANDOFF_PLAN.md](./documentation/INTEGRATION_AND_HANDOFF_PLAN.md) | **System Integration & Handoff Plan** — End-to-end subsystem connection checklist, Mock-to-Real migration phases, integration test cases, and rollback procedures. |
 | 📄 [INTEGRATION_HANDOFF_AND_MILESTONE_PLAN.md](./documentation/INTEGRATION_HANDOFF_AND_MILESTONE_PLAN.md) | **Milestone Delivery Roadmap** — Sprint schedules, milestone completion criteria, handoff gate deliverables, and team dependency timelines. |
 | 📄 [TESTING_AND_ACCEPTANCE_STRATEGY.md](./documentation/TESTING_AND_ACCEPTANCE_STRATEGY.md) | **Testing & Acceptance Strategy** — Unit tests (JUnit/MockK), Instrumented UI tests (Espresso), physical device testing matrix (Pixel, Samsung, Xiaomi), and sensor verification suites. |
