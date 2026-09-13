@@ -1,58 +1,247 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/background_light">
+    android:background="@color/bg_dark_base">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary_emerald"
-        app:title="@string/nav_creator_dashboard"
-        app:titleTextColor="@color/on_primary_emerald" />
+        android:background="@color/bg_dark_surface">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_m">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_create_new_quest"
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="➕ Create New Quest"
-            android:backgroundTint="@color/primary_emerald" />
+            app:title="Creator Studio"
+            app:titleTextColor="@color/text_primary"
+            app:subtitle="Prof. Alan Turing • Quest Architect"
+            app:subtitleTextColor="@color/primary_cyan" />
+    </com.google.android.material.appbar.AppBarLayout>
 
-        <TextView
-            android:layout_width="wrap_content"
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Your Authored Quests &amp; Drafts"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginTop="@dimen/spacing_l" />
+            android:orientation="vertical"
+            android:paddingBottom="80dp">
 
-    </LinearLayout>
+            <!-- Metrics Summary Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_m"
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="@dimen/elevation_standard"
+                app:cardBackgroundColor="@color/bg_dark_card"
+                app:strokeColor="@color/border_cyber"
+                app:strokeWidth="1dp">
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rv_authored_games"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="@dimen/spacing_s"
-        android:clipToPadding="false" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="@dimen/spacing_m">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_switch_player"
-        android:layout_width="match_parent"
+                    <!-- Metric 1: Total Quests -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_metric_total_quests"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="3"
+                            android:textColor="@color/primary_cyan"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Total Quests"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:background="@color/divider"
+                        android:layout_gravity="center_vertical" />
+
+                    <!-- Metric 2: Published Active -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_metric_published_quests"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="1"
+                            android:textColor="@color/primary_emerald"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Published"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:background="@color/divider"
+                        android:layout_gravity="center_vertical" />
+
+                    <!-- Metric 3: Total Checkpoints -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:gravity="center">
+
+                        <TextView
+                            android:id="@+id/tv_metric_total_checkpoints"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="9"
+                            android:textColor="@color/secondary_amber"
+                            android:textSize="22sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Checkpoints"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="11sp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Mode Switcher Banner Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_switch_player"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="🎮 Switch to Player Discovery Mode"
+                android:textColor="@color/primary_cyan"
+                android:backgroundTint="@color/bg_dark_card_elevated" />
+
+            <!-- Section 1: Drafts Header -->
+            <TextView
+                android:id="@+id/tv_drafts_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📝 DRAFTS IN PROGRESS"
+                android:textColor="@color/secondary_amber"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:layout_marginBottom="@dimen/spacing_xs" />
+
+            <!-- Drafts RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_draft_games"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_creator_game_card" />
+
+            <!-- Section 2: Published Header -->
+            <TextView
+                android:id="@+id/tv_published_header"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="🚀 LIVE PUBLISHED QUESTS"
+                android:textColor="@color/primary_emerald"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:layout_marginStart="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:layout_marginBottom="@dimen/spacing_xs" />
+
+            <!-- Published RecyclerView -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_published_games"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_creator_game_card" />
+
+            <!-- Empty State -->
+            <LinearLayout
+                android:id="@+id/layout_empty_creator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/spacing_xl"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🗺️"
+                    android:textSize="48sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Authored Quests Yet"
+                    android:textColor="@color/text_primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="@dimen/spacing_m" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap 'Create New Quest' below to author dynamic waypoint adventures across campus!"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp"
+                    android:textAlignment="center"
+                    android:layout_marginTop="@dimen/spacing_xs" />
+            </LinearLayout>
+
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- Floating Action Button for New Quest Creation -->
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btn_create_new_quest"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Switch to Player Mode"
-        style="@style/Widget.Material3.Button.TextButton"
-        android:layout_margin="@dimen/spacing_m" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="@dimen/spacing_m"
+        android:text="➕ Create New Quest"
+        android:backgroundTint="@color/primary_emerald"
+        android:textColor="@color/on_primary_emerald"
+        app:iconTint="@color/on_primary_emerald" />
 
-</LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
