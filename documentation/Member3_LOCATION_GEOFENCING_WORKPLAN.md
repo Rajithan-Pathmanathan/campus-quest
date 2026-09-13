@@ -11,7 +11,9 @@
 
 # 1. Role Objective
 
-M3 owns the location side of Campus Quest.
+M3 owns the spatial and geographic layer of Campus Quest.
+
+Rather than relying on fixed or hard-coded coordinates in source code, M3 operates dynamically on checkpoints loaded for the active game, and provides an interactive map location picker for the Creator wizard.
 
 The target technical flow is:
 

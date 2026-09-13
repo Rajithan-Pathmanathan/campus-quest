@@ -20,13 +20,14 @@ The goal is simple:
 
 The mock data therefore provides realistic stand-ins for:
 
-- authenticated users
-- relics
-- campus locations
-- quest definitions
-- light signatures
-- discovery/progress records
-- leaderboard entries
+- authenticated users (Creators & Players)
+- published & draft games (`game_001`, `game_002`, `game_003_draft`)
+- dynamic checkpoints (`cp_001`..`cp_006`)
+- ambient environmental light signatures (`minLux`..`maxLux`)
+- player participation records (`gamePlayers`)
+- game-specific progress & discovery records
+- game-specific leaderboard entries
+- FCM push notification payloads
 - GPS results
 - geofence events
 - sensor readings

@@ -4,7 +4,7 @@
 **Document ID:** M5-FIREBASE-CLOUD-SYNC  
 **Owner:** M5 — Backend Developer: Firebase  
 **Project:** Campus Quest  
-**Primary responsibility:** Firebase project setup, Authentication, Firestore data model, cloud repository implementation, leaderboard data, security rules, and reliable synchronization boundaries.
+**Primary responsibility:** Firebase project setup, Authentication (Creators & Players), Firestore schema (`games`, `checkpoints`, `gamePlayers`, `progress`, `leaderboards`), FCM push notification broadcast on game publish (`/topics/new_games`), cloud repository implementation, security rules, real-time game leaderboards, and reliable synchronization boundaries.
 
 ---
 

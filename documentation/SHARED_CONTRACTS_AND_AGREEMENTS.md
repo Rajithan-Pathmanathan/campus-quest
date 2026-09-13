@@ -188,12 +188,12 @@ This layer must expose clean results to the rest of the application rather than 
 
 | Member | Primary ownership | Main shared contracts |
 |---|---|---|
-| M1 | App shell, UI, navigation, MVVM UI structure, lore | Screen state, navigation, domain models |
-| M2 | Quest UI, Scan UI, leaderboard presentation | Fusion state, scan state, domain models |
-| M3 | GPS, Maps, geofencing, location permissions | Location result, geofence event |
-| M4 | Accelerometer, light, proximity, fusion engine | Fusion result, sensor state, light signature |
-| M5 | Firebase Auth, Firestore, cloud data, security | Remote data, auth, cloud schema |
-| M6 | Room, Repository integration, offline/sync coordination, integration | Repository, Room entities, sync state |
+| M1 | App shell, navigation, game browsing UI, game details, join flow, creator wizard (create game, add/configure checkpoints, publish), notification deep-linking, game-specific leaderboard UI | Screen state, navigation, game & creator models, leaderboard UI state |
+| M2 | Game checkpoint details, Scan HUD, fusion meter, reveal dialog, scan progress UI | Scan state, fusion HUD state, checkpoint details presentation |
+| M3 | Fused Location, Google Maps, permissions, dynamic checkpoint geofencing & distance calculation for active game | Location result, dynamic geofence events, distance result |
+| M4 | Accelerometer gesture detection, light signature comparison (`minLux`..`maxLux`), proximity final gate, fusion engine, sensor availability & degradation | Fusion result, sensor availability, motion state, light match |
+| M5 | Firebase Auth, Firestore (`games`, `checkpoints`, `gamePlayers`, `progress`, `leaderboards`), FCM push notifications on game publish, cloud security rules | Remote data API, Auth contracts, FCM push payload, Firestore schema |
+| M6 | Room database (`GameEntity`, `CheckpointEntity`, `GamePlayerEntity`, `DiscoveryEntity`, `PendingSyncEntity`), repository implementation, offline sync queue, cross-platform POC | Repository interface, Room DAOs/entities, sync coordination |
 
 Ownership does not mean isolation. A member owns an implementation but must use the shared contracts when communicating with another module.
 
@@ -233,19 +233,47 @@ M1 consumes it for profile/UI.
 
 ---
 
-# 5. Relic Model
+# 4.2 Game Model
 
 ```kotlin
-data class Relic(
+enum class GameStatus {
+    DRAFT,
+    PUBLISHED,
+    CLOSED
+}
+
+data class Game(
     val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val publishedAt: Long? = null
+)
+```
+
+# 5. Checkpoint / Relic Model
+
+```kotlin
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
     val name: String,
     val lat: Double,
     val lng: Double,
-    val radiusM: Float,
+    val radiusM: Float = 20.0f,
     val lightSignature: LightSignature,
-    val rarity: String,
-    val lore: String
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP"
 )
+
+// Legacy alias for compatibility with internal references
+typealias Relic = Checkpoint
 ```
 
 ## Fields
@@ -271,9 +299,13 @@ The initial shared representation is:
 
 ```kotlin
 data class LightSignature(
-    val min: Float,
-    val max: Float
-)
+    val minLux: Float,
+    val maxLux: Float
+) {
+    // Compatibility accessors
+    val min: Float get() = minLux
+    val max: Float get() = maxLux
+}
 ```
 
 ## Meaning
@@ -334,14 +366,32 @@ The master plan specifies `relicId`, `foundAt`, and a pending synchronization fl
 
 ---
 
-# 8. Leaderboard Entry
+# 8. Game-Specific Leaderboard Entry
 
 ```kotlin
-data class LeaderboardEntry(
-    val uid: String,
+data class GameLeaderboardEntry(
+    val gameId: String,
+    val userId: String,
     val displayName: String,
-    val relicsFound: Int,
-    val lastUpdate: Long
+    val checkpointsDiscovered: Int,
+    val totalCheckpoints: Int,
+    val isCompleted: Boolean,
+    val completionDurationSeconds: Long? = null,
+    val lastUpdate: Long = System.currentTimeMillis()
+)
+
+typealias LeaderboardEntry = GameLeaderboardEntry
+```
+
+# 8.1 New Game Push Notification Contract (FCM)
+
+```kotlin
+data class NewGameNotification(
+    val gameId: String,
+    val gameTitle: String,
+    val creatorName: String,
+    val checkpointCount: Int,
+    val publishedAt: Long = System.currentTimeMillis()
 )
 ```
 
@@ -708,20 +758,29 @@ Initial contract:
 
 ```kotlin
 interface QuestRepository {
+    // --- Player Game Discovery & Details ---
+    suspend fun getAvailableGames(): List<Game>
+    suspend fun getGameDetails(gameId: String): Game?
+    suspend fun joinGame(gameId: String): Result<Unit>
+    suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
 
-    suspend fun getRelics(): List<Relic>
+    // --- Creator Game Authoring ---
+    suspend fun createGame(game: Game): Result<String>
+    suspend fun createCheckpoint(checkpoint: Checkpoint): Result<String>
+    suspend fun publishGame(gameId: String): Result<Unit>
 
-    suspend fun getFusionSignature(
-        relicId: String
-    ): LightSignature
+    // --- Gameplay & Scanning ---
+    suspend fun getFusionSignature(checkpointId: String): LightSignature
+    suspend fun recordDiscovery(
+        gameId: String,
+        checkpointId: String,
+        fusionScore: Int
+    ): Result<Unit>
 
-    suspend fun recordReveal(
-        relicId: String
-    )
+    // --- Game-Specific Leaderboard ---
+    fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>>
 
-    fun observeLeaderboard():
-        Flow<List<LeaderboardEntry>>
-
+    // --- Offline Synchronization ---
     suspend fun syncPending()
 }
 ```

@@ -4,7 +4,7 @@
 **Document ID:** M6-ROOM-DATA-INTEGRATION  
 **Owner:** M6 — Data & Integration Developer  
 **Project:** Campus Quest  
-**Primary responsibility:** Room local persistence, offline cache, pending synchronization state, repository integration support, build stability, cross-feature integration, and end-to-end validation coordination.
+**Primary responsibility:** Room local database (`GameEntity`, `CheckpointEntity`, `GamePlayerEntity`, `DiscoveryEntity`, `PendingSyncEntity`), offline-first game and discovery cache, pending synchronization queue management, repository integration support, build stability, cross-feature integration, and end-to-end validation coordination.
 
 ---
 

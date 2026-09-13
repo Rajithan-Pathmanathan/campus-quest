@@ -3,7 +3,7 @@
 **Document ID:** CQ-SHARED-07  
 **Document:** Team Git, Communication and Change Control  
 **Project:** Campus Quest  
-**Purpose:** Define the shared rules for source control, branching, pull requests, communication, ownership, integration, approvals, conflict resolution, and technical change management  
+**Purpose:** Define the shared rules for source control, branching (`feature/ui-navigation`, `feature/quest-scan-ui`, `feature/location-geofence`, `feature/sensor-fusion`, `feature/firebase-sync`, `feature/room-data-integration`), pull requests, communication, ownership across Game Creator and Player modules, integration, approvals, and technical change management  
 **Development window:** 13 September 2026 – 28 September 2026  
 **Status:** Team execution specification
 

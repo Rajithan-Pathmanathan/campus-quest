@@ -11,7 +11,30 @@
 
 # 1. Role Objective
 
-M1 is responsible for making Campus Quest feel like one coherent Android application.
+M1 is responsible for creating a polished, intuitive Android experience for both Game Creators and Game Players.
+
+M1 owns the overall application navigation architecture:
+
+```text
+Splash / Startup
+       ↓
+Login / Signup (Firebase Auth)
+       ↓
+Main Navigation Shell
+  ├── Player Tab:
+  │    ├── Available Games (Browse Published Hunts)
+  │    ├── Joined / Active Games
+  │    └── Game Details & Join Game Flow
+  │
+  ├── Creator Tab (Creator Area):
+  │    ├── My Games (Drafts & Published)
+  │    ├── Create Game Wizard (Title & Description)
+  │    ├── Add / Configure Checkpoints (Map Pin, Geofence, Light Signature, Clue, Lore)
+  │    └── Review & Publish Game
+  │
+  ├── Game-Specific Leaderboard (Real-time Firestore stream)
+  └── Profile & Settings
+```
 
 M1 owns the application shell:
 

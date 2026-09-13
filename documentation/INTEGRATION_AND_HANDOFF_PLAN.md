@@ -3,7 +3,7 @@
 **Document ID:** CQ-SHARED-05  
 **Document:** Integration and Handoff Plan  
 **Project:** Campus Quest  
-**Purpose:** Define exactly how six parallel workstreams become one working Android application without a last-minute integration bottleneck  
+**Purpose:** Define exactly how six parallel workstreams become one working Android application supporting Game Creators (authoring, checkpoint configuration, publication, FCM broadcast) and Game Players (game discovery, dynamic checkpoint geofencing, sensor-fusion discovery, Room caching, Firestore sync, and game-specific leaderboards) without a last-minute integration bottleneck  
 **Development window:** 13 September 2026 – 28 September 2026  
 **Status:** Team execution specification  
 **Depends on:** `07_SHARED_CONTRACTS_AND_AGREEMENTS.md`, `08_MOCK_DATA_CATALOG.md`, `09_FIREBASE_SCHEMA_ENDPOINTS_AND_SECURITY.md`, `10_SENSOR_FUSION_AND_LOCATION_SPECIFICATION.md`

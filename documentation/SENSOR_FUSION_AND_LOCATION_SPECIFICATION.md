@@ -3,7 +3,7 @@
 **Document ID:** CQ-SHARED-04  
 **Document:** Sensor Fusion and Location Specification  
 **Project:** Campus Quest  
-**Purpose:** Define the shared technical behaviour for GPS, Google Maps, geofencing, accelerometer, light sensor, proximity sensor, sensor fusion, graceful degradation, and the handoff from location to Scan Mode  
+**Purpose:** Define the shared technical behaviour for GPS, Google Maps, dynamic checkpoint geofencing for active games, accelerometer scanning motion, ambient environmental light signature range matching (`minLux`..`maxLux`), proximity binary confirmation gate, sensor fusion scoring, graceful degradation, and the handoff from location to Scan Mode  
 **Development window:** 13 September 2026 – 28 September 2026  
 **Status:** Team working specification  
 **Depends on:** `07_SHARED_CONTRACTS_AND_AGREEMENTS.md`, `08_MOCK_DATA_CATALOG.md`, `09_FIREBASE_SCHEMA_ENDPOINTS_AND_SECURITY.md`

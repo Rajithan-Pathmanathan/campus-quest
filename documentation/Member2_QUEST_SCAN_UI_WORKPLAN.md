@@ -11,39 +11,25 @@
 
 # 1. Role Objective
 
-M2 owns the part of Campus Quest that turns the technical location/sensor system into the actual game experience.
-
-The target user experience is:
+M2 owns the user-facing dynamic checkpoint and scanning experience for the player's active joined game:
 
 ```text
-Quest List
- ↓
-Select Relic
- ↓
-Quest Details
- ↓
-Approach Location
- ↓
-Geofence ENTER
- ↓
-Scan Mode
- ↓
-Fusion Meter
- ↓
-Proximity Confirmation
- ↓
-Relic Reveal
- ↓
-Lore
- ↓
-Progress
+Active Game Checkpoints
+          ↓
+Checkpoint Details & Clues
+          ↓
+Geofence ENTER Event
+          ↓
+Scan Mode HUD (Live Fusion Meter)
+          ↓
+Fusion Score >= Threshold Prompt ("Signal Locked!")
+          ↓
+Proximity Confirmation Gate
+          ↓
+Relic Reveal Animation & Lore Dialog
+          ↓
+Game Progress & Leaderboard Presentation
 ```
-
-M2 is responsible for presenting this experience.
-
-M2 does **not** own the underlying GPS, geofence, sensor, Room, or Firebase implementation.
-
----
 
 # 2. Primary Deliverables
 

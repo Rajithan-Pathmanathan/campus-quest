@@ -91,7 +91,7 @@ Those items must be tested, calibrated, and frozen by the team before the final 
 
 ## 1.2 Concept
 
-Campus Quest is a location-aware campus treasure-hunt application in which users discover virtual relics around a campus.
+Campus Quest is a location-aware campus treasure-hunt platform connecting Game Creators (who author custom quests and configure dynamic checkpoints) and Game Players (who discover games, receive FCM push notifications, walk checkpoints, and uncover virtual relics using sensor fusion).
 
 The core differentiator is a **sensor-fusion discovery mechanic**.
 
@@ -108,9 +108,17 @@ After the fusion condition is satisfied, the **proximity sensor provides a separ
 ```text
 Firebase Authentication
         ↓
-Map
-        ↓
-Choose / approach relic
+   ┌────┴─────┐
+   ↓          ↓
+CREATOR     PLAYER
+   ↓          ↓
+Create Game  Browse & Join Game
+   ↓          ↓
+Add & Config Checkpoints  Game Map
+   ↓          ↓
+Publish Game  Approach Checkpoint
+   ↓          ↓
+FCM Broadcast  Geofence ENTER
         ↓
 Fused Location Provider
         ↓
@@ -757,12 +765,12 @@ Owns:
 
 | Member | Role | Primary ownership |
 |---|---|---|
-| M1 | Frontend Lead | App shell, navigation, theme, profile, auth UI |
-| M2 | Frontend Developer | Quest, Scan Mode, reveal, progress, leaderboard UI |
-| M3 | Device Developer | Location, Maps, distance, geofencing |
-| M4 | Device Developer | Sensors, fusion, proximity |
-| M5 | Backend Developer | Firebase Auth, Firestore, cloud sync |
-| M6 | Data & Integration Developer | Room, offline state, integration/build |
+| M1 | Frontend Lead | App shell, navigation, theme, profile, auth UI, Player game browsing/details, Join flow, Creator wizard (Create Game, Checkpoints, Publish), FCM deep-links, Game Leaderboard UI |
+| M2 | Frontend Developer | Quest & checkpoint details, Scan Mode HUD, fusion meter, reveal dialog, progress UI |
+| M3 | Device Developer | Location, Google Maps with dynamic pins, distance calculations, active game dynamic geofencing |
+| M4 | Device Developer | Sensors (Accelerometer, Light sensor, Proximity gate), ambient light range matching, gesture classifier, weighted fusion engine, graceful degradation |
+| M5 | Backend Developer | Firebase Auth, Firestore (`games`, `checkpoints`, `gamePlayers`, `progress`, `leaderboards`), FCM push broadcast on game publish, cloud security rules |
+| M6 | Data & Integration Developer | Room database (`GameEntity`, `CheckpointEntity`, `GamePlayerEntity`, `DiscoveryEntity`, `PendingSyncEntity`), repository implementation, offline-first sync queue, build stability |
 
 ---
 
@@ -967,16 +975,36 @@ R001 local persistence works
 ## 12.1 Relic
 
 ```kotlin
-data class Relic(
+enum class GameStatus { DRAFT, PUBLISHED, CLOSED }
+
+data class Game(
     val id: String,
+    val title: String,
+    val description: String,
+    val creatorId: String,
+    val creatorName: String,
+    val status: GameStatus = GameStatus.DRAFT,
+    val checkpointCount: Int = 0,
+    val createdAt: Long = System.currentTimeMillis(),
+    val publishedAt: Long? = null
+)
+
+data class Checkpoint(
+    val id: String,
+    val gameId: String,
     val name: String,
     val lat: Double,
     val lng: Double,
-    val radiusM: Float,
+    val radiusM: Float = 20.0f,
     val lightSignature: LightSignature,
-    val rarity: String,
-    val lore: String
+    val clue: String,
+    val lore: String,
+    val order: Int = 1,
+    val motionType: String = "SWEEP"
 )
+
+// Legacy alias for compatibility with existing internal references
+typealias Relic = Checkpoint
 ```
 
 ## 12.2 LightSignature
@@ -1028,12 +1056,26 @@ data class FusionResult(
 ## 12.6 LeaderboardEntry
 
 ```kotlin
-data class LeaderboardEntry(
-    val uid: String,
+data class GameLeaderboardEntry(
+    val gameId: String,
+    val userId: String,
     val displayName: String,
-    val relicsFound: Int,
-    val lastUpdate: Instant?
+    val checkpointsDiscovered: Int,
+    val totalCheckpoints: Int,
+    val isCompleted: Boolean,
+    val completionDurationSeconds: Long? = null,
+    val lastUpdate: Long = System.currentTimeMillis()
 )
+
+data class NewGameNotification(
+    val gameId: String,
+    val gameTitle: String,
+    val creatorName: String,
+    val checkpointCount: Int,
+    val publishedAt: Long = System.currentTimeMillis()
+)
+
+typealias LeaderboardEntry = GameLeaderboardEntry
 ```
 
 Exact time representation may follow the project's dependency choices.
@@ -1046,20 +1088,25 @@ A shared conceptual interface:
 
 ```kotlin
 interface QuestRepository {
+    // --- Player Game Discovery & Details ---
+    suspend fun getAvailableGames(): List<Game>
+    suspend fun getGameDetails(gameId: String): Game?
+    suspend fun joinGame(gameId: String): Result<Unit>
+    suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>
 
-    suspend fun getRelics(): List<Relic>
+    // --- Creator Game Authoring ---
+    suspend fun createGame(game: Game): Result<String>
+    suspend fun createCheckpoint(checkpoint: Checkpoint): Result<String>
+    suspend fun publishGame(gameId: String): Result<Unit>
 
-    suspend fun getFusionSignature(
-        relicId: String
-    ): LightSignature
+    // --- Gameplay & Scanning ---
+    suspend fun getFusionSignature(checkpointId: String): LightSignature
+    suspend fun recordDiscovery(gameId: String, checkpointId: String, fusionScore: Int): Result<Unit>
 
-    suspend fun recordReveal(
-        relicId: String
-    )
+    // --- Game-Specific Leaderboard ---
+    fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>>
 
-    fun observeLeaderboard():
-        Flow<List<LeaderboardEntry>>
-
+    // --- Offline Synchronization ---
     suspend fun syncPending()
 }
 ```

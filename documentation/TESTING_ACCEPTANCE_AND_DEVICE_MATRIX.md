@@ -3,7 +3,7 @@
 **Document ID:** CQ-SHARED-06  
 **Document:** Testing, Acceptance and Device Matrix  
 **Project:** Campus Quest  
-**Purpose:** Define the test strategy, acceptance criteria, device matrix, test cases, evidence requirements, regression process, and final release checks for the complete Android application  
+**Purpose:** Define the test strategy, acceptance criteria, device matrix, test cases (covering Game Creator wizard, FCM push notifications, dynamic geofencing, sensor fusion, proximity gate, offline Room caching, Firestore sync, and game-specific leaderboards), cross-game isolation tests, and final release checks for the complete Android application  
 **Development window:** 13 September 2026 – 28 September 2026  
 **Status:** Team execution specification  
 **Depends on:** `07_SHARED_CONTRACTS_AND_AGREEMENTS.md`, `08_MOCK_DATA_CATALOG.md`, `09_FIREBASE_SCHEMA_ENDPOINTS_AND_SECURITY.md`, `10_SENSOR_FUSION_AND_LOCATION_SPECIFICATION.md`, `11_INTEGRATION_AND_HANDOFF_PLAN.md`

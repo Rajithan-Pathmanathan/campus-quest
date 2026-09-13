@@ -4,7 +4,7 @@
 **Document ID:** M4-SENSOR-FUSION  
 **Owner:** M4 — Device Developer: Sensor Fusion  
 **Project:** Campus Quest  
-**Primary responsibility:** Accelerometer + light + proximity sensing, fusion computation, sensor availability, graceful degradation, lifecycle/battery handling, and handoff of scan-state results to the UI layer.
+**Primary responsibility:** SensorManager integration (Accelerometer, Light sensor, Proximity binary confirmation gate), dynamic ambient light signature range matching (`minLux`..`maxLux`) for active checkpoints, scanning motion gesture classification, weighted fusion engine computation, graceful sensor degradation, and handoff of scan-state results to the UI layer.
 
 ---
 

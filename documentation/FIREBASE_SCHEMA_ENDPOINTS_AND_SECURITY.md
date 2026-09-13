@@ -243,9 +243,12 @@ Core collections:
 
 ```text
 users
-relics
+games
+games/{gameId}/checkpoints
+gamePlayers
 progress
-leaderboard
+leaderboards
+/topics/new_games (FCM Topic Broadcast)
 ```
 
 Stretch-only collection:
@@ -308,31 +311,54 @@ Authentication credentials belong to Firebase Authentication.
 
 ---
 
-# 12. Relics Collection
+# 12. Games & Dynamic Checkpoints Collections
 
 Path:
 
 ```text
-/relics/{relicId}
+/games/{gameId}
 ```
 
 Example:
 
 ```text
-/relics/R001
+/games/game_001
 ```
 
 Fields:
 
 ```text
 id
+title
+description
+creatorId
+creatorName
+status (DRAFT, PUBLISHED, CLOSED)
+checkpointCount
+createdAt
+publishedAt
+```
+
+Subcollection:
+
+```text
+/games/{gameId}/checkpoints/{checkpointId}
+```
+
+Fields:
+
+```text
+id
+gameId
 name
 lat
 lng
 radiusM
-lightSignature
-rarity
+lightSignature (min, max)
+clue
 lore
+order
+motionType
 ```
 
 Example:
