@@ -1,6 +1,5 @@
 package com.campusquest.device.location
 
-import android.location.Location
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.sin
@@ -30,6 +29,16 @@ interface DistanceCalculator {
         targetLat: Double,
         targetLng: Double,
         radiusMeters: Float
+    ): Boolean
+
+    fun isWithinRadiusWithHysteresis(
+        currentLat: Double,
+        currentLng: Double,
+        targetLat: Double,
+        targetLng: Double,
+        radiusMeters: Float,
+        isCurrentlyInside: Boolean,
+        hysteresisMarginMeters: Float = 3.0f
     ): Boolean
 }
 
@@ -84,5 +93,24 @@ class HaversineDistanceCalculator : DistanceCalculator {
         radiusMeters: Float
     ): Boolean {
         return calculateDistanceMeters(currentLat, currentLng, targetLat, targetLng) <= radiusMeters
+    }
+
+    override fun isWithinRadiusWithHysteresis(
+        currentLat: Double,
+        currentLng: Double,
+        targetLat: Double,
+        targetLng: Double,
+        radiusMeters: Float,
+        isCurrentlyInside: Boolean,
+        hysteresisMarginMeters: Float
+    ): Boolean {
+        val distance = calculateDistanceMeters(currentLat, currentLng, targetLat, targetLng)
+        return if (isCurrentlyInside) {
+            // Player stays inside until distance exceeds radius + margin (e.g. 25m + 3m = 28m)
+            distance <= (radiusMeters + hysteresisMarginMeters)
+        } else {
+            // Player enters only when distance is within exact radius
+            distance <= radiusMeters
+        }
     }
 }
