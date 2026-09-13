@@ -26,6 +26,19 @@
 
 ---
 
+## 👥 6-Member Responsibility Split
+
+| Member | Handles | Responsibility in the Game | Associated Workplan Document |
+| :--- | :--- | :--- | :--- |
+| **M1** | **Player UI & Navigation** | Handles what the **player sees and navigates through** — Login, Games list, Game Details, Join Game, Map/Gameplay navigation, Leaderboard, common UI and navigation. | 📄 [Member1_UI_UX_NAVIGATION_WORKPLAN.md](./documentation/Member1_UI_UX_NAVIGATION_WORKPLAN.md) |
+| **M2** | **Creator & Game Management** | Handles the **game creator side** — Create Game, add/edit checkpoints, set clues/lore/location/settings, save drafts, and publish games. | 📄 [Member2_QUEST_SCAN_UI_WORKPLAN.md](./documentation/Member2_QUEST_SCAN_UI_WORKPLAN.md) |
+| **M3** | **Location + Sensors + Fusion** | Handles the **physical detection system** — GPS, map location, geofencing, distance, accelerometer, light sensor, motion detection, fusion calculation, and proximity verification. | 📄 [Member3_LOCATION_GEOFENCING_WORKPLAN.md](./documentation/Member3_LOCATION_GEOFENCING_WORKPLAN.md) |
+| **M4** | **Quest & Scan Gameplay** | Handles the **actual checkpoint discovery experience** — checkpoint screen, scan interface, fusion meter, scanning states, success/failure, and reveal of the discovered checkpoint/relic. | 📄 [Member4_SENSOR_FUSION_WORKPLAN.md](./documentation/Member4_SENSOR_FUSION_WORKPLAN.md) |
+| **M5** | **Firebase & Backend** | Handles the **online/shared data** — Firebase Auth, Firestore games/checkpoints/players/progress, game-specific leaderboards, security rules, and new-game FCM notifications. | 📄 [Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md](./documentation/Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md) |
+| **M6** | **Room + Repository + Sync** | Handles the **local data and connection between systems** — Room database, DAOs, local cache, Repository layer, offline storage, pending sync, Firebase↔Room synchronization, and overall integration. | 📄 [Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md](./documentation/Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md) |
+
+---
+
 ## 📚 Project Documentation Catalog
 
 The project contains complete, production-ready specifications organized into the following categories:
@@ -70,14 +83,14 @@ campus-quest/
 ### 2. 👥 Member Workplans & Individual Role Assignments
 *Dedicated, end-to-end implementation roadmaps, contracts, and deliverables for each engineering team member.*
 
-| Member & Role | Workplan Document | Core Responsibilities & Modules |
-| :--- | :--- | :--- |
-| **Member 1**<br>*(Frontend & Navigation Lead)* | 📄 [Member1_UI_UX_NAVIGATION_WORKPLAN.md](./documentation/Member1_UI_UX_NAVIGATION_WORKPLAN.md) | **App Shell, Navigation Graph & Creator Wizard**<br>• Navigation Component & SafeArgs graph<br>• Game Creator multi-step quest authoring wizard<br>• Quest Discovery & Player Dashboard UI |
-| **Member 2**<br>*(Quest & Scan UI Specialist)* | 📄 [Member2_QUEST_SCAN_UI_WORKPLAN.md](./documentation/Member2_QUEST_SCAN_UI_WORKPLAN.md) | **Quest Gameplay, AR/Camera HUD & Scan UI**<br>• Live Quest HUD & CameraX overlay<br>• Real-time Sensor Fusion visualization meter<br>• Clue reveal animations & Reward celebration dialogs |
-| **Member 3**<br>*(Device & Location Specialist)* | 📄 [Member3_LOCATION_GEOFENCING_WORKPLAN.md](./documentation/Member3_LOCATION_GEOFENCING_WORKPLAN.md) | **Google Maps, Fused Location & Geofencing**<br>• Dynamic GPS geofence creation & lifecycle management<br>• `FusedLocationProviderClient` tracking & distance matrix<br>• Custom campus map styling & radar proximity circles |
-| **Member 4**<br>*(Hardware Sensors Specialist)* | 📄 [Member4_SENSOR_FUSION_WORKPLAN.md](./documentation/Member4_SENSOR_FUSION_WORKPLAN.md) | **Sensor Fusion Engine & Hardware Verification**<br>• 3-axis Accelerometer shake & tilt vector calculations<br>• Ambient Light sensor (lux) illumination thresholds<br>• Proximity gate detection & Sensor Fusion algorithm |
-| **Member 5**<br>*(Cloud Backend Specialist)* | 📄 [Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md](./documentation/Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md) | **Firebase Cloud Sync, Auth, Firestore & FCM**<br>• Firebase Auth & Role-Based Access Control (RBAC)<br>• Cloud Firestore remote collections & Security Rules<br>• FCM Push Notification broadcasting for new quests |
-| **Member 6**<br>*(Data Architecture & Lead Integrator)* | 📄 [Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md](./documentation/Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md) | **Room Persistence, Offline Sync & Repositories**<br>• Room Database schema, DAOs & TypeConverters<br>• Offline mutation sync queue with rollback recovery<br>• Unified Repository implementation & Integration coordinator |
+| Member | Focus Area | Workplan Document | Key Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Member 1 (M1)** | **Player UI & Navigation** | 📄 [Member1_UI_UX_NAVIGATION_WORKPLAN.md](./documentation/Member1_UI_UX_NAVIGATION_WORKPLAN.md) | Login, Games list, Game Details, Join Game, Map/Gameplay navigation, Leaderboard, common UI and navigation. |
+| **Member 2 (M2)** | **Creator & Game Management** | 📄 [Member2_QUEST_SCAN_UI_WORKPLAN.md](./documentation/Member2_QUEST_SCAN_UI_WORKPLAN.md) | Create Game, add/edit checkpoints, set clues/lore/location/settings, save drafts, and publish games. |
+| **Member 3 (M3)** | **Location + Sensors + Fusion** | 📄 [Member3_LOCATION_GEOFENCING_WORKPLAN.md](./documentation/Member3_LOCATION_GEOFENCING_WORKPLAN.md) | GPS, map location, geofencing, distance, accelerometer, light sensor, motion detection, fusion calculation, and proximity verification. |
+| **Member 4 (M4)** | **Quest & Scan Gameplay** | 📄 [Member4_SENSOR_FUSION_WORKPLAN.md](./documentation/Member4_SENSOR_FUSION_WORKPLAN.md) | Checkpoint screen, scan interface, fusion meter, scanning states, success/failure, and reveal of the discovered checkpoint/relic. |
+| **Member 5 (M5)** | **Firebase & Backend** | 📄 [Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md](./documentation/Member5_FIREBASE_CLOUD_SYNC_WORKPLAN.md) | Firebase Auth, Firestore games/checkpoints/players/progress, game-specific leaderboards, security rules, and new-game FCM notifications. |
+| **Member 6 (M6)** | **Room + Repository + Sync** | 📄 [Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md](./documentation/Member6_ROOM_DATA_INTEGRATION_WORKPLAN.md) | Room database, DAOs, local cache, Repository layer, offline storage, pending sync, Firebase↔Room synchronization, and overall integration. |
 
 ---
 
@@ -148,12 +161,12 @@ graph TD
 
 Developed as part of the **Mobile Application Development** curriculum:
 
-- **Member 1:** Frontend Architecture, Navigation Graph & Creator Wizard UI
-- **Member 2:** Live Quest HUD, CameraX & Sensor Fusion Presentation UI
-- **Member 3:** Google Maps SDK, Geofencing API & Location Services
-- **Member 4:** Android Sensor Framework & Multi-Sensor Fusion Engine
-- **Member 5:** Firebase Authentication, Cloud Firestore & FCM Notification Cloud Services
-- **Member 6:** Room Local Persistence, Offline Sync Queue & Repository Integration
+- **Member 1 (M1):** Player UI & Navigation — Login, Games list, Game Details, Join Game, Map/Gameplay navigation, Leaderboard, common UI and navigation.
+- **Member 2 (M2):** Creator & Game Management — Create Game, add/edit checkpoints, set clues/lore/location/settings, save drafts, and publish games.
+- **Member 3 (M3):** Location + Sensors + Fusion — GPS, map location, geofencing, distance, accelerometer, light sensor, motion detection, fusion calculation, and proximity verification.
+- **Member 4 (M4):** Quest & Scan Gameplay — Checkpoint screen, scan interface, fusion meter, scanning states, success/failure, and reveal of the discovered checkpoint/relic.
+- **Member 5 (M5):** Firebase & Backend — Firebase Auth, Firestore games/checkpoints/players/progress, game-specific leaderboards, security rules, and new-game FCM notifications.
+- **Member 6 (M6):** Room + Repository + Sync — Room database, DAOs, local cache, Repository layer, offline storage, pending sync, Firebase↔Room synchronization, and overall integration.
 
 ---
 
