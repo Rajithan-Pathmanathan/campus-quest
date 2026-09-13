@@ -4,16 +4,30 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.campusquest.R
-import com.campusquest.data.mock.MockDataCatalog
 import com.campusquest.databinding.FragmentGameDetailBinding
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+/**
+ * Quest Details and Checkpoint Overview Screen.
+ * Displays quest lore, sequential checkpoint chain, and start/leaderboard actions.
+ */
 class GameDetailFragment : Fragment() {
 
     private var _binding: FragmentGameDetailBinding? = null
     private val binding get() = _binding!!
+
+    private val viewModel: GameDetailViewModel by viewModels()
+    private lateinit var checkpointsAdapter: CheckpointsPreviewAdapter
+
+    private var currentGameId: String = ""
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -27,29 +41,59 @@ class GameDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        val gameId = arguments?.getString("gameId") ?: "GAME_HERITAGE_001"
-        val game = MockDataCatalog.allSampleGames.find { it.id == gameId } ?: MockDataCatalog.sampleGame1
+        currentGameId = arguments?.getString("gameId") ?: "GAME_HERITAGE_001"
 
-        binding.tvTitle.text = game.title
-        binding.tvCreator.text = "Created by: ${game.creatorName}"
-        binding.tvDescription.text = game.description
+        setupRecyclerView()
+        observeUiState()
 
-        binding.toolbar.setNavigationOnClickListener {
-            findNavController().navigateUp()
-        }
+        viewModel.loadGameDetails(currentGameId)
 
         binding.btnStartQuest.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("gameId", gameId)
-            }
-            findNavController().navigate(R.id.action_gameDetail_to_campusMap, bundle)
+            viewModel.joinQuest()
+            val args = bundleOf("gameId" to currentGameId)
+            findNavController().navigate(R.id.action_gameDetail_to_campusMap, args)
         }
 
         binding.btnViewLeaderboard.setOnClickListener {
-            val bundle = Bundle().apply {
-                putString("gameId", gameId)
+            val args = bundleOf("gameId" to currentGameId)
+            findNavController().navigate(R.id.action_gameDetail_to_leaderboard, args)
+        }
+
+        binding.btnRetry.setOnClickListener {
+            viewModel.loadGameDetails(currentGameId)
+        }
+    }
+
+    private fun setupRecyclerView() {
+        checkpointsAdapter = CheckpointsPreviewAdapter()
+        binding.rvCheckpoints.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvCheckpoints.adapter = checkpointsAdapter
+    }
+
+    private fun observeUiState() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewModel.uiState.collectLatest { state ->
+                binding.progressBar.visibility = if (state.isLoading) View.VISIBLE else View.GONE
+
+                if (state.errorMessage != null) {
+                    binding.layoutErrorState.visibility = View.VISIBLE
+                    binding.tvErrorMessage.text = state.errorMessage
+                    binding.scrollContent.visibility = View.GONE
+                } else {
+                    binding.layoutErrorState.visibility = View.GONE
+                    binding.scrollContent.visibility = if (state.isLoading) View.GONE else View.VISIBLE
+                }
+
+                state.game?.let { game ->
+                    binding.tvDetailTitle.text = game.title
+                    binding.tvDetailCreator.text = "Created by ${game.creatorName}"
+                    binding.tvDetailDescription.text = game.description
+                    binding.tvDetailStatusBadge.text = game.status.name
+                    binding.tvDetailCheckpointBadge.text = "📍 ${state.checkpoints.size} Checkpoints"
+                }
+
+                checkpointsAdapter.submitList(state.checkpoints)
             }
-            findNavController().navigate(R.id.action_gameDetail_to_leaderboard, bundle)
         }
     }
 
