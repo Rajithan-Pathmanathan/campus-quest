@@ -1,109 +1,231 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/background_light">
+    android:background="@color/bg_dark_base">
 
-    <com.google.android.material.appbar.MaterialToolbar
-        android:id="@+id/toolbar"
+    <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary_emerald"
-        app:title="@string/creator_create_game_title"
-        app:titleTextColor="@color/on_primary_emerald"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        android:background="@color/bg_dark_surface">
+
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:navigationIcon="@android:drawable/ic_menu_revert"
+            app:navigationIconTint="@color/primary_cyan"
+            app:title="Quest Creation Wizard"
+            app:titleTextColor="@color/text_primary"
+            app:subtitle="Build &amp; Chain Campus Checkpoints"
+            app:subtitleTextColor="@color/primary_cyan" />
+    </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:padding="@dimen/spacing_m">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:paddingBottom="100dp">
 
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_title"
+            <!-- Card 1: Quest Identity Metadata -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="@string/creator_game_title_hint"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
-
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
-            </com.google.android.material.textfield.TextInputLayout>
-
-            <com.google.android.material.textfield.TextInputLayout
-                android:id="@+id/til_desc"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:hint="@string/creator_game_desc_hint"
+                android:layout_marginHorizontal="@dimen/spacing_m"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                app:cardCornerRadius="@dimen/card_corner_radius"
+                app:cardElevation="@dimen/elevation_standard"
+                app:cardBackgroundColor="@color/bg_dark_card"
+                app:strokeColor="@color/border_cyber"
+                app:strokeWidth="1dp">
 
-                <com.google.android.material.textfield.TextInputEditText
-                    android:id="@+id/et_desc"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:lines="3" />
-            </com.google.android.material.textfield.TextInputLayout>
+                    android:orientation="vertical"
+                    android:padding="@dimen/spacing_m">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Configured Checkpoints"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"
-                android:layout_marginTop="@dimen/spacing_l" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="QUEST METADATA"
+                        android:textColor="@color/primary_cyan"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
 
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_editor_checkpoints"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/spacing_s" />
+                    <!-- Title Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_game_title"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_s"
+                        android:hint="Quest Title (e.g. Quantum Physics Mystery)">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_add_checkpoint"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="📍 Add Dynamic Checkpoint"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_marginTop="@dimen/spacing_m" />
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_game_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_primary"
+                            android:inputType="textCapWords" />
+                    </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Description Input -->
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/til_game_desc"
+                        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/spacing_s"
+                        android:hint="Backstory &amp; Mission Description">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_game_desc"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:textColor="@color/text_primary"
+                            android:inputType="textMultiLine"
+                            android:minLines="3"
+                            android:gravity="top|start" />
+                    </com.google.android.material.textfield.TextInputLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card 2: Checkpoint Discovery Chain Section -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginTop="@dimen/spacing_xl">
+                android:gravity="center_vertical"
+                android:layout_marginHorizontal="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_l">
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_save_draft"
+                <TextView
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="@string/creator_save_draft"
-                    style="@style/Widget.Material3.Button.TonalButton"
-                    android:layout_marginEnd="@dimen/spacing_xs" />
+                    android:text="DISCOVERY SEQUENCE CHAIN"
+                    android:textColor="@color/secondary_amber"
+                    android:textSize="12sp"
+                    android:textStyle="bold" />
 
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_publish"
-                    android:layout_width="0dp"
+                <TextView
+                    android:id="@+id/tv_sequence_requirement_badge"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:text="@string/creator_publish_quest"
-                    android:backgroundTint="@color/primary_emerald"
-                    android:layout_marginStart="@dimen/spacing_xs" />
+                    android:text="2 of 2 Required"
+                    android:textColor="@color/on_primary_emerald"
+                    android:background="@drawable/bg_badge_emerald"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp" />
+            </LinearLayout>
+
+            <!-- Add Checkpoint Button -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_add_checkpoint"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="@dimen/spacing_m"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="➕ Add New Checkpoint"
+                android:textColor="@color/primary_cyan"
+                android:backgroundTint="@color/bg_dark_card_elevated" />
+
+            <!-- Sequence Recycler -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_editor_checkpoints"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                android:layout_marginTop="@dimen/spacing_xs"
+                tools:listitem="@layout/item_editor_checkpoint_row" />
+
+            <!-- Empty Sequence View -->
+            <LinearLayout
+                android:id="@+id/layout_empty_sequence"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:gravity="center"
+                android:padding="@dimen/spacing_l"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="📍"
+                    android:textSize="32sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="No Checkpoints in Chain"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Tap 'Add New Checkpoint' above to configure waypoint #1."
+                    android:textColor="@color/text_secondary"
+                    android:textSize="12sp"
+                    android:textAlignment="center"
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-</LinearLayout>
+    <!-- Bottom Action Floating Panel -->
+    <com.google.android.material.card.MaterialCardView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        app:cardBackgroundColor="@color/hud_background_transparent"
+        app:strokeColor="@color/border_cyber"
+        app:strokeWidth="1dp"
+        app:cardElevation="@dimen/elevation_standard">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="@dimen/spacing_m">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_save_draft"
+                style="@style/Widget.Material3.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="💾 Save Draft"
+                android:textColor="@color/secondary_amber"
+                app:strokeColor="@color/secondary_amber" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_publish"
+                style="@style/Widget.Material3.Button"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1.2"
+                android:layout_marginStart="@dimen/spacing_m"
+                android:text="🚀 Publish Quest"
+                android:backgroundTint="@color/primary_emerald"
+                android:textColor="@color/on_primary_emerald" />
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
