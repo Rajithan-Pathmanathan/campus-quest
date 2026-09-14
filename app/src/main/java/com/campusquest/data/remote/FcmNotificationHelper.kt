@@ -5,8 +5,17 @@ import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.tasks.await
 
 class FcmNotificationHelper(
-    private val firebaseMessaging: FirebaseMessaging = FirebaseMessaging.getInstance()
+    private val customMessaging: FirebaseMessaging? = null
 ) {
+
+    private val firebaseMessaging: FirebaseMessaging? by lazy {
+        if (customMessaging != null) return@lazy customMessaging
+        try {
+            FirebaseMessaging.getInstance()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     companion object {
         private const val TAG = "FcmNotificationHelper"
@@ -14,8 +23,9 @@ class FcmNotificationHelper(
     }
 
     suspend fun subscribeToNewGames(): Result<Unit> {
+        val fcm = firebaseMessaging ?: return Result.failure(IllegalStateException("FCM unavailable"))
         return try {
-            firebaseMessaging.subscribeToTopic(TOPIC_NEW_GAMES).await()
+            fcm.subscribeToTopic(TOPIC_NEW_GAMES).await()
             Log.d(TAG, "Subscribed successfully to topic: $TOPIC_NEW_GAMES")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -25,8 +35,9 @@ class FcmNotificationHelper(
     }
 
     suspend fun unsubscribeFromNewGames(): Result<Unit> {
+        val fcm = firebaseMessaging ?: return Result.failure(IllegalStateException("FCM unavailable"))
         return try {
-            firebaseMessaging.unsubscribeFromTopic(TOPIC_NEW_GAMES).await()
+            fcm.unsubscribeFromTopic(TOPIC_NEW_GAMES).await()
             Log.d(TAG, "Unsubscribed successfully from topic: $TOPIC_NEW_GAMES")
             Result.success(Unit)
         } catch (e: Exception) {
@@ -36,8 +47,9 @@ class FcmNotificationHelper(
     }
 
     suspend fun getDeviceToken(): Result<String> {
+        val fcm = firebaseMessaging ?: return Result.failure(IllegalStateException("FCM unavailable"))
         return try {
-            val token = firebaseMessaging.token.await()
+            val token = fcm.token.await()
             Log.d(TAG, "Retrieved FCM Token: $token")
             Result.success(token)
         } catch (e: Exception) {

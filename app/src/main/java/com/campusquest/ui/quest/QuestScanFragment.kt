@@ -28,7 +28,9 @@ class QuestScanFragment : Fragment() {
     private var _binding: FragmentQuestScanBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: QuestScanViewModel by viewModels()
+    private val viewModel: QuestScanViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private var sensorFusionEngine: SensorFusionEngine? = null
 
     override fun onCreateView(

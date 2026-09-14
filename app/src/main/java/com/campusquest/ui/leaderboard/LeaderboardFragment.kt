@@ -24,7 +24,9 @@ class LeaderboardFragment : Fragment() {
     private var _binding: FragmentLeaderboardBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: LeaderboardViewModel by viewModels()
+    private val viewModel: LeaderboardViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private val leaderboardAdapter = LeaderboardAdapter()
 
     override fun onCreateView(

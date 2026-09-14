@@ -33,7 +33,9 @@ class CampusMapFragment : Fragment(), OnMapReadyCallback {
     private var _binding: FragmentCampusMapBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: CampusMapViewModel by viewModels()
+    private val viewModel: CampusMapViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private var googleMap: GoogleMap? = null
 
     override fun onCreateView(
@@ -179,6 +181,9 @@ class CampusMapFragment : Fragment(), OnMapReadyCallback {
 
     override fun onMapReady(map: GoogleMap) {
         this.googleMap = map
+        if (com.campusquest.BuildConfig.MAPS_API_KEY.contains("Placeholder")) {
+            android.util.Log.i("CampusMapFragment", "Running in offline demo mode. Provide a valid MAPS_API_KEY in local.properties for live Google Maps tiles.")
+        }
         updateMapOverlays(viewModel.uiState.value)
     }
 

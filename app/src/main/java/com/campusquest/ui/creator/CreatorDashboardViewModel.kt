@@ -10,11 +10,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.campusquest.domain.repository.GameRepository
+
 /**
  * ViewModel managing the Creator Studio Dashboard, handling authored quest partitions (Drafts / Published),
  * authoring metrics calculation, and draft mutations (delete/publish).
  */
-class CreatorDashboardViewModel : ViewModel() {
+class CreatorDashboardViewModel(
+    private val gameRepository: GameRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreatorDashboardUiState(isLoading = true))
     val uiState: StateFlow<CreatorDashboardUiState> = _uiState.asStateFlow()
@@ -27,7 +31,11 @@ class CreatorDashboardViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val allGames = customGames ?: getSampleAuthoredGames(creatorId, creatorName)
+            val repoGames = try { gameRepository?.getAvailableGames() } catch (e: Exception) { null }
+            val allGames = customGames
+                ?: repoGames?.ifEmpty { null }
+                ?: getSampleAuthoredGames(creatorId, creatorName)
+
             val drafts = allGames.filter { it.status == GameStatus.DRAFT }
             val published = allGames.filter { it.status == GameStatus.PUBLISHED }
             val totalCheckpoints = allGames.sumOf { it.checkpointCount }
@@ -61,6 +69,15 @@ class CreatorDashboardViewModel : ViewModel() {
     }
 
     fun publishGame(gameId: String) {
+        viewModelScope.launch {
+            if (gameRepository != null) {
+                try {
+                    gameRepository.publishGame(gameId)
+                } catch (e: Exception) {
+                    // Handled
+                }
+            }
+        }
         _uiState.update { current ->
             val draftToPublish = current.draftGames.find { it.id == gameId }
             if (draftToPublish != null) {

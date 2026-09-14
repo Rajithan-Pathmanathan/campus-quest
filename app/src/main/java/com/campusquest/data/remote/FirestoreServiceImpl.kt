@@ -16,11 +16,21 @@ import com.google.firebase.firestore.Query
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.tasks.await
 
 class FirestoreServiceImpl(
-    private val firestore: FirebaseFirestore = FirebaseFirestore.getInstance()
+    private val customFirestore: FirebaseFirestore? = null
 ) : FirestoreService {
+
+    private val firestore: FirebaseFirestore? by lazy {
+        if (customFirestore != null) return@lazy customFirestore
+        try {
+            FirebaseFirestore.getInstance()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     companion object {
         private const val COLLECTION_GAMES = "games"
@@ -32,8 +42,9 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun fetchPublishedGames(): Result<List<Game>> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            val snapshot = firestore.collection(COLLECTION_GAMES)
+            val snapshot = fs.collection(COLLECTION_GAMES)
                 .whereEqualTo("status", GameStatus.PUBLISHED.name)
                 .get()
                 .await()
@@ -48,8 +59,9 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun fetchGameById(gameId: String): Result<Game?> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            val doc = firestore.collection(COLLECTION_GAMES)
+            val doc = fs.collection(COLLECTION_GAMES)
                 .document(gameId)
                 .get()
                 .await()
@@ -62,8 +74,9 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun fetchGameCheckpoints(gameId: String): Result<List<Checkpoint>> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            val snapshot = firestore.collection(COLLECTION_GAMES)
+            val snapshot = fs.collection(COLLECTION_GAMES)
                 .document(gameId)
                 .collection(COLLECTION_CHECKPOINTS)
                 .orderBy("order", Query.Direction.ASCENDING)
@@ -80,9 +93,10 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun publishGame(game: Game, checkpoints: List<Checkpoint>): Result<Unit> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            val batch = firestore.batch()
-            val gameRef = firestore.collection(COLLECTION_GAMES).document(game.id)
+            val batch = fs.batch()
+            val gameRef = fs.collection(COLLECTION_GAMES).document(game.id)
             batch.set(gameRef, FirestoreGameDto.fromDomain(game))
 
             val checkpointsCollection = gameRef.collection(COLLECTION_CHECKPOINTS)
@@ -99,9 +113,10 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun savePlayerProgress(progress: PlayerProgress): Result<Unit> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
             val docId = "${progress.userId}_${progress.gameId}"
-            firestore.collection(COLLECTION_PROGRESS)
+            fs.collection(COLLECTION_PROGRESS)
                 .document(docId)
                 .set(FirestoreProgressDto.fromDomain(progress))
                 .await()
@@ -112,9 +127,10 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun getPlayerProgress(gameId: String, userId: String): Result<PlayerProgress?> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
             val docId = "${userId}_${gameId}"
-            val doc = firestore.collection(COLLECTION_PROGRESS)
+            val doc = fs.collection(COLLECTION_PROGRESS)
                 .document(docId)
                 .get()
                 .await()
@@ -126,34 +142,38 @@ class FirestoreServiceImpl(
         }
     }
 
-    override fun observeLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> = callbackFlow {
-        val listenerRegistration = firestore.collection(COLLECTION_LEADERBOARDS)
-            .document(gameId)
-            .collection(COLLECTION_ENTRIES)
-            .orderBy("score", Query.Direction.DESCENDING)
-            .orderBy("completionTimeSeconds", Query.Direction.ASCENDING)
-            .addSnapshotListener { snapshot, error ->
-                if (error != null) {
-                    close(error)
-                    return@addSnapshotListener
-                }
-
-                if (snapshot != null) {
-                    val entries = snapshot.documents.mapIndexedNotNull { index, doc ->
-                        doc.toObject(FirestoreLeaderboardEntryDto::class.java)?.toDomain()?.copy(rank = index + 1)
+    override fun observeLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> {
+        val fs = firestore ?: return emptyFlow()
+        return callbackFlow {
+            val listenerRegistration = fs.collection(COLLECTION_LEADERBOARDS)
+                .document(gameId)
+                .collection(COLLECTION_ENTRIES)
+                .orderBy("score", Query.Direction.DESCENDING)
+                .orderBy("completionTimeSeconds", Query.Direction.ASCENDING)
+                .addSnapshotListener { snapshot, error ->
+                    if (error != null) {
+                        close(error)
+                        return@addSnapshotListener
                     }
-                    trySend(entries)
-                }
-            }
 
-        awaitClose {
-            listenerRegistration.remove()
+                    if (snapshot != null) {
+                        val entries = snapshot.documents.mapIndexedNotNull { index, doc ->
+                            doc.toObject(FirestoreLeaderboardEntryDto::class.java)?.toDomain()?.copy(rank = index + 1)
+                        }
+                        trySend(entries)
+                    }
+                }
+
+            awaitClose {
+                listenerRegistration.remove()
+            }
         }
     }
 
     override suspend fun submitLeaderboardEntry(gameId: String, entry: GameLeaderboardEntry): Result<Unit> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            firestore.collection(COLLECTION_LEADERBOARDS)
+            fs.collection(COLLECTION_LEADERBOARDS)
                 .document(gameId)
                 .collection(COLLECTION_ENTRIES)
                 .document(entry.userId)
@@ -166,8 +186,9 @@ class FirestoreServiceImpl(
     }
 
     override suspend fun saveUserProfile(authUser: AuthUser): Result<Unit> {
+        val fs = firestore ?: return Result.failure(IllegalStateException("Firestore unavailable"))
         return try {
-            firestore.collection(COLLECTION_USERS)
+            fs.collection(COLLECTION_USERS)
                 .document(authUser.uid)
                 .set(FirestoreUserDto.fromDomain(authUser))
                 .await()

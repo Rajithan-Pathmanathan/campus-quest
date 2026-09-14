@@ -46,6 +46,14 @@ class GameRepositoryImpl(
                 }
             }
         }
+
+        if (localGames.isEmpty()) {
+            val seedGames = com.campusquest.data.mock.MockDataCatalog.allSampleGames
+            gameDao.insertGames(seedGames.map { GameEntity.fromDomain(it) })
+            checkpointDao.insertCheckpoints(com.campusquest.data.mock.MockDataCatalog.sampleCheckpointsGame1.map { CheckpointEntity.fromDomain(it) })
+            return seedGames.filter { it.status == GameStatus.PUBLISHED }
+        }
+
         return localGames
     }
 

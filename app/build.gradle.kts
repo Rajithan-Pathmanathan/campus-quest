@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -23,8 +25,19 @@ android {
             useSupportLibrary = true
         }
 
-        // Default placeholder for Google Maps API Key
-        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSy_CampusQuest_Default_Placeholder_Key"
+        // Load Google Maps API Key from local.properties, system env, or default placeholder
+        val localProps = Properties()
+        val localFile = rootProject.file("local.properties")
+        if (localFile.exists()) {
+            localFile.inputStream().use { localProps.load(it) }
+        }
+        val mapsApiKey: String = (project.findProperty("MAPS_API_KEY") as? String)
+            ?: System.getenv("MAPS_API_KEY")
+            ?: localProps.getProperty("MAPS_API_KEY")
+            ?: "AIzaSy_CampusQuest_Default_Placeholder_Key"
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("String", "MAPS_API_KEY", "\"$mapsApiKey\"")
     }
 
     buildTypes {

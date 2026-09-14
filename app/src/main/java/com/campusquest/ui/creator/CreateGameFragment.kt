@@ -27,7 +27,9 @@ class CreateGameFragment : Fragment() {
     private var _binding: FragmentCreateGameBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: CreateGameViewModel by viewModels()
+    private val viewModel: CreateGameViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private lateinit var adapter: EditorCheckpointsAdapter
 
     override fun onCreateView(

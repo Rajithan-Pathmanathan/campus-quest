@@ -26,7 +26,9 @@ class GamesListFragment : Fragment() {
     private var _binding: FragmentGamesListBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: GamesListViewModel by viewModels()
+    private val viewModel: GamesListViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private lateinit var adapter: GamesAdapter
 
     override fun onCreateView(

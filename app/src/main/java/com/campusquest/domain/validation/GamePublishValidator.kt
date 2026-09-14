@@ -46,7 +46,7 @@ class GamePublishValidator {
 
         // 3. Minimum Checkpoints Rule
         if (checkpoints.size < 2) {
-            errors.add(ValidationError("checkpoints", "A quest must contain at least 2 checkpoints (found ${checkpoints.size})."))
+            errors.add(ValidationError("checkpoints", "A quest must contain at least 2 checkpoints (minimum 2 required, found ${checkpoints.size})."))
         }
 
         // 4. Sequential Ordering Rule (1..N)

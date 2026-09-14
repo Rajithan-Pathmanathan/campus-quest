@@ -12,10 +12,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.campusquest.domain.repository.GameRepository
+
 /**
  * ViewModel managing the Quest Details view, checkpoint sequence previews, and the player join session.
  */
-class GameDetailViewModel : ViewModel() {
+class GameDetailViewModel(
+    private val gameRepository: GameRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GameDetailUiState(isLoading = true))
     val uiState: StateFlow<GameDetailUiState> = _uiState.asStateFlow()
@@ -28,8 +32,12 @@ class GameDetailViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val game = customGame ?: getSampleGame(gameId)
-            val checkpoints = (customCheckpoints ?: getSampleCheckpoints(gameId)).sortedBy { it.order }
+            val game = customGame
+                ?: (try { gameRepository?.getGameDetails(gameId) } catch (e: Exception) { null })
+                ?: getSampleGame(gameId)
+
+            val repoCheckpoints = try { gameRepository?.getGameCheckpoints(gameId) } catch (e: Exception) { null }
+            val checkpoints = (customCheckpoints ?: repoCheckpoints?.ifEmpty { null } ?: getSampleCheckpoints(gameId)).sortedBy { it.order }
 
             if (game != null) {
                 _uiState.update {
@@ -54,8 +62,18 @@ class GameDetailViewModel : ViewModel() {
         }
     }
 
-    fun joinQuest() {
+    fun joinQuest(gameId: String? = null) {
+        val targetId = gameId ?: _uiState.value.game?.id
         _uiState.update { it.copy(isJoined = true) }
+        if (targetId != null && gameRepository != null) {
+            viewModelScope.launch {
+                try {
+                    gameRepository.joinGame(targetId)
+                } catch (e: Exception) {
+                    // Handled
+                }
+            }
+        }
     }
 
     private fun getSampleGame(gameId: String): Game? {

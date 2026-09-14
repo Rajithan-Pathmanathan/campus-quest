@@ -24,7 +24,9 @@ class GameDetailFragment : Fragment() {
     private var _binding: FragmentGameDetailBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: GameDetailViewModel by viewModels()
+    private val viewModel: GameDetailViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
     private lateinit var checkpointsAdapter: CheckpointsPreviewAdapter
 
     private var currentGameId: String = ""

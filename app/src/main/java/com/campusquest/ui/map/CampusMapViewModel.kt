@@ -13,12 +13,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.campusquest.domain.repository.GameRepository
+
 /**
  * ViewModel orchestrating the interactive Campus Map UI, tracking player location,
  * geofence boundary visual states, active target waypoint, and scan trigger eligibility.
  */
 class CampusMapViewModel(
-    private val dataProvider: MapGeofenceDataProvider = MapGeofenceDataProvider()
+    private val dataProvider: MapGeofenceDataProvider = MapGeofenceDataProvider(),
+    private val gameRepository: GameRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CampusMapUiState(isLoading = true))
@@ -32,8 +35,11 @@ class CampusMapViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val title = customTitle ?: getSampleTitle(gameId)
-            val checkpoints = (customCheckpoints ?: getSampleCheckpoints(gameId)).sortedBy { it.order }
+            val repoGame = try { gameRepository?.getGameDetails(gameId) } catch (e: Exception) { null }
+            val title = customTitle ?: repoGame?.title ?: getSampleTitle(gameId)
+
+            val repoCheckpoints = try { gameRepository?.getGameCheckpoints(gameId) } catch (e: Exception) { null }
+            val checkpoints = (customCheckpoints ?: repoCheckpoints?.ifEmpty { null } ?: getSampleCheckpoints(gameId)).sortedBy { it.order }
 
             if (checkpoints.isNotEmpty()) {
                 _uiState.update {

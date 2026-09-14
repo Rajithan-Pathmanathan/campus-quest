@@ -3,6 +3,7 @@ package com.campusquest.ui.leaderboard
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusquest.domain.model.GameLeaderboardEntry
+import com.campusquest.domain.repository.GameRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,7 +14,9 @@ import kotlinx.coroutines.launch
  * ViewModel managing the Quest Leaderboard rankings, sorting by score and completion time,
  * extracting podium champions (1st, 2nd, 3rd), and identifying player position.
  */
-class LeaderboardViewModel : ViewModel() {
+class LeaderboardViewModel(
+    private val gameRepository: GameRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LeaderboardUiState(isLoading = true))
     val uiState: StateFlow<LeaderboardUiState> = _uiState.asStateFlow()
@@ -27,47 +30,64 @@ class LeaderboardViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val title = customTitle ?: getSampleTitle(gameId)
-            val rawEntries = customEntries ?: getSampleLeaderboardEntries(gameId)
+            val repoGame = try { gameRepository?.getGameDetails(gameId) } catch (e: Exception) { null }
+            val title = customTitle ?: repoGame?.title ?: getSampleTitle(gameId)
 
-            if (rawEntries.isNotEmpty()) {
-                // Primary: Score descending, Secondary: Completion time ascending
-                val sorted = rawEntries
-                    .sortedWith(
-                        compareByDescending<GameLeaderboardEntry> { it.score }
-                            .thenBy { it.completionTimeSeconds }
-                    )
-                    .mapIndexed { index, entry ->
-                        entry.copy(rank = index + 1)
-                    }
-
-                val podium = sorted.take(3)
-                val remaining = if (sorted.size > 3) sorted.drop(3) else emptyList()
-                val currentPlayer = sorted.find { it.userId == currentUserId }
-
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        gameId = gameId,
-                        gameTitle = title,
-                        podiumEntries = podium,
-                        rankedEntries = remaining,
-                        currentPlayerEntry = currentPlayer,
-                        errorMessage = null
-                    )
+            if (customEntries != null) {
+                processEntries(gameId, title, customEntries, currentUserId)
+            } else if (gameRepository != null) {
+                gameRepository.observeGameLeaderboard(gameId).collect { entries ->
+                    val finalEntries = entries.ifEmpty { getSampleLeaderboardEntries(gameId) }
+                    processEntries(gameId, title, finalEntries, currentUserId)
                 }
             } else {
-                _uiState.update {
-                    it.copy(
-                        isLoading = false,
-                        gameId = gameId,
-                        gameTitle = title,
-                        podiumEntries = emptyList(),
-                        rankedEntries = emptyList(),
-                        currentPlayerEntry = null,
-                        errorMessage = null
-                    )
+                processEntries(gameId, title, getSampleLeaderboardEntries(gameId), currentUserId)
+            }
+        }
+    }
+
+    private fun processEntries(
+        gameId: String,
+        title: String,
+        rawEntries: List<GameLeaderboardEntry>,
+        currentUserId: String
+    ) {
+        if (rawEntries.isNotEmpty()) {
+            val sorted = rawEntries
+                .sortedWith(
+                    compareByDescending<GameLeaderboardEntry> { it.score }
+                        .thenBy { it.completionTimeSeconds }
+                )
+                .mapIndexed { index, entry ->
+                    entry.copy(rank = index + 1)
                 }
+
+            val podium = sorted.take(3)
+            val remaining = if (sorted.size > 3) sorted.drop(3) else emptyList()
+            val currentPlayer = sorted.find { it.userId == currentUserId }
+
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    gameId = gameId,
+                    gameTitle = title,
+                    podiumEntries = podium,
+                    rankedEntries = remaining,
+                    currentPlayerEntry = currentPlayer,
+                    errorMessage = null
+                )
+            }
+        } else {
+            _uiState.update {
+                it.copy(
+                    isLoading = false,
+                    gameId = gameId,
+                    gameTitle = title,
+                    podiumEntries = emptyList(),
+                    rankedEntries = emptyList(),
+                    currentPlayerEntry = null,
+                    errorMessage = null
+                )
             }
         }
     }

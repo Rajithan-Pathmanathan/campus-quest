@@ -13,6 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.campusquest.domain.repository.GameRepository
+
 /**
  * ViewModel orchestrating the Live Scan HUD, multi-sensor signal normalization,
  * weighted fusion progression, and proximity gate confirmation.
@@ -25,7 +27,8 @@ class QuestScanViewModel(
             motionWeight = 0.30f,
             threshold = 0.85f
         )
-    )
+    ),
+    private val gameRepository: GameRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(QuestScanUiState())
@@ -39,7 +42,10 @@ class QuestScanViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(scanState = ScanState.ENTERING, gameId = gameId, checkpointId = checkpointId) }
 
-            val cp = customCheckpoint ?: getSampleCheckpoint(gameId, checkpointId)
+            val repoCheckpoints = try { gameRepository?.getGameCheckpoints(gameId) } catch (e: Exception) { null }
+            val cp = customCheckpoint
+                ?: repoCheckpoints?.find { it.id == checkpointId }
+                ?: getSampleCheckpoint(gameId, checkpointId)
 
             _uiState.update {
                 it.copy(
@@ -99,6 +105,19 @@ class QuestScanViewModel(
     fun claimDiscovery(): Boolean {
         val state = _uiState.value
         return if (state.canClaimDiscovery) {
+            viewModelScope.launch {
+                if (gameRepository != null && state.gameId.isNotBlank() && state.checkpointId.isNotBlank()) {
+                    try {
+                        gameRepository.recordDiscovery(
+                            gameId = state.gameId,
+                            checkpointId = state.checkpointId,
+                            foundAt = System.currentTimeMillis()
+                        )
+                    } catch (e: Exception) {
+                        // Handled
+                    }
+                }
+            }
             _uiState.update {
                 it.copy(
                     scanState = ScanState.DISCOVERED,

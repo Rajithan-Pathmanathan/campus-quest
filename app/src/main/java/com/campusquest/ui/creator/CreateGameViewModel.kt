@@ -3,7 +3,12 @@ package com.campusquest.ui.creator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusquest.domain.model.Checkpoint
+import com.campusquest.domain.model.Game
+import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.LightSignature
+import com.campusquest.domain.repository.GameRepository
+import com.campusquest.domain.validation.GamePublishValidator
+import com.campusquest.domain.validation.GameValidationResult
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +19,10 @@ import java.util.Collections
 /**
  * ViewModel orchestrating the Quest Creation/Editing Wizard and the Checkpoint Sequence Builder.
  */
-class CreateGameViewModel : ViewModel() {
+class CreateGameViewModel(
+    private val gameRepository: GameRepository? = null,
+    private val validator: GamePublishValidator = GamePublishValidator()
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CreateGameUiState(isLoading = true))
     val uiState: StateFlow<CreateGameUiState> = _uiState.asStateFlow()
@@ -30,19 +38,27 @@ class CreateGameViewModel : ViewModel() {
 
             val targetId = if (!gameId.isNullOrBlank()) gameId else "DRAFT_${System.currentTimeMillis()}"
 
-            val initialTitle = customTitle ?: when (gameId) {
+            val repoGame = try {
+                if (!gameId.isNullOrBlank()) gameRepository?.getGameDetails(gameId) else null
+            } catch (e: Exception) { null }
+
+            val initialTitle = customTitle ?: repoGame?.title ?: when (gameId) {
                 "DRAFT_QUANTUM_LAB_003" -> "Quantum Physics Mystery Quest"
                 "DRAFT_BOTANICAL_CRYPT_004" -> "Campus Botanical Arboreum"
                 else -> if (!gameId.isNullOrBlank()) "Editing Quest: $gameId" else ""
             }
 
-            val initialDesc = customDesc ?: when (gameId) {
+            val initialDesc = customDesc ?: repoGame?.description ?: when (gameId) {
                 "DRAFT_QUANTUM_LAB_003" -> "Locate laser optics labs, particle physics simulators, and sensor resonance nodes."
                 "DRAFT_BOTANICAL_CRYPT_004" -> "Decipher ecological flora markers and ambient light signatures in the botanical gardens."
                 else -> if (!gameId.isNullOrBlank()) "Custom authored exploration quest." else ""
             }
 
-            val initialCheckpoints = (customCheckpoints ?: getSampleDraftCheckpoints(targetId)).sortedBy { it.order }
+            val repoCheckpoints = try {
+                if (!gameId.isNullOrBlank()) gameRepository?.getGameCheckpoints(gameId) else null
+            } catch (e: Exception) { null }
+
+            val initialCheckpoints = (customCheckpoints ?: repoCheckpoints?.ifEmpty { null } ?: getSampleDraftCheckpoints(targetId)).sortedBy { it.order }
 
             _uiState.update {
                 it.copy(
@@ -119,18 +135,71 @@ class CreateGameViewModel : ViewModel() {
     }
 
     fun saveDraft(): Boolean {
+        val state = _uiState.value
+        val game = Game(
+            id = state.gameId,
+            title = state.title.ifBlank { "Untitled Quest" },
+            description = state.description,
+            creatorId = "creator_user",
+            creatorName = "Quest Architect",
+            status = GameStatus.DRAFT,
+            checkpointCount = state.checkpoints.size,
+            createdAt = System.currentTimeMillis()
+        )
+
+        viewModelScope.launch {
+            if (gameRepository != null) {
+                try {
+                    gameRepository.createGame(game)
+                    for (cp in state.checkpoints) {
+                        gameRepository.createCheckpoint(state.gameId, cp)
+                    }
+                } catch (e: Exception) {
+                    // Handled
+                }
+            }
+        }
+
         _uiState.update { it.copy(isDraftSaved = true) }
         return true
     }
 
     fun publishQuest(): Boolean {
         val state = _uiState.value
-        return if (state.canPublish) {
-            _uiState.update { it.copy(isPublished = true, errorMessage = null) }
-            true
-        } else {
-            _uiState.update { it.copy(errorMessage = state.validationMessage) }
-            false
+        val game = Game(
+            id = state.gameId,
+            title = state.title,
+            description = state.description,
+            creatorId = "creator_user",
+            creatorName = "Quest Architect",
+            status = GameStatus.DRAFT,
+            checkpointCount = state.checkpoints.size,
+            createdAt = System.currentTimeMillis()
+        )
+
+        val validationResult = validator.validate(game, state.checkpoints)
+        return when (validationResult) {
+            is GameValidationResult.Valid -> {
+                viewModelScope.launch {
+                    if (gameRepository != null) {
+                        try {
+                            gameRepository.createGame(game)
+                            for (cp in state.checkpoints) {
+                                gameRepository.createCheckpoint(state.gameId, cp)
+                            }
+                            gameRepository.publishGame(state.gameId)
+                        } catch (e: Exception) {
+                            // Handled
+                        }
+                    }
+                }
+                _uiState.update { it.copy(isPublished = true, errorMessage = null) }
+                true
+            }
+            is GameValidationResult.Invalid -> {
+                _uiState.update { it.copy(errorMessage = validationResult.formattedSummary) }
+                false
+            }
         }
     }
 

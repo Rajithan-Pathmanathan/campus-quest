@@ -10,10 +10,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+import com.campusquest.domain.repository.GameRepository
+
 /**
  * ViewModel managing player quest discovery, search query filtering, and status chip selections.
  */
-class GamesListViewModel : ViewModel() {
+class GamesListViewModel(
+    private val gameRepository: GameRepository? = null
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(GamesListUiState(isLoading = true))
     val uiState: StateFlow<GamesListUiState> = _uiState.asStateFlow()
@@ -26,7 +30,9 @@ class GamesListViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
-            val games = initialGames ?: getDemoSeedGames()
+            val games = initialGames
+                ?: (try { gameRepository?.getAvailableGames() } catch (e: Exception) { null })?.ifEmpty { null }
+                ?: getDemoSeedGames()
 
             _uiState.update { current ->
                 val filtered = applyFilters(games, current.searchQuery, current.statusFilter)

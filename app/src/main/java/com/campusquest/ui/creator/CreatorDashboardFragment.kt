@@ -26,7 +26,9 @@ class CreatorDashboardFragment : Fragment() {
     private var _binding: FragmentCreatorDashboardBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: CreatorDashboardViewModel by viewModels()
+    private val viewModel: CreatorDashboardViewModel by viewModels {
+        com.campusquest.ui.common.ViewModelFactory.from(this)
+    }
 
     private lateinit var draftsAdapter: CreatorGamesAdapter
     private lateinit var publishedAdapter: CreatorGamesAdapter
