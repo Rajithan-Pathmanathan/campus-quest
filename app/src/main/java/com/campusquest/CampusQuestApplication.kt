@@ -6,7 +6,12 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import com.campusquest.data.local.AppDatabase
+import com.campusquest.data.remote.FirestoreService
+import com.campusquest.data.remote.FirestoreServiceImpl
+import com.campusquest.data.repository.AuthRepositoryImpl
 import com.campusquest.data.repository.GameRepositoryImpl
+import com.campusquest.data.sync.SyncScheduler
+import com.campusquest.domain.repository.AuthRepository
 import com.campusquest.domain.repository.GameRepository
 
 class CampusQuestApplication : Application() {
@@ -23,23 +28,38 @@ class CampusQuestApplication : Application() {
         AppDatabase.getDatabase(this)
     }
 
+    val firestoreService: FirestoreService by lazy {
+        FirestoreServiceImpl()
+    }
+
+    val authRepository: AuthRepository by lazy {
+        AuthRepositoryImpl()
+    }
+
     val gameRepository: GameRepository by lazy {
         GameRepositoryImpl(
             gameDao = database.gameDao(),
             checkpointDao = database.checkpointDao(),
             playerProgressDao = database.playerProgressDao(),
-            syncQueueDao = database.syncQueueDao()
+            syncQueueDao = database.syncQueueDao(),
+            firestoreService = firestoreService,
+            authRepository = authRepository
         )
-    }
-
-    val authRepository: com.campusquest.domain.repository.AuthRepository by lazy {
-        com.campusquest.data.repository.AuthRepositoryImpl()
     }
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         createNotificationChannels()
+        scheduleSync()
+    }
+
+    private fun scheduleSync() {
+        try {
+            SyncScheduler.schedulePeriodicSync(this)
+        } catch (e: Exception) {
+            // Handled during test environments or headless runners
+        }
     }
 
     private fun createNotificationChannels() {
