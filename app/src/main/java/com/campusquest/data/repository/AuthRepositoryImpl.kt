@@ -10,8 +10,25 @@ import kotlinx.coroutines.tasks.await
 class AuthRepositoryImpl(
     private val auth: FirebaseAuth
 ) : AuthRepository {
-    override val currentUserState: StateFlow<AuthUser?>
-        get() = TODO("Not yet implemented")
+    private val _currentUserState = MutableStateFlow<AuthUser?>(null)
+
+    override val currentUserState: StateFlow<AuthUser?> = _currentUserState
+
+    init {
+        auth.addAuthStateListener { firebaseAuth ->
+            val user = firebaseAuth.currentUser
+            if (user != null) {
+                _currentUserState.value = AuthUser(
+                    uid = user.uid,
+                    displayName = user.displayName,
+                    email = user.email,
+                    isAnonymous = user.isAnonymous
+                )
+            } else {
+                _currentUserState.value = null
+            }
+        }
+    }
 
     override suspend fun signInWithEmail(
         email: String,
@@ -21,8 +38,6 @@ class AuthRepositoryImpl(
 
             val result = auth.signInWithEmailAndPassword(email, password).await()
             val firebaseUser = result.user
-
-            // 3. TODO: Convert firebaseUser into your app's AuthUser model
             val authUser = AuthUser(
                 uid = firebaseUser!!.uid,
                 displayName = firebaseUser.displayName,
@@ -59,15 +74,29 @@ class AuthRepositoryImpl(
     }
 
     override suspend fun signInAnonymously(): Result<AuthUser> {
-        TODO("Not yet implemented")
+        return try {
+            val result = auth.signInAnonymously().await()
+            val firebaseUser = result.user
+
+            val authUser = AuthUser(
+                uid = firebaseUser!!.uid,
+                displayName = "Guest",
+                email = null,
+                isAnonymous = true
+            )
+
+            Result.success(authUser)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     override suspend fun signOut() {
-        TODO("Not yet implemented")
+        auth.signOut()
     }
 
     override fun getCurrentUserId(): String? {
-        TODO("Not yet implemented")
+        return auth.currentUser?.uid
     }
 
 }
