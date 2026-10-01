@@ -1,136 +1,132 @@
 package com.campusquest.device.sensor
 
 import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import com.campusquest.domain.model.AccelerometerReading
-import com.campusquest.domain.model.FusionState
-import com.campusquest.domain.model.LightReading
+import com.campusquest.domain.fusion.DiscoveryGateEvaluator
+import com.campusquest.domain.fusion.FusionConfig
+import com.campusquest.domain.fusion.FusionInputs
+import com.campusquest.domain.fusion.GeneralizedFusionCalculator
+import com.campusquest.domain.model.FusionResult
 import com.campusquest.domain.model.LightSignature
-import com.campusquest.domain.model.ProximityReading
-import com.campusquest.domain.repository.SensorRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
+import com.campusquest.domain.model.MotionType
+import com.campusquest.domain.model.SensorState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.sqrt
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+/**
+ * Enterprise Multi-Sensor Fusion Orchestrator for Campus Quest.
+ * Coordinates hardware/simulated sensor streams with the pure GeneralizedFusionCalculator.
+ */
 class SensorFusionEngine(
-    context: Context
-) : SensorRepository, SensorEventListener {
+    private val signalSource: SensorSignalSource,
+    private val fusionCalculator: GeneralizedFusionCalculator = GeneralizedFusionCalculator(FusionConfig()),
+    private val discoveryEvaluator: DiscoveryGateEvaluator = DiscoveryGateEvaluator(),
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + Job())
+) {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    /**
+     * Convenience constructor creating default real hardware source from Android Context.
+     */
+    constructor(
+        context: Context,
+        config: FusionConfig = FusionConfig()
+    ) : this(
+        signalSource = RealSensorSignalSource(context),
+        fusionCalculator = GeneralizedFusionCalculator(config),
+        discoveryEvaluator = DiscoveryGateEvaluator()
+    )
 
-    private val accelerometerSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val lightSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
-    private val proximitySensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    private var currentGameId: String = ""
+    private var currentCheckpointId: String = ""
+    private var currentGpsScore: Float = 1.0f
 
-    private val _sensorReadings = MutableSharedFlow<com.campusquest.domain.model.SensorReading>(replay = 1)
-    override val sensorReadings: SharedFlow<com.campusquest.domain.model.SensorReading> = _sensorReadings.asSharedFlow()
+    val sensorState: StateFlow<SensorState> = signalSource.sensorState
 
-    private val _fusionState = MutableStateFlow(FusionState())
-    override val fusionState: StateFlow<FusionState> = _fusionState.asStateFlow()
-
-    private var targetSignature: LightSignature = LightSignature(0f, 1000f)
-    private var targetMotionType: String = "SWEEP"
-
-    // Moving window sensor state
-    private var lastAccelMagnitude = 9.8f
-    private var lastLux = 0f
-    private var lastDistanceCm = 5f
-    private var motionDetected = false
-    private var lightSatisfied = false
-    private var proximitySatisfied = false
-
-    // Mathematical thresholds
-    companion object {
-        const val ACCEL_SHAKE_THRESHOLD = 14.5f
-        const val PROXIMITY_NEAR_THRESHOLD_CM = 1.0f
-    }
-
-    override fun startListening(targetSignature: LightSignature, motionType: String) {
-        this.targetSignature = targetSignature
-        this.targetMotionType = motionType
-        resetVerification()
-
-        accelerometerSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
-        }
-        lightSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
-        proximitySensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
-    }
-
-    override fun stopListening() {
-        sensorManager.unregisterListener(this)
-    }
-
-    override fun resetVerification() {
-        motionDetected = false
-        lightSatisfied = false
-        proximitySatisfied = false
-        updateFusionState()
-    }
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event == null) return
-
-        when (event.sensor.type) {
-            Sensor.TYPE_ACCELEROMETER -> {
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                val mag = sqrt((x * x + y * y + z * z).toDouble()).toFloat()
-                lastAccelMagnitude = mag
-
-                if (mag > ACCEL_SHAKE_THRESHOLD) {
-                    motionDetected = true
-                }
-            }
-            Sensor.TYPE_LIGHT -> {
-                val lux = event.values[0]
-                lastLux = lux
-                lightSatisfied = targetSignature.matches(lux)
-            }
-            Sensor.TYPE_PROXIMITY -> {
-                val distance = event.values[0]
-                lastDistanceCm = distance
-                proximitySatisfied = distance <= PROXIMITY_NEAR_THRESHOLD_CM
-            }
-        }
-
-        updateFusionState()
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Handle accuracy changes if needed
-    }
-
-    private fun updateFusionState() {
-        var score = 0
-        if (motionDetected) score += 34
-        if (lightSatisfied) score += 33
-        if (proximitySatisfied) score += 33
-
-        val isComplete = score >= 100
-
-        _fusionState.value = FusionState(
-            motionVerified = motionDetected,
-            lightVerified = lightSatisfied,
-            proximityVerified = proximitySatisfied,
-            fusionProgressPercent = score.coerceAtMost(100),
-            isFullyVerified = isComplete,
-            currentLux = lastLux,
-            currentAcceleration = lastAccelMagnitude,
-            currentDistanceCm = lastDistanceCm,
-            targetSignature = targetSignature
+    private val _fusionResult = MutableStateFlow(
+        FusionResult(
+            gameId = "",
+            checkpointId = "",
+            gpsScore = 1.0f,
+            lightScore = null,
+            motionScore = null,
+            totalScore = 0.0f,
+            progressPercent = 0,
+            thresholdReached = false,
+            proximityNear = false,
+            activeSignals = emptySet()
         )
+    )
+    val fusionResult: StateFlow<FusionResult> = _fusionResult.asStateFlow()
+
+    private var observationJob: Job? = null
+
+    init {
+        startObservation()
+    }
+
+    private fun startObservation() {
+        observationJob?.cancel()
+        observationJob = scope.launch {
+            signalSource.sensorState.collectLatest { state ->
+                recalculate(state)
+            }
+        }
+    }
+
+    /**
+     * Starts listening when entering the Scan HUD.
+     */
+    fun startListening(
+        gameId: String,
+        checkpointId: String,
+        targetSignature: LightSignature,
+        motionType: MotionType = MotionType.SWEEP,
+        gpsScore: Float = 1.0f
+    ) {
+        this.currentGameId = gameId
+        this.currentCheckpointId = checkpointId
+        this.currentGpsScore = gpsScore
+
+        signalSource.startListening(targetSignature, motionType)
+        recalculate(signalSource.sensorState.value)
+    }
+
+    /**
+     * Lifecycle-safe stop when exiting Scan HUD.
+     */
+    fun stopListening() {
+        signalSource.stopListening()
+    }
+
+    fun updateGpsScore(score: Float) {
+        this.currentGpsScore = score.coerceIn(0.0f, 1.0f)
+        recalculate(signalSource.sensorState.value)
+    }
+
+    fun reset() {
+        signalSource.reset()
+        recalculate(signalSource.sensorState.value)
+    }
+
+    private fun recalculate(state: SensorState) {
+        val inputs = FusionInputs.fromBooleans(
+            gpsScore = currentGpsScore,
+            lightMatched = state.lightMatched,
+            motionDetected = state.motionDetected
+        )
+
+        val result = fusionCalculator.calculate(
+            gameId = currentGameId,
+            checkpointId = currentCheckpointId,
+            inputs = inputs,
+            proximityNear = state.isNear ?: false
+        )
+
+        _fusionResult.value = result
     }
 }

@@ -2,8 +2,8 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layoutWidth="match_parent"
-    android:layoutHeight="match_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
     android:padding="@dimen/spacing_l"
@@ -11,16 +11,16 @@
 
     <ImageView
         android:id="@+id/iv_logo"
-        android:layoutWidth="96dp"
-        android:layoutHeight="96dp"
+        android:layout_width="96dp"
+        android:layout_height="96dp"
         android:src="@android:drawable/ic_dialog_map"
         app:tint="@color/primary_emerald"
         android:contentDescription="@string/app_name" />
 
     <TextView
         android:id="@+id/tv_title"
-        android:layoutWidth="wrap_content"
-        android:layoutHeight="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="@string/app_name"
         android:textSize="28sp"
         android:textStyle="bold"
@@ -29,8 +29,8 @@
 
     <TextView
         android:id="@+id/tv_subtitle"
-        android:layoutWidth="wrap_content"
-        android:layoutHeight="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:text="@string/tagline"
         android:textColor="@color/text_secondary"
         android:textSize="14sp"
@@ -39,53 +39,53 @@
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/til_email"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:hint="@string/login_email_hint"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_email"
-            android:layoutWidth="match_parent"
-            android:layoutHeight="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:inputType="textEmailAddress" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/til_password"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:hint="@string/login_password_hint"
         android:layout_marginTop="@dimen/spacing_m"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_password"
-            android:layoutWidth="match_parent"
-            android:layoutHeight="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:inputType="textPassword" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_login"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:text="@string/login_button"
         android:backgroundTint="@color/primary_emerald"
         android:layout_marginTop="@dimen/spacing_l" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_guest_login"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:text="@string/anonymous_login_button"
         style="@style/Widget.Material3.Button.OutlinedButton"
         android:layout_marginTop="@dimen/spacing_s" />
 
     <ProgressBar
         android:id="@+id/progress_bar"
-        android:layoutWidth="wrap_content"
-        android:layoutHeight="wrap_content"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:visibility="gone"
         android:layout_marginTop="@dimen/spacing_m" />
 

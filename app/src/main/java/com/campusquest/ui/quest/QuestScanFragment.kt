@@ -11,6 +11,7 @@ import androidx.navigation.fragment.findNavController
 import com.campusquest.databinding.FragmentQuestScanBinding
 import com.campusquest.device.sensor.SensorFusionEngine
 import com.campusquest.domain.model.LightSignature
+import com.campusquest.domain.model.MotionType
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -38,20 +39,47 @@ class QuestScanFragment : Fragment() {
 
         sensorFusionEngine = SensorFusionEngine(requireContext())
 
-        // Start listening with target signature (e.g. ambient light 150-800 lux)
-        sensorFusionEngine.startListening(LightSignature(150f, 800f), "SWEEP")
+        // Start listening with target signature (e.g. ambient light 150-800 lux) and SWEEP gesture
+        sensorFusionEngine.startListening(
+            gameId = gameId,
+            checkpointId = checkpointId,
+            targetSignature = LightSignature(150f, 800f),
+            motionType = MotionType.SWEEP,
+            gpsScore = 1.0f
+        )
 
         viewLifecycleOwner.lifecycleScope.launch {
-            sensorFusionEngine.fusionState.collectLatest { state ->
-                binding.pbFusionMeter.progress = state.fusionProgressPercent
-                binding.tvSensorDiagnostics.text =
-                    "Accel: ${"%.1f".format(state.currentAcceleration)} m/s² | Lux: ${"%.0f".format(state.currentLux)} | Proximity: ${if (state.proximityVerified) "Near" else "Far"}"
+            launch {
+                sensorFusionEngine.fusionResult.collectLatest { result ->
+                    binding.pbFusionMeter.progress = result.progressPercent
+                    if (result.canClaimDiscovery) {
+                        binding.tvHudStatus.text = "✨ Relic Resonated 100%! Ready to Claim."
+                        binding.btnSimulateUnlock.isEnabled = true
+                    } else if (result.thresholdReached) {
+                        binding.tvHudStatus.text = "Threshold Reached (${result.progressPercent}%)! Move closer for physical confirmation."
+                        binding.btnSimulateUnlock.isEnabled = false
+                    } else {
+                        binding.tvHudStatus.text = "Progress: ${result.progressPercent}% - Align environmental sensors and gesture"
+                        binding.btnSimulateUnlock.isEnabled = false
+                    }
+                }
+            }
 
-                if (state.isFullyVerified) {
-                    binding.tvHudStatus.text = "✨ Checkpoint Resonated 100%! Ready to Claim."
-                    binding.btnSimulateUnlock.isEnabled = true
-                } else {
-                    binding.tvHudStatus.text = "Progress: ${state.fusionProgressPercent}% - Align sensors and gesture"
+            launch {
+                sensorFusionEngine.sensorState.collectLatest { sensorState ->
+                    val luxStr = sensorState.currentLux?.let { "%.0f".format(it) } ?: "N/A"
+                    val isNearStr = when (sensorState.isNear) {
+                        true -> "Near"
+                        false -> "Far"
+                        null -> "N/A"
+                    }
+                    val motionStr = when (sensorState.motionDetected) {
+                        true -> "Detected"
+                        false -> "Pending"
+                        null -> "N/A"
+                    }
+                    binding.tvSensorDiagnostics.text =
+                        "Lux: $luxStr | Motion: $motionStr | Proximity: $isNearStr"
                 }
             }
         }

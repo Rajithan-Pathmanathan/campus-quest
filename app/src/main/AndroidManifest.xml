@@ -66,7 +66,7 @@
 
         <!-- Dynamic Geofence Transition Broadcast Receiver (Member 3) -->
         <receiver
-            android:name=".device.location.GeofenceBroadcastReceiver"
+            android:name=".device.location.geofence.GeofenceBroadcastReceiver"
             android:exported="false" />
 
         <!-- Firebase Cloud Messaging Push Service (Member 5) -->
