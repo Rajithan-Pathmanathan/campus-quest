@@ -6,5 +6,11 @@ package com.campusquest.domain.model
 enum class MotionType {
     SWEEP,
     TILT,
-    SHAKE
+    SHAKE;
+
+    companion object {
+        /** Safe mapping from the Checkpoint.motionType string (Firestore/creator). Unknown → SWEEP. */
+        fun fromString(value: String?): MotionType =
+            entries.firstOrNull { it.name.equals(value?.trim(), ignoreCase = true) } ?: SWEEP
+    }
 }

@@ -30,6 +30,8 @@ class GeofenceManagerHelper(
     private val geofencingClient: GeofencingClient = LocationServices.getGeofencingClient(context)
 
     private val geofencePendingIntent: PendingIntent by lazy {
+        // Explicit intent + FLAG_MUTABLE is REQUIRED: Play Services fills in the triggering
+        // geofences. FLAG_IMMUTABLE would silently break geofence delivery.
         val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
         PendingIntent.getBroadcast(
             context,

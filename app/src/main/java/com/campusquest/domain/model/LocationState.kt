@@ -1,14 +1,12 @@
-package com.campusquest.device.location
-
-import android.location.Location
+package com.campusquest.domain.model
 
 /**
  * Immutable state model describing the device's current location, accuracy, and operational health.
+ * Pure Kotlin: no android.location types, so domain/gameplay code stays JVM-testable.
  */
 data class LocationState(
     val permissionState: LocationPermissionState = LocationPermissionState.Unknown,
     val servicesEnabled: Boolean = false,
-    val location: Location? = null,
     val smoothedLatitude: Double? = null,
     val smoothedLongitude: Double? = null,
     val accuracyMeters: Float? = null,
@@ -20,9 +18,14 @@ data class LocationState(
     val timestamp: Long = System.currentTimeMillis()
 ) {
     val hasValidFix: Boolean
-        get() = location != null && (accuracyMeters == null || accuracyMeters <= 35f)
+        get() = smoothedLatitude != null && smoothedLongitude != null &&
+                (accuracyMeters == null || accuracyMeters <= MAX_VALID_ACCURACY_M)
 
     fun formattedAccuracy(): String {
         return accuracyMeters?.let { "±${"%.1f".format(it)}m" } ?: "Unknown accuracy"
+    }
+
+    companion object {
+        const val MAX_VALID_ACCURACY_M = 35f
     }
 }

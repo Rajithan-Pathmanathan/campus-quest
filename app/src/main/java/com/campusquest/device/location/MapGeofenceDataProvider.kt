@@ -1,6 +1,7 @@
 package com.campusquest.device.location
 
 import com.campusquest.device.location.geofence.BoundaryHysteresis
+import com.campusquest.domain.model.LocationState
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.GeofenceState
 import com.campusquest.domain.model.GeofenceVisualState
@@ -23,8 +24,8 @@ class MapGeofenceDataProvider(
         currentLocation: LocationState,
         previousState: GeofenceState = GeofenceState.UNKNOWN
     ): GeofenceVisualState {
-        val lat = currentLocation.smoothedLatitude ?: currentLocation.location?.latitude
-        val lng = currentLocation.smoothedLongitude ?: currentLocation.location?.longitude
+        val lat = currentLocation.smoothedLatitude
+        val lng = currentLocation.smoothedLongitude
 
         val distance: Float? = if (lat != null && lng != null) {
             distanceCalculator.calculateDistanceMeters(
