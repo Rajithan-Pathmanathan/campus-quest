@@ -1,6 +1,6 @@
 package com.campusquest.device.sensor
 
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationState
 import com.campusquest.domain.model.SensorDiagnostics
 import com.campusquest.domain.model.SensorSignalType
 import com.campusquest.domain.model.SensorState

@@ -1,7 +1,7 @@
 package com.campusquest
 
 import com.campusquest.device.location.BearingCalculator
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationState
 import com.campusquest.device.location.MapGeofenceDataProvider
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.GeofenceState

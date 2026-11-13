@@ -1,4 +1,4 @@
-package com.campusquest.device.location
+package com.campusquest.domain.model
 
 /**
  * Represents the current permission and availability state for device location services.

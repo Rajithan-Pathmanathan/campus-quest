@@ -1,8 +1,8 @@
 package com.campusquest.data.repository
 
 import com.campusquest.device.location.LocationManagerHelper
-import com.campusquest.device.location.LocationPermissionState
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationPermissionState
+import com.campusquest.domain.model.LocationState
 import com.campusquest.domain.repository.LocationRepository
 import kotlinx.coroutines.flow.StateFlow
 

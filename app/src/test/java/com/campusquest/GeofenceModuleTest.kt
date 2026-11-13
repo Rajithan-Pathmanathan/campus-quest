@@ -1,7 +1,7 @@
 package com.campusquest
 
 import android.location.Location
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationState
 import com.campusquest.device.location.geofence.BoundaryHysteresis
 import com.campusquest.device.location.geofence.GeofenceKey
 import com.campusquest.device.location.geofence.ScopedGeofenceFallback
@@ -98,7 +98,6 @@ class GeofenceModuleTest {
         every { mockLocation.accuracy } returns 4.0f
 
         val locationState = LocationState(
-            location = mockLocation,
             smoothedLatitude = 37.42751,
             smoothedLongitude = -122.1697,
             accuracyMeters = 4.0f
@@ -126,7 +125,6 @@ class GeofenceModuleTest {
         every { mockLocation.accuracy } returns 5.0f
 
         val locationState = LocationState(
-            location = mockLocation,
             smoothedLatitude = 37.4290,
             smoothedLongitude = -122.1697,
             accuracyMeters = 5.0f

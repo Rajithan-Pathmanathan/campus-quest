@@ -7,7 +7,13 @@ import android.content.Context
 import android.os.Build
 import com.campusquest.data.local.AppDatabase
 import com.campusquest.data.repository.GameRepositoryImpl
+import com.campusquest.data.repository.LocationRepositoryImpl
+import com.campusquest.data.repository.SensorRepositoryImpl
+import com.campusquest.device.location.LocationManagerHelper
+import com.campusquest.device.sensor.SensorFusionEngine
 import com.campusquest.domain.repository.GameRepository
+import com.campusquest.domain.repository.LocationRepository
+import com.campusquest.domain.repository.SensorRepository
 
 class CampusQuestApplication : Application() {
 
@@ -29,6 +35,18 @@ class CampusQuestApplication : Application() {
             checkpointDao = database.checkpointDao(),
             playerProgressDao = database.playerProgressDao(),
             syncQueueDao = database.syncQueueDao()
+        )
+    }
+
+    // Member 3: single app-wide instances. UI must use these, never SensorManager/LocationManager directly.
+    val locationRepository: LocationRepository by lazy {
+        LocationRepositoryImpl(LocationManagerHelper(this))
+    }
+
+    val sensorRepository: SensorRepository by lazy {
+        SensorRepositoryImpl(
+            fusionEngine = SensorFusionEngine(this),
+            locationRepository = locationRepository
         )
     }
 

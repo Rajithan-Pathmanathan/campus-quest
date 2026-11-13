@@ -58,7 +58,6 @@ class GoldenPathPhysicalDiscoveryTest {
         fusionEngine = SensorFusionEngine(
             signalSource = simulationFixture,
             fusionCalculator = GeneralizedFusionCalculator(FusionConfig(threshold = 0.85f)),
-            discoveryEvaluator = DiscoveryGateEvaluator(),
             scope = kotlinx.coroutines.CoroutineScope(testDispatcher)
         )
         discoveryEvaluator = DiscoveryGateEvaluator()

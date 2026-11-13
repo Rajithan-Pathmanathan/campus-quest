@@ -1,6 +1,7 @@
 package com.campusquest.device.location
 
-import android.location.Location
+import com.campusquest.domain.model.LocationPermissionState
+import com.campusquest.domain.model.LocationState
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 

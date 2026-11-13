@@ -2,7 +2,7 @@ package com.campusquest.device.location.geofence
 
 import com.campusquest.device.location.DistanceCalculator
 import com.campusquest.device.location.HaversineDistanceCalculator
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationState
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.CheckpointEligibility
 import com.campusquest.domain.model.GeofenceState
@@ -31,8 +31,8 @@ class ScopedGeofenceFallback(
             lastKnownState = GeofenceState.OUTSIDE
         }
 
-        val lat = locationState.smoothedLatitude ?: locationState.location?.latitude
-        val lng = locationState.smoothedLongitude ?: locationState.location?.longitude
+        val lat = locationState.smoothedLatitude
+        val lng = locationState.smoothedLongitude
 
         if (lat == null || lng == null) {
             return CheckpointEligibility(

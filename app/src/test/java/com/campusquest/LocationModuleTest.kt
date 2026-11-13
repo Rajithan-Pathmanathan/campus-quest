@@ -3,8 +3,8 @@ package com.campusquest
 import android.location.Location
 import com.campusquest.device.location.GpsSmoothingFilter
 import com.campusquest.device.location.HaversineDistanceCalculator
-import com.campusquest.device.location.LocationPermissionState
-import com.campusquest.device.location.LocationState
+import com.campusquest.domain.model.LocationPermissionState
+import com.campusquest.domain.model.LocationState
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Assert.assertEquals
@@ -111,11 +111,11 @@ class LocationModuleTest {
 
     @Test
     fun locationState_formattedAccuracyAndValidFix() {
-        val rawLoc = mockk<Location>()
         val state = LocationState(
             permissionState = LocationPermissionState.Granted,
             servicesEnabled = true,
-            location = rawLoc,
+            smoothedLatitude = 6.9,
+            smoothedLongitude = 79.8,
             accuracyMeters = 5.2f
         )
 

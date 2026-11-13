@@ -1,17 +1,19 @@
 package com.campusquest.ui.quest
 
+import android.Manifest
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.campusquest.CampusQuestApplication
 import com.campusquest.databinding.FragmentQuestScanBinding
-import com.campusquest.device.sensor.SensorFusionEngine
-import com.campusquest.domain.model.LightSignature
-import com.campusquest.domain.model.MotionType
+import com.campusquest.domain.model.Checkpoint
+import com.campusquest.domain.model.LocationPermissionState
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
@@ -20,7 +22,26 @@ class QuestScanFragment : Fragment() {
     private var _binding: FragmentQuestScanBinding? = null
     private val binding get() = _binding!!
 
-    private lateinit var sensorFusionEngine: SensorFusionEngine
+    private val app get() = requireActivity().application as CampusQuestApplication
+    private val locationRepository get() = app.locationRepository
+    private val sensorRepository get() = app.sensorRepository
+
+    private var checkpoint: Checkpoint? = null
+
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { grants ->
+        val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        locationRepository.updatePermissionState(
+            if (granted) LocationPermissionState.Granted else LocationPermissionState.Denied
+        )
+        if (granted) {
+            locationRepository.startTracking()
+        } else {
+            _binding?.tvHudStatus?.text = "Location permission is required to scan for relics."
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -37,36 +58,32 @@ class QuestScanFragment : Fragment() {
         val gameId = arguments?.getString("gameId") ?: "GAME_HERITAGE_001"
         val checkpointId = arguments?.getString("checkpointId") ?: "CP_BELL_TOWER"
 
-        sensorFusionEngine = SensorFusionEngine(requireContext())
-
-        // Start listening with target signature (e.g. ambient light 150-800 lux) and SWEEP gesture
-        sensorFusionEngine.startListening(
-            gameId = gameId,
-            checkpointId = checkpointId,
-            targetSignature = LightSignature(150f, 800f),
-            motionType = MotionType.SWEEP,
-            gpsScore = 1.0f
-        )
+        viewLifecycleOwner.lifecycleScope.launch {
+            val cp = app.gameRepository.getGameCheckpoints(gameId).firstOrNull { it.id == checkpointId }
+            if (cp == null) {
+                binding.tvHudStatus.text = "Checkpoint not found."
+                return@launch
+            }
+            checkpoint = cp
+            sensorRepository.startScanSession(cp)
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             launch {
-                sensorFusionEngine.fusionResult.collectLatest { result ->
+                sensorRepository.fusionResult.collectLatest { result ->
                     binding.pbFusionMeter.progress = result.progressPercent
-                    if (result.canClaimDiscovery) {
-                        binding.tvHudStatus.text = "✨ Relic Resonated 100%! Ready to Claim."
-                        binding.btnSimulateUnlock.isEnabled = true
-                    } else if (result.thresholdReached) {
-                        binding.tvHudStatus.text = "Threshold Reached (${result.progressPercent}%)! Move closer for physical confirmation."
-                        binding.btnSimulateUnlock.isEnabled = false
-                    } else {
-                        binding.tvHudStatus.text = "Progress: ${result.progressPercent}% - Align environmental sensors and gesture"
-                        binding.btnSimulateUnlock.isEnabled = false
+                    binding.btnSimulateUnlock.isEnabled = result.canClaimDiscovery
+                    binding.tvHudStatus.text = when {
+                        result.canClaimDiscovery -> "✨ Relic Resonated! Ready to Claim."
+                        result.thresholdReached -> "Threshold Reached (${result.progressPercent}%)! Move closer for physical confirmation."
+                        result.gpsScore == 0f -> "Progress: ${result.progressPercent}% - Get closer to the checkpoint"
+                        else -> "Progress: ${result.progressPercent}% - Align environmental sensors and gesture"
                     }
                 }
             }
 
             launch {
-                sensorFusionEngine.sensorState.collectLatest { sensorState ->
+                sensorRepository.sensorState.collectLatest { sensorState ->
                     val luxStr = sensorState.currentLux?.let { "%.0f".format(it) } ?: "N/A"
                     val isNearStr = when (sensorState.isNear) {
                         true -> "Near"
@@ -85,14 +102,33 @@ class QuestScanFragment : Fragment() {
         }
 
         binding.btnSimulateUnlock.setOnClickListener {
-            Toast.makeText(requireContext(), "Relic Claimed! Checkpoint Completed.", Toast.LENGTH_LONG).show()
-            findNavController().navigateUp()
+            val cp = checkpoint ?: return@setOnClickListener
+            if (!sensorRepository.fusionResult.value.canClaimDiscovery) return@setOnClickListener
+            binding.btnSimulateUnlock.isEnabled = false
+            viewLifecycleOwner.lifecycleScope.launch {
+                app.gameRepository.recordDiscovery(cp.gameId, cp.id, System.currentTimeMillis())
+                Toast.makeText(requireContext(), "Relic Claimed! Checkpoint Completed.", Toast.LENGTH_LONG).show()
+                findNavController().navigateUp()
+            }
         }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        locationPermissionRequest.launch(
+            arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        )
+        checkpoint?.let { sensorRepository.startScanSession(it) }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        sensorRepository.stopScanSession()
+        locationRepository.stopTracking()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        sensorFusionEngine.stopListening()
         _binding = null
     }
 }

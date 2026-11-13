@@ -1,9 +1,11 @@
 package com.campusquest.device.location
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.location.Location
+import android.content.pm.PackageManager
 import android.location.LocationManager
+import androidx.core.content.ContextCompat
 import android.os.Looper
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -17,6 +19,8 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import com.campusquest.domain.model.LocationPermissionState
+import com.campusquest.domain.model.LocationState
 
 class LocationManagerHelper(
     private val context: Context,
@@ -48,7 +52,6 @@ class LocationManagerHelper(
             _locationState.value = LocationState(
                 permissionState = _locationState.value.permissionState,
                 servicesEnabled = isGpsEnabled,
-                location = rawLocation,
                 smoothedLatitude = filtered.latitude,
                 smoothedLongitude = filtered.longitude,
                 accuracyMeters = if (rawLocation.hasAccuracy()) rawLocation.accuracy else null,
@@ -73,6 +76,15 @@ class LocationManagerHelper(
     @SuppressLint("MissingPermission")
     override fun startLocationUpdates(intervalMs: Long, minDistanceM: Float) {
         if (isCurrentlyListening) return
+
+        if (!hasLocationPermission()) {
+            _locationState.value = _locationState.value.copy(
+                permissionState = LocationPermissionState.Denied,
+                isUpdating = false,
+                error = "Location permission not granted"
+            )
+            return
+        }
 
         val servicesEnabled = isLocationServiceEnabled()
         if (!servicesEnabled) {
@@ -100,6 +112,7 @@ class LocationManagerHelper(
 
             isCurrentlyListening = true
             _locationState.value = _locationState.value.copy(
+                permissionState = LocationPermissionState.Granted,
                 isUpdating = true,
                 servicesEnabled = true,
                 error = null
@@ -132,22 +145,25 @@ class LocationManagerHelper(
     }
 
     override fun calculateDistanceTo(targetLat: Double, targetLng: Double): Float {
-        val current = _locationState.value.location ?: return Float.MAX_VALUE
-        val lat = _locationState.value.smoothedLatitude ?: current.latitude
-        val lng = _locationState.value.smoothedLongitude ?: current.longitude
+        val lat = _locationState.value.smoothedLatitude ?: return Float.MAX_VALUE
+        val lng = _locationState.value.smoothedLongitude ?: return Float.MAX_VALUE
         return distanceCalculator.calculateDistanceMeters(lat, lng, targetLat, targetLng)
     }
 
     override fun calculateBearingTo(targetLat: Double, targetLng: Double): Float {
-        val current = _locationState.value.location ?: return 0f
-        val lat = _locationState.value.smoothedLatitude ?: current.latitude
-        val lng = _locationState.value.smoothedLongitude ?: current.longitude
+        val lat = _locationState.value.smoothedLatitude ?: return 0f
+        val lng = _locationState.value.smoothedLongitude ?: return 0f
         return distanceCalculator.calculateBearingDegrees(lat, lng, targetLat, targetLng)
     }
 
     override fun isWithinGeofence(targetLat: Double, targetLng: Double, radiusMeters: Float): Boolean {
         return calculateDistanceTo(targetLat, targetLng) <= radiusMeters
     }
+
+    /** True when FINE or COARSE location is granted at runtime. */
+    fun hasLocationPermission(): Boolean =
+        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
 
     fun isLocationServiceEnabled(): Boolean {
         return try {
