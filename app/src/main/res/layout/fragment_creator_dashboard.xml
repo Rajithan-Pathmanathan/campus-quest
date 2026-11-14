@@ -2,35 +2,35 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:layoutWidth="match_parent"
-    android:layoutHeight="match_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/background_light">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:background="@color/primary_emerald"
         app:title="@string/nav_creator_dashboard"
         app:titleTextColor="@color/on_primary_emerald" />
 
     <LinearLayout
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:padding="@dimen/spacing_m">
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_create_new_quest"
-            android:layoutWidth="match_parent"
-            android:layoutHeight="wrap_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="➕ Create New Quest"
             android:backgroundTint="@color/primary_emerald" />
 
         <TextView
-            android:layoutWidth="wrap_content"
-            android:layoutHeight="wrap_content"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:text="Your Authored Quests &amp; Drafts"
             android:textSize="16sp"
             android:textStyle="bold"
@@ -41,16 +41,16 @@
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rv_authored_games"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="0dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
         android:layout_weight="1"
         android:padding="@dimen/spacing_s"
         android:clipToPadding="false" />
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_switch_player"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:text="Switch to Player Mode"
         style="@style/Widget.Material3.Button.TextButton"
         android:layout_margin="@dimen/spacing_m" />

@@ -1,136 +1,134 @@
 package com.campusquest.device.sensor
 
 import android.content.Context
-import android.hardware.Sensor
-import android.hardware.SensorEvent
-import android.hardware.SensorEventListener
-import android.hardware.SensorManager
-import com.campusquest.domain.model.AccelerometerReading
-import com.campusquest.domain.model.FusionState
-import com.campusquest.domain.model.LightReading
+import com.campusquest.domain.fusion.FusionConfig
+import com.campusquest.domain.fusion.FusionInputs
+import com.campusquest.domain.fusion.GeneralizedFusionCalculator
+import com.campusquest.domain.model.FusionResult
 import com.campusquest.domain.model.LightSignature
-import com.campusquest.domain.model.ProximityReading
-import com.campusquest.domain.repository.SensorRepository
-import kotlinx.coroutines.flow.MutableSharedFlow
+import com.campusquest.domain.model.MotionType
+import com.campusquest.domain.model.SensorState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlin.math.sqrt
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
+/**
+ * Multi-sensor fusion orchestrator for Campus Quest.
+ * Coordinates hardware/simulated sensor streams with the pure GeneralizedFusionCalculator.
+ *
+ * MVP missing-hardware policy (workplan §26 / §56):
+ *   - Light or accelerometer missing → channel excluded, remaining weights re-normalized.
+ *   - Proximity missing (isNear == null) → final gate is bypassed (treated as satisfied).
+ *   - GPS has no fix → gpsScore 0.0 (see GpsScoreCalculator); GPS is never re-normalized away.
+ *
+ * One instance per app (owned by SensorRepositoryImpl). Call [close] to release its coroutine.
+ */
 class SensorFusionEngine(
-    context: Context
-) : SensorRepository, SensorEventListener {
+    private val signalSource: SensorSignalSource,
+    private val fusionCalculator: GeneralizedFusionCalculator = GeneralizedFusionCalculator(FusionConfig()),
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.Default + SupervisorJob())
+) {
 
-    private val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
+    constructor(
+        context: Context,
+        config: FusionConfig = FusionConfig()
+    ) : this(
+        signalSource = RealSensorSignalSource(context),
+        fusionCalculator = GeneralizedFusionCalculator(config)
+    )
 
-    private val accelerometerSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
-    private val lightSensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT)
-    private val proximitySensor: Sensor? = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY)
+    private var currentGameId: String = ""
+    private var currentCheckpointId: String = ""
+    private var currentSignature: LightSignature? = null
 
-    private val _sensorReadings = MutableSharedFlow<com.campusquest.domain.model.SensorReading>(replay = 1)
-    override val sensorReadings: SharedFlow<com.campusquest.domain.model.SensorReading> = _sensorReadings.asSharedFlow()
+    // 0.0 until a real location update arrives: a missing update must never grant GPS credit.
+    private var currentGpsScore: Float = 0.0f
 
-    private val _fusionState = MutableStateFlow(FusionState())
-    override val fusionState: StateFlow<FusionState> = _fusionState.asStateFlow()
+    val sensorState: StateFlow<SensorState> = signalSource.sensorState
 
-    private var targetSignature: LightSignature = LightSignature(0f, 1000f)
-    private var targetMotionType: String = "SWEEP"
+    private val _fusionResult = MutableStateFlow(
+        FusionResult(
+            gameId = "",
+            checkpointId = "",
+            gpsScore = 0.0f,
+            lightScore = null,
+            motionScore = null,
+            totalScore = 0.0f,
+            progressPercent = 0,
+            thresholdReached = false,
+            proximityNear = false,
+            activeSignals = emptySet()
+        )
+    )
+    val fusionResult: StateFlow<FusionResult> = _fusionResult.asStateFlow()
 
-    // Moving window sensor state
-    private var lastAccelMagnitude = 9.8f
-    private var lastLux = 0f
-    private var lastDistanceCm = 5f
-    private var motionDetected = false
-    private var lightSatisfied = false
-    private var proximitySatisfied = false
-
-    // Mathematical thresholds
-    companion object {
-        const val ACCEL_SHAKE_THRESHOLD = 14.5f
-        const val PROXIMITY_NEAR_THRESHOLD_CM = 1.0f
+    private val observationJob = scope.launch {
+        signalSource.sensorState.collectLatest { state -> recalculate(state) }
     }
 
-    override fun startListening(targetSignature: LightSignature, motionType: String) {
-        this.targetSignature = targetSignature
-        this.targetMotionType = motionType
-        resetVerification()
+    /**
+     * Starts a scan session for one checkpoint. Re-scopes all state so nothing leaks
+     * from the previous checkpoint or game (workplan §41–§43).
+     */
+    fun startListening(
+        gameId: String,
+        checkpointId: String,
+        targetSignature: LightSignature,
+        motionType: MotionType = MotionType.SWEEP,
+        gpsScore: Float = 0.0f
+    ) {
+        currentGameId = gameId
+        currentCheckpointId = checkpointId
+        currentSignature = targetSignature
+        currentGpsScore = gpsScore.coerceIn(0.0f, 1.0f)
 
-        accelerometerSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME)
+        signalSource.startListening(targetSignature, motionType)
+        recalculate(signalSource.sensorState.value)
+    }
+
+    fun stopListening() {
+        signalSource.stopListening()
+    }
+
+    fun updateGpsScore(score: Float) {
+        currentGpsScore = score.coerceIn(0.0f, 1.0f)
+        recalculate(signalSource.sensorState.value)
+    }
+
+    fun reset() {
+        signalSource.reset()
+        recalculate(signalSource.sensorState.value)
+    }
+
+    /** Stops sensors and cancels the observation coroutine. The engine is unusable afterwards. */
+    fun close() {
+        signalSource.stopListening()
+        observationJob.cancel()
+    }
+
+    private fun recalculate(state: SensorState) {
+        val lightScore: Float? = when {
+            state.lightMatched == null -> null // sensor unavailable → re-normalize
+            currentSignature != null && state.currentLux != null -> currentSignature!!.score(state.currentLux)
+            else -> if (state.lightMatched) 1.0f else 0.0f
         }
-        lightSensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
-        proximitySensor?.let {
-            sensorManager.registerListener(this, it, SensorManager.SENSOR_DELAY_UI)
-        }
-    }
 
-    override fun stopListening() {
-        sensorManager.unregisterListener(this)
-    }
+        val inputs = FusionInputs(
+            gpsScore = currentGpsScore,
+            lightScore = lightScore,
+            motionScore = state.motionDetected?.let { if (it) 1.0f else 0.0f }
+        )
 
-    override fun resetVerification() {
-        motionDetected = false
-        lightSatisfied = false
-        proximitySatisfied = false
-        updateFusionState()
-    }
-
-    override fun onSensorChanged(event: SensorEvent?) {
-        if (event == null) return
-
-        when (event.sensor.type) {
-            Sensor.TYPE_ACCELEROMETER -> {
-                val x = event.values[0]
-                val y = event.values[1]
-                val z = event.values[2]
-                val mag = sqrt((x * x + y * y + z * z).toDouble()).toFloat()
-                lastAccelMagnitude = mag
-
-                if (mag > ACCEL_SHAKE_THRESHOLD) {
-                    motionDetected = true
-                }
-            }
-            Sensor.TYPE_LIGHT -> {
-                val lux = event.values[0]
-                lastLux = lux
-                lightSatisfied = targetSignature.matches(lux)
-            }
-            Sensor.TYPE_PROXIMITY -> {
-                val distance = event.values[0]
-                lastDistanceCm = distance
-                proximitySatisfied = distance <= PROXIMITY_NEAR_THRESHOLD_CM
-            }
-        }
-
-        updateFusionState()
-    }
-
-    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
-        // Handle accuracy changes if needed
-    }
-
-    private fun updateFusionState() {
-        var score = 0
-        if (motionDetected) score += 34
-        if (lightSatisfied) score += 33
-        if (proximitySatisfied) score += 33
-
-        val isComplete = score >= 100
-
-        _fusionState.value = FusionState(
-            motionVerified = motionDetected,
-            lightVerified = lightSatisfied,
-            proximityVerified = proximitySatisfied,
-            fusionProgressPercent = score.coerceAtMost(100),
-            isFullyVerified = isComplete,
-            currentLux = lastLux,
-            currentAcceleration = lastAccelMagnitude,
-            currentDistanceCm = lastDistanceCm,
-            targetSignature = targetSignature
+        _fusionResult.value = fusionCalculator.calculate(
+            gameId = currentGameId,
+            checkpointId = currentCheckpointId,
+            inputs = inputs,
+            proximityNear = state.isNear ?: true // no proximity sensor → gate bypassed (MVP policy)
         )
     }
 }

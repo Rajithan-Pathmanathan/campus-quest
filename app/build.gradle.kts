@@ -4,7 +4,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.androidx.navigation.safeargs)
     // Google services plugin can be enabled when google-services.json is present
-    // alias(libs.plugins.google.gms.google.services)
+    alias(libs.plugins.google.gms.google.services)
 }
 
 android {

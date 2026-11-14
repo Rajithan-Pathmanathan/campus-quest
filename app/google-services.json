@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "751336059969",
+    "project_id": "campus-quest-17889",
+    "storage_bucket": "campus-quest-17889.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:751336059969:android:70c4f5af8d6dfabd0c02c0",
+        "android_client_info": {
+          "package_name": "com.campusquest"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDld4xL9TDVp_T_cxr9r75kE7d8JuImlTQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
