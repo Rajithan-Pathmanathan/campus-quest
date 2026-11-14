@@ -19,12 +19,34 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow<UiState<AuthUser>>(UiState.Idle)
     val uiState: StateFlow<UiState<AuthUser>> = _uiState.asStateFlow()
 
+    private val _isRegisterMode = MutableStateFlow(false)
+    val isRegisterMode: StateFlow<Boolean> = _isRegisterMode.asStateFlow()
+
+    fun toggleMode() {
+        if (_uiState.value is UiState.Loading) return
+        _isRegisterMode.value = !_isRegisterMode.value
+        _uiState.value = UiState.Idle
+    }
+
     fun login(email: String, password: String) {
         if (email.isBlank() || password.isBlank()) {
             _uiState.value = UiState.Error("Please enter email and password")
             return
         }
         submit { authRepository.signInWithEmail(email.trim(), password) }
+    }
+
+    fun register(email: String, password: String, displayName: String) {
+        when {
+            displayName.isBlank() ->
+                _uiState.value = UiState.Error("Please enter your name")
+            !email.contains("@") ->
+                _uiState.value = UiState.Error("Please enter a valid email address")
+            password.length < 6 ->
+                _uiState.value = UiState.Error("Password must be at least 6 characters")
+            else ->
+                submit { authRepository.signUpWithEmail(email.trim(), password, displayName.trim()) }
+        }
     }
 
     fun continueAsGuest() = submit { authRepository.signInAnonymously() }

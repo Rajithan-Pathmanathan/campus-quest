@@ -72,8 +72,11 @@ class GameDetailFragment : Fragment() {
             binding.tvTitle.text = game.title
             binding.tvCreator.text = getString(R.string.quest_details_creator, game.creatorName)
             binding.tvStatus.text = game.status.name
-            binding.tvCheckpointCount.text =
-                getString(R.string.quest_details_checkpoints, game.checkpointCount)
+            binding.tvCheckpointCount.text = resources.getQuantityString(
+                R.plurals.quest_details_checkpoints,
+                game.checkpointCount,
+                game.checkpointCount
+            )
             binding.tvDescription.text = game.description
 
             val joined = state.joinStatus == JoinStatus.JOINED
@@ -102,3 +105,5 @@ class GameDetailFragment : Fragment() {
         _binding = null
     }
 }
+
+

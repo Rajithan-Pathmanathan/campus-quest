@@ -1,5 +1,6 @@
 package com.campusquest.ui.common
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.NavController
@@ -8,6 +9,11 @@ import com.campusquest.R
 import com.campusquest.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
+
+    companion object {
+        /** Same key that CampusQuestMessagingService puts in the notification tap intent. */
+        const val EXTRA_GAME_ID = "EXTRA_GAME_ID"
+    }
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var navController: NavController
@@ -20,6 +26,39 @@ class MainActivity : AppCompatActivity() {
         val navHostFragment = supportFragmentManager
             .findFragmentById(R.id.nav_host_fragment) as NavHostFragment
         navController = navHostFragment.navController
+
+        // Handle the notification only on a fresh launch, not after screen rotation.
+        if (savedInstanceState == null) {
+            binding.root.post { handleNotificationIntent(intent) }
+        }
+    }
+
+    // App already open (or in the background) and a notification is tapped.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleNotificationIntent(intent)
+    }
+
+    private fun handleNotificationIntent(tapIntent: Intent?) {
+        val data = tapIntent ?: return
+        val gameId = data.getStringExtra(EXTRA_GAME_ID)?.trim()
+        if (gameId.isNullOrEmpty()) return
+
+        // Consume the extra so it is not handled twice.
+        data.removeExtra(EXTRA_GAME_ID)
+
+        runCatching {
+            // On a cold start we are still on the login screen: go to the dashboard first,
+            // so Back from the quest details leads to the dashboard.
+            if (navController.currentDestination?.id == R.id.loginFragment) {
+                navController.navigate(R.id.action_login_to_playerDashboard)
+            }
+            navController.navigate(
+                R.id.gameDetailFragment,
+                Bundle().apply { putString("gameId", gameId) }
+            )
+        }
     }
 
     override fun onSupportNavigateUp(): Boolean {

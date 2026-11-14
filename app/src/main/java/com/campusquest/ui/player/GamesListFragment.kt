@@ -102,10 +102,16 @@ class GamesListFragment : Fragment() {
             holder.tvTitle.text = game.title
             holder.tvCreator.text = "By ${game.creatorName}"
             holder.tvDescription.text = game.description
-            holder.tvCheckpointCount.text = "📍 ${game.checkpointCount} Checkpoints"
+            holder.tvCheckpointCount.text = holder.itemView.resources.getQuantityString(
+                R.plurals.quest_details_checkpoints,
+                game.checkpointCount,
+                game.checkpointCount
+            )
             holder.btnViewDetails.setOnClickListener { onClick(game) }
         }
 
         override fun getItemCount() = items.size
     }
 }
+
+
