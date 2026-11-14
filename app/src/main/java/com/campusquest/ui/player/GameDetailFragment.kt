@@ -70,9 +70,10 @@ class GameDetailFragment : Fragment() {
 
         state.game?.let { game ->
             binding.tvTitle.text = game.title
-            binding.tvCreator.text = "Created by: ${game.creatorName}"
+            binding.tvCreator.text = getString(R.string.quest_details_creator, game.creatorName)
             binding.tvStatus.text = game.status.name
-            binding.tvCheckpointCount.text = "📍 ${game.checkpointCount} Checkpoints"
+            binding.tvCheckpointCount.text =
+                getString(R.string.quest_details_checkpoints, game.checkpointCount)
             binding.tvDescription.text = game.description
 
             val joined = state.joinStatus == JoinStatus.JOINED
@@ -81,12 +82,14 @@ class GameDetailFragment : Fragment() {
 
             binding.btnJoin.isVisible = !joined
             binding.btnJoin.isEnabled = canJoin && !joining
-            binding.btnJoin.text = when {
-                !canJoin -> "Not available"
-                joining -> "Joining…"
-                state.joinStatus == JoinStatus.FAILED -> "Try again"
-                else -> "Join Quest"
-            }
+            binding.btnJoin.text = getString(
+                when {
+                    !canJoin -> R.string.join_not_available
+                    joining -> R.string.join_joining
+                    state.joinStatus == JoinStatus.FAILED -> R.string.join_try_again
+                    else -> R.string.join_quest
+                }
+            )
             binding.btnStartQuest.isVisible = joined
         }
 
