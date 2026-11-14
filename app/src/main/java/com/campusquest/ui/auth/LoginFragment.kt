@@ -37,26 +37,50 @@ class LoginFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.btnLogin.setOnClickListener {
-            viewModel.login(
-                binding.etEmail.text?.toString().orEmpty(),
-                binding.etPassword.text?.toString().orEmpty()
-            )
+            val email = binding.etEmail.text?.toString().orEmpty()
+            val password = binding.etPassword.text?.toString().orEmpty()
+            if (viewModel.isRegisterMode.value) {
+                viewModel.register(
+                    email = email,
+                    password = password,
+                    displayName = binding.etDisplayName.text?.toString().orEmpty()
+                )
+            } else {
+                viewModel.login(email, password)
+            }
         }
         binding.btnGuestLogin.setOnClickListener { viewModel.continueAsGuest() }
+        binding.btnToggleMode.setOnClickListener { viewModel.toggleMode() }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.uiState.collect { render(it) }
+                launch { viewModel.uiState.collect { renderState(it) } }
+                launch { viewModel.isRegisterMode.collect { renderMode(it) } }
             }
         }
     }
 
-    private fun render(state: UiState<AuthUser>) {
+    private fun renderMode(register: Boolean) {
+        binding.tilDisplayName.isVisible = register
+        binding.btnGuestLogin.isVisible = !register
+        binding.btnLogin.text = getString(
+            if (register) R.string.login_create_account_button else R.string.login_button
+        )
+        binding.btnToggleMode.text = getString(
+            if (register) R.string.login_toggle_to_login else R.string.login_toggle_to_register
+        )
+    }
+
+    private fun renderState(state: UiState<AuthUser>) {
         val loading = state is UiState.Loading
         binding.progressBar.isVisible = loading
         binding.btnLogin.isEnabled = !loading
         binding.btnGuestLogin.isEnabled = !loading
-        binding.tilPassword.error = (state as? UiState.Error)?.message
+        binding.btnToggleMode.isEnabled = !loading
+
+        val error = (state as? UiState.Error)?.message
+        binding.tvError.isVisible = error != null
+        binding.tvError.text = error
 
         if (state is UiState.Success &&
             findNavController().currentDestination?.id == R.id.loginFragment
