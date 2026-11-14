@@ -17,6 +17,7 @@ import com.campusquest.CampusQuestApplication
 import com.campusquest.R
 import com.campusquest.databinding.FragmentCreateGameBinding
 import kotlinx.coroutines.launch
+import com.campusquest.ui.common.AppProviders
 
 class CreateGameFragment : Fragment() {
 
@@ -25,10 +26,9 @@ class CreateGameFragment : Fragment() {
 
     private val viewModel: CreateGameViewModel by viewModels {
         CreateGameViewModelFactory(
-            repository = CampusQuestApplication.instance.gameRepository,
-            // TODO: replace with the real logged-in user once we know where AuthRepository lives
-            currentUserId = { "TEMP_CREATOR_ID" },
-            currentUserName = { "Creator" }
+            repository = AppProviders.gameRepository,
+            currentUserId = { AppProviders.authRepository.getCurrentUserId() },
+            currentUserName = { AppProviders.authRepository.currentUserState.value?.displayName }
         )
     }
 

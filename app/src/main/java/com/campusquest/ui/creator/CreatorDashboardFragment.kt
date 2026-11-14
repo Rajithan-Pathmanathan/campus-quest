@@ -16,6 +16,7 @@ import com.campusquest.CampusQuestApplication
 import com.campusquest.R
 import com.campusquest.databinding.FragmentCreatorDashboardBinding
 import kotlinx.coroutines.launch
+import com.campusquest.ui.common.AppProviders
 
 class CreatorDashboardFragment : Fragment() {
 
@@ -26,7 +27,7 @@ class CreatorDashboardFragment : Fragment() {
         CreatorGamesViewModelFactory(
             repository = CampusQuestApplication.instance.gameRepository,
             // TODO: replace with AuthRepository.getCurrentUserId() once we know where to get it
-            currentUserId = { "TEMP_CREATOR_ID" }
+            currentUserId = {AppProviders.authRepository.getCurrentUserId() }
         )
     }
 
