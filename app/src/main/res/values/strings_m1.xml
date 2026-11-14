@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="games_empty_title">No quests available</string>
+    <string name="games_empty_subtitle">Check back soon for new campus quests.</string>
+    <string name="games_error_title">Couldn\'t load quests</string>
+    <string name="retry">Retry</string>
+</resources>
