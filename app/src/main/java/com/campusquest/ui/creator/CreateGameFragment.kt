@@ -56,7 +56,7 @@ class CreateGameFragment : Fragment() {
                 Toast.makeText(requireContext(), "Save the draft first, then add checkpoints.", Toast.LENGTH_SHORT).show()
             } else {
                 val bundle = Bundle().apply { putString("gameId", gameId) }
-                findNavController().navigate(R.id.action_createGame_to_checkpointEditor, bundle)
+                findNavController().navigate(R.id.action_createGame_to_checkpointList, bundle)
             }
         }
 

@@ -31,8 +31,8 @@ class CreatorDashboardFragment : Fragment() {
     }
 
     private val adapter = GameCardAdapter { game ->
-        // TODO: navigate to game editor / checkpoint list when those screens exist
-        Toast.makeText(requireContext(), "Open ${game.title}", Toast.LENGTH_SHORT).show()
+        val bundle = Bundle().apply { putString("gameId", game.id) }
+        findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
     }
 
     override fun onCreateView(
