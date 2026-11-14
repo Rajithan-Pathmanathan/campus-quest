@@ -1,89 +1,140 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layoutWidth="match_parent"
-    android:layoutHeight="match_parent"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="@color/background_light">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
-        android:layoutWidth="match_parent"
-        android:layoutHeight="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:background="@color/primary_emerald"
         app:title="Quest Details"
         app:titleTextColor="@color/on_primary_emerald"
         app:navigationIcon="@android:drawable/ic_menu_revert" />
 
-    <androidx.core.widget.NestedScrollView
-        android:layoutWidth="match_parent"
-        android:layoutHeight="0dp"
-        android:layout_weight="1"
-        android:padding="@dimen/spacing_m">
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:visibility="gone" />
 
         <LinearLayout
-            android:layoutWidth="match_parent"
-            android:layoutHeight="wrap_content"
-            android:orientation="vertical">
+            android:id="@+id/layout_error"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_l"
+            android:visibility="gone">
 
             <TextView
-                android:id="@+id/tv_title"
-                android:layoutWidth="wrap_content"
-                android:layoutHeight="wrap_content"
-                android:text="Quest Title"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary" />
-
-            <TextView
-                android:id="@+id/tv_creator"
-                android:layoutWidth="wrap_content"
-                android:layoutHeight="wrap_content"
-                android:text="Created by: Professor"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="4dp" />
-
-            <TextView
-                android:id="@+id/tv_description"
-                android:layoutWidth="wrap_content"
-                android:layoutHeight="wrap_content"
-                android:text="Detailed quest backstory and lore..."
-                android:textColor="@color/text_primary"
-                android:layout_marginTop="@dimen/spacing_m" />
-
-            <TextView
-                android:layoutWidth="wrap_content"
-                android:layoutHeight="wrap_content"
-                android:text="Checkpoints to Discover"
-                android:textStyle="bold"
-                android:textSize="16sp"
-                android:layout_marginTop="@dimen/spacing_l" />
-
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/rv_checkpoints"
-                android:layoutWidth="match_parent"
-                android:layoutHeight="wrap_content"
-                android:layout_marginTop="@dimen/spacing_s"
-                android:nestedScrollingEnabled="false" />
+                android:id="@+id/tv_error_message"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textColor="@color/text_secondary" />
 
             <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_start_quest"
-                android:layoutWidth="match_parent"
-                android:layoutHeight="wrap_content"
-                android:text="Start Quest Navigation"
-                android:backgroundTint="@color/primary_emerald"
-                android:layout_marginTop="@dimen/spacing_xl" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_leaderboard"
-                android:layoutWidth="match_parent"
-                android:layoutHeight="wrap_content"
-                android:text="View Quest Leaderboard"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_marginTop="@dimen/spacing_s" />
-
+                android:id="@+id/btn_retry"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_m"
+                android:text="Retry"
+                android:backgroundTint="@color/primary_emerald" />
         </LinearLayout>
-    </androidx.core.widget.NestedScrollView>
 
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/layout_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/spacing_m"
+            android:visibility="gone">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_creator"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/primary_emerald"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tv_checkpoint_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_secondary" />
+
+                <TextView
+                    android:id="@+id/tv_description"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_m"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:id="@+id/tv_join_error"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_m"
+                    android:textColor="@android:color/holo_red_dark"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_join"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xl"
+                    android:text="Join Quest"
+                    android:backgroundTint="@color/primary_emerald" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_start_quest"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xl"
+                    android:text="Start Quest Navigation"
+                    android:backgroundTint="@color/primary_emerald"
+                    android:visibility="gone" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_leaderboard"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_s"
+                    android:text="View Quest Leaderboard" />
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+    </FrameLayout>
 </LinearLayout>
