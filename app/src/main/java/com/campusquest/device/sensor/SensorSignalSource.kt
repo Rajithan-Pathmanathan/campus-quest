@@ -9,6 +9,9 @@ import com.campusquest.device.sensor.light.LightSensorDetector
 import com.campusquest.device.sensor.motion.GravityFilter
 import com.campusquest.device.sensor.motion.MotionDetector
 import com.campusquest.device.sensor.motion.ShakeDetector
+import com.campusquest.device.sensor.motion.TrialDetector
+import com.campusquest.device.sensor.motion.SteadyHoldDetector
+import com.campusquest.device.sensor.motion.RepeatedGestureDetector
 import com.campusquest.device.sensor.motion.SweepDetector
 import com.campusquest.device.sensor.motion.TiltDetector
 import com.campusquest.device.sensor.proximity.ProximityGateDetector
@@ -53,9 +56,10 @@ class RealSensorSignalSource(
 
     private val lightDetector = LightSensorDetector()
     private val gravityFilter = GravityFilter()
-    private val shakeDetector = ShakeDetector()
-    private val sweepDetector = SweepDetector()
-    private val tiltDetector = TiltDetector()
+    // Story trials: wake the ember (3 shakes), clear the cobwebs (3 sweeps), carry the water jar (hold steady).
+    private val shakeDetector = RepeatedGestureDetector(ShakeDetector())
+    private val sweepDetector = RepeatedGestureDetector(SweepDetector())
+    private val tiltDetector = SteadyHoldDetector()
     private val proximityDetector = ProximityGateDetector()
 
     private val availableSignals = availability.getAvailableSignalTypes()
@@ -69,7 +73,7 @@ class RealSensorSignalSource(
     )
     override val sensorState: StateFlow<SensorState> = _sensorState.asStateFlow()
 
-    private fun getActiveMotionDetector(): MotionDetector {
+    private fun getActiveMotionDetector(): TrialDetector {
         return when (activeMotionType) {
             MotionType.SHAKE -> shakeDetector
             MotionType.SWEEP -> sweepDetector
@@ -158,6 +162,7 @@ class RealSensorSignalSource(
                 motionDetected = motionDetected,
                 isNear = isNear,
                 activeMotionType = activeMotionType,
+                trialStatus = if (availability.hasAccelerometer) getActiveMotionDetector().status else null,
                 availableSensors = availableSignals,
                 timestamp = System.currentTimeMillis()
             )

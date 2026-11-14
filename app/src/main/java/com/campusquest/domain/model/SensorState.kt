@@ -11,6 +11,8 @@ data class SensorState(
     val motionDetected: Boolean? = null,
     val isNear: Boolean? = null,
     val activeMotionType: MotionType? = null,
+    /** Progress of the chapter's motion trial (shake x3, sweep x3, water jar). */
+    val trialStatus: TrialStatus? = null,
     val availableSensors: Set<SensorSignalType> = emptySet(),
     val timestamp: Long = System.currentTimeMillis()
 )

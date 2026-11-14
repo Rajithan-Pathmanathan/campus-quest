@@ -137,3 +137,55 @@ GPS is never re-normalized away: otherwise a device without a fix could discover
 - Foreground location (FINE/COARSE) is requested at runtime on the Scan screen; `LocationManagerHelper.startLocationUpdates` refuses to start without it.
 - Background location is **not** requested in the MVP. On Android 10+ `GeofencingClient` therefore cannot register geofences; geofence ENTER is foreground-only and `ScopedGeofenceFallback` (distance-based) is the source of truth for scan eligibility. `GeofenceBroadcastReceiver` events are in-memory and are lost if the process is not running.
 - `LocationState` / `LocationPermissionState` live in `domain.model` and contain no Android types.
+
+---
+
+## 4. Story Game Logic (added in `feat/m3-story-game-logic`)
+
+Campus Quest is played as a story: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no "312 lx", no fusion percentage). M3 provides the logic; the screens (M1/M4) only display the words and effects below. All of it is plain Kotlin with no Android types, in `domain/quest/QuestCues.kt`.
+
+### 4.1 Zones around each checkpoint (`nextQuestZone`)
+| Zone | Distance | What the player gets |
+|---|---|---|
+| `FAR` | > 200 m | Rounded distance + compass direction |
+| `OUTER` | 200 → 100 m | Heartbeat vibration starts (`heartbeatIntervalMs`) |
+| `MIDDLE` | 100 → 10 m | The chapter **trial** (see 4.3) |
+| `RELIC` | ≤ 10 m **and** GPS accuracy ≤ 15 m | "✨ The relic appears!": enable the scan |
+
+- Hysteresis: once `RELIC`, it stays until the player is > 20 m away (no flicker at the edge).
+- Weak GPS (accuracy > 15 m) can never trigger `RELIC`, so players can't "arrive" by GPS noise.
+- Call `nextQuestZone(previousZone, distanceM, accuracyM)` on each location update; pass `FAR` as `previousZone` when the target checkpoint changes. Constants are in `QuestZones`.
+
+### 4.2 Player-facing cues (`QuestCues`)
+| Raw value | Show instead | Function |
+|---|---|---|
+| Distance | "~250 m", "~45 m", **"Very close…"** under 20 m | `distanceText(m)` |
+| Getting closer | Freezing → Cold → Warm → Hot → **Burning!** | `warmth(m)` |
+| Closeness (haptics) | heartbeat every 1.5 s at 200 m → 0.3 s near the relic | `heartbeatIntervalMs(zone, m)` |
+| Zone | "The Resonator hears a heartbeat!" … | `zoneLine(zone)` |
+| Light vs the checkpoint's light | "Too much sun! … Find shade." / "Too dark… step into the sunlight." / "It's afraid of the light…" | `lightHint(signature, lux)` |
+| Fusion progress | "A faint glow…" → "The ember flickers…" → "The ember is blazing!" | `glow(progressPercent).label` |
+| Trial progress | "2 more shakes!", "Spilled! Steady… start again." | `trialHint(motionType, trialStatus)` |
+| Proximity gate | "Cup the ember — hold the Resonator close." | `shieldHint(near)` |
+
+`LightMode.of(signature)` classifies a checkpoint's light as `BRIGHT` (min ≥ 10,000 lx), `DARK` (max ≤ 100 lx) or `SHADE` (everything else), so the hint knows what to say.
+
+### 4.3 Motion trials (what `motionType` now means)
+| `motionType` | Trial | Detector | Rule |
+|---|---|---|---|
+| `SHAKE` | Wake the ember | `RepeatedGestureDetector(ShakeDetector())` | 3 separate shakes (450 ms cooldown so one shake isn't counted twice) |
+| `SWEEP` | Clear the cobwebs | `RepeatedGestureDetector(SweepDetector())` | 3 separate sweeps |
+| `TILT` | Carry the water jar | `SteadyHoldDetector` | Keep the phone within 15° of its starting pose for 10 s; tipping further "spills" and restarts |
+
+Progress is published on `SensorState.trialStatus` (`TrialStatus`: `completed`, `remaining`, `started`, `justSpilled`, `holdFraction` for an animation). `motionDetected` becomes true only when the whole trial is complete, so fusion scoring is unchanged.
+
+### 4.4 Game 1: *The Founder's Lantern* (content for M6/M1 to seed)
+Story: the founders' lantern fell and its flame split into three embers hiding across campus (one in the light, one in the shade, one in the dark). The player carries the **Resonator** and relights the lantern.
+
+| # | Chapter | Location | Coordinates | Light (lux) | Trial |
+|---|---|---|---|---|---|
+| 1 | The Ember in the Light | Tennis Court | 6.9722948878782995, 79.91638354596967 | 10,000 – 120,000 (bright) | `SHAKE` |
+| 2 | The Ember in the Shade | Buddha Statue | 6.974319507376335, 79.91600245459793 | 500 – 10,000 (shade) | `TILT` |
+| 3 | The Ember in the Dark | Medical Centre | 6.976196957961348, 79.91471980379754 | 0 – 60 (dark) | `SWEEP` |
+
+Chapters are ~230 m and ~250 m apart. Use `radiusM = 15` (GPS scoring scale); the relic itself appears at `QuestZones.RELIC_RADIUS_M` (10 m). Memory (`lore`) texts still need real facts about each place. Light thresholds and the 10 m radius are first guesses to tune after an on-campus walk test.
