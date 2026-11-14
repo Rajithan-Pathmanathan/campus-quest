@@ -4,4 +4,10 @@
     <string name="games_empty_subtitle">Check back soon for new campus quests.</string>
     <string name="games_error_title">Couldn\'t load quests</string>
     <string name="retry">Retry</string>
+    <string name="join_quest">Join Quest</string>
+    <string name="join_not_available">Not available</string>
+    <string name="join_joining">Joining…</string>
+    <string name="join_try_again">Try again</string>
+    <string name="quest_details_creator">Created by: %1$s</string>
+    <string name="quest_details_checkpoints">📍 %1$d Checkpoints</string>
 </resources>
