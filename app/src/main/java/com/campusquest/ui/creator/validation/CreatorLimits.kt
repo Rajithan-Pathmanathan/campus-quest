@@ -15,5 +15,7 @@ object CreatorLimits {
     const val MAX_RADIUS_M = 500f
     const val MAX_LUX = 100_000f
 
+    const val MIN_CHECKPOINTS_TO_PUBLISH = 1   // PLACEHOLDER: ask the group for the real number
+
     val RARITIES = listOf("COMMON", "RARE", "EPIC", "LEGENDARY")
 }
