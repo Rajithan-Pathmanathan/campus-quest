@@ -1,4 +1,4 @@
-package com.campusquest.ui.creator
+package com.campusquest.ui.creator.validation
 
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.Game

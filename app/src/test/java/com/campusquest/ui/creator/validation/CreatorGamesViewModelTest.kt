@@ -4,7 +4,6 @@ import com.campusquest.ui.creator.CreatorGamesUiState
 import com.campusquest.ui.creator.CreatorGamesViewModel
 import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.GameStatus
-import com.campusquest.ui.creator.FakeGameRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
