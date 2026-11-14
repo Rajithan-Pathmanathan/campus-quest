@@ -944,3 +944,19 @@ Quest + Scan Gameplay
 ```
 
 This allows M1 to develop the majority of the player-facing experience independently while integrating through stable contracts.
+
+
+---
+
+# UPDATE (2026-11-14): Story game logic from M3 (PR #7)
+
+Campus Quest is now played as a **story**: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no lux values, no fusion percentage). M3 merged the logic in PR #7; the full API and the first story quest are in `M3_INTEGRATION_GUIDE.md` **section 4**. This section lists what changes for this member.
+
+## What changes for M1 (Player UI & Navigation)
+
+1. **Story intro (new, M1 owns the screens).** On first launch, show 3-4 swipeable story cards with a **Skip** button, then go to login. Allow replaying it from the dashboard. Draft text for the world story:
+   > *Every campus keeps memories. Over time they faded and scattered into hidden relics, each tied to a place, a light and a motion. Your phone is the Resonator: stand in the right spot, find the right light, move the right way, and the relic's signal grows. Anyone can hide new relics; every quest is someone's story of this campus.*
+2. **Quest details.** Show the game `description` as the quest's story ("Quest Backstory & Mission") and each chapter's `clue` as its briefing. Use story wording on buttons where it fits (for example "Begin the Search").
+3. **No raw numbers on player screens.** Anything you display about distance or progress must use M3's `QuestCues` (for example `QuestCues.distanceText()` gives "~250 m" / "Very close..."), never accuracy, lux or percentages.
+4. **Map screen ownership needs a team decision.** Sections 8-9 of this plan say M3 owns the map/location implementation, while the M4 plan places gameplay with M4. Agree who builds the story map (zones, warmth, heartbeat, "relic appears" pop-up) before work starts.
+5. **Dashboard.** Show the signed-in player's real name, total score and relics found (currently fixed text).
