@@ -2555,3 +2555,17 @@ This keeps Firebase implementation isolated and allows the application to use th
 ---
 
 **END OF MEMBER 5 FIREBASE, FIRESTORE, AUTHENTICATION & CLOUD BACKEND WORKPLAN**
+
+
+---
+
+# UPDATE (2026-11-14): Story game logic from M3 (PR #7)
+
+Campus Quest is now played as a **story**: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no lux values, no fusion percentage). M3 merged the logic in PR #7; the full API and the first story quest are in `M3_INTEGRATION_GUIDE.md` **section 4**. This section lists what changes for this member.
+
+## What changes for M5 (Firebase & Cloud Backend)
+
+1. **No schema change.** Checkpoint documents keep the same fields; only the meaning of `motionType` (now a 3x gesture or a 10 s steady hold) and the light ranges changed. No migration is needed.
+2. **Story quest content.** *The Founder's Lantern* (M3 guide section 4.4) should be publishable to Firestore like any creator quest, ideally under an official "Campus Quest" creator account so the security rules accept its writes. Agree with M6 whether it is seeded locally, in Firestore, or both.
+3. **Leaderboard.** Scoring is unchanged (score, then completion time). The story finale needs the progress record to know when every chapter is found, so `isCompleted` / `completedAt` must be set correctly when the last discovery syncs.
+4. **Notifications.** "New quest" pushes fit the story ("A new relic has been hidden on campus!"). Sending to the `new_games` topic needs a server; one free option is a small serverless endpoint (for example on Vercel) that the app calls after a successful publish, which verifies the caller's Firebase ID token before sending.

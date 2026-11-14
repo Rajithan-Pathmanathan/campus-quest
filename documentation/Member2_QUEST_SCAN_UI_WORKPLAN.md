@@ -2138,3 +2138,36 @@ M2 should not hand over private implementation assumptions that other members ca
 ---
 
 **END OF MEMBER 2 CREATOR & GAME MANAGEMENT WORKPLAN**
+
+
+---
+
+# UPDATE (2026-11-14): Story game logic from M3 (PR #7)
+
+Campus Quest is now played as a **story**: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no lux values, no fusion percentage). M3 merged the logic in PR #7; the full API and the first story quest are in `M3_INTEGRATION_GUIDE.md` **section 4**. This section lists what changes for this member.
+
+## What changes for M2 (Creator & Game Management)
+
+The checkpoint data model is **unchanged** (no new fields), but what some fields mean to the player has changed. The editor should guide creators accordingly.
+
+1. **Motion type now means a trial (section 20).** Store the same strings; describe them to creators like this:
+
+   | `motionType` | Trial the player does | Editor label suggestion |
+   |---|---|---|
+   | `SHAKE` | 3 separate shakes ("wake the ember") | "Wake it: shake 3 times" |
+   | `SWEEP` | 3 separate sweeps ("clear the cobwebs") | "Clear it: sweep 3 times" |
+   | `TILT` | Hold the phone level for 10 s ("carry the water jar") | "Carry it: hold steady 10 s" |
+
+2. **Light signature presets (section 15).** M3 classifies a checkpoint's light into three modes, which decide the hint players get. Offer these presets (plus Custom):
+
+   | Preset | Lux range | Player hint when wrong |
+   |---|---|---|
+   | Bright / sunny | 10,000 - 120,000 | "Too dark... step into the sunlight." |
+   | Shade | 500 - 10,000 | "Too much sun! Find shade." |
+   | Dark / indoors | 0 - 60 | "It's afraid of the light..." |
+
+   Existing ranges still work; anything not Bright or Dark is treated as Shade.
+3. **Clue and lore are story text now.** `clue` = the chapter briefing shown before the search; `lore` = the "memory restored" text revealed when the relic is found; the game `description` = the quest's story. Use prompts in the editor that say so.
+4. **Radius.** The relic appears to players within **10 m** (with good GPS), independent of the stored radius. Recommend `radiusM` = 15 m (it scales the GPS score); keep the 5 m minimum.
+5. **Location input.** Typing coordinates is error-prone; a "Use my current location" button is strongly recommended.
+6. **Reference quest.** *The Founder's Lantern* (M3 guide section 4.4) is a complete example of a story quest: 3 chapters, each with its own light mode and trial.

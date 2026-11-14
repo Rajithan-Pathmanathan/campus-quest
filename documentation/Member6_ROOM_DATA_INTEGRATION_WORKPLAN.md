@@ -2420,3 +2420,20 @@ This keeps the implementation responsibilities separated while allowing all six 
 ---
 
 **END OF MEMBER 6 ROOM, REPOSITORY, OFFLINE SYNC & INTEGRATION WORKPLAN**
+
+
+---
+
+# UPDATE (2026-11-14): Story game logic from M3 (PR #7)
+
+Campus Quest is now played as a **story**: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no lux values, no fusion percentage). M3 merged the logic in PR #7; the full API and the first story quest are in `M3_INTEGRATION_GUIDE.md` **section 4**. This section lists what changes for this member.
+
+## What changes for M6 (Room, Repository & Sync)
+
+1. **Replace the California mock data with the story quest.** Seed *The Founder's Lantern* from the table in `M3_INTEGRATION_GUIDE.md` section 4.4 (3 real campus locations, light ranges, trials, `radiusM` = 15) instead of the `MockDataCatalog` sample games. The memory (`lore`) texts are placeholders until real facts about each place are added.
+2. **Discovery must be unique and the quest must complete (sections 27-28).** A repeat claim of the same checkpoint must not add score or advance the order; when the last chapter is found, set `isCompleted = true` and `completedAt`. The story finale depends on this.
+3. **Use the signed-in user's id, not `"current_user"`,** for join and discovery records, so progress is per player.
+4. **Lessons from M3's field-test build** (worth checking in the real implementation):
+   - Room `@Insert(onConflict = REPLACE)` on a parent row **deletes and re-inserts** it, which **CASCADE-deletes all of its checkpoints**. Use `@Upsert` (Room 2.5+) for games.
+   - Don't call Firestore inline from write methods: an offline `set().await()` never completes, so saves hang. Queue the write and let a WorkManager job sync it.
+   - Only remove a sync-queue item **after** the cloud write succeeds; the current `syncPending()` deletes items without uploading them.

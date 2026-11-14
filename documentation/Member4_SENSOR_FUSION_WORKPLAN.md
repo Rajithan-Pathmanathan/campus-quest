@@ -2107,3 +2107,29 @@ M4 should provide:
 ---
 
 **END OF MEMBER 4 QUEST & SCAN GAMEPLAY WORKPLAN**
+
+
+---
+
+# UPDATE (2026-11-14): Story game logic from M3 (PR #7)
+
+Campus Quest is now played as a **story**: the sensors are part of the fiction, and **players never see raw numbers** (no "GPS 40%", no lux values, no fusion percentage). M3 merged the logic in PR #7; the full API and the first story quest are in `M3_INTEGRATION_GUIDE.md` **section 4**. This section lists what changes for this member.
+
+## What changes for M4 (Quest & Scan Gameplay)
+
+The **"M4 must not calculate fusion / must not read sensors"** rules (sections 27-28) still apply. M3 now also provides the player-facing wording, so M4 only displays it.
+
+1. **Fusion meter (sections 7-8): no percentage.** Replace "72%" with M3's ember glow: `QuestCues.glow(progressPercent).label` ("A faint glow..." -> "The ember flickers..." -> "The ember is blazing!"), ideally as a flame visual. The threshold logic is unchanged.
+2. **Sensor indicators (sections 9-12): story words, never raw values.**
+   - GPS: show "You're with the ember" / "Move closer...", not a GPS score.
+   - Light: `QuestCues.lightHint(checkpoint.lightSignature, lux)` (for example "Too much sun! Find shade.").
+   - Motion: `QuestCues.trialHint(motionType, sensorState.trialStatus)` ("2 more shakes!", "Spilled! Steady... start again.").
+   - Proximity: `QuestCues.shieldHint(near)` ("Cup the ember - hold the Resonator close.").
+3. **Motion is now a trial.** `SHAKE` = 3 shakes, `SWEEP` = 3 sweeps, `TILT` = hold the phone level for 10 s (the "water jar"). Live progress is on `SensorState.trialStatus` (`remaining`, `justSpilled`, `holdFraction` for a water-level animation); `motionDetected` becomes true only when the trial is complete.
+4. **Zones replace "inside the geofence" as the scan entry rule.** On every location update call `nextQuestZone(previousZone, distanceM, accuracyM)`:
+   - `FAR` (> 200 m): rounded distance (`QuestCues.distanceText`) + direction.
+   - `OUTER` (200-100 m): heartbeat vibration every `QuestCues.heartbeatIntervalMs(zone, distance)` ms.
+   - `MIDDLE` (100-10 m): the chapter's trial can start.
+   - `RELIC` (<= 10 m with GPS accuracy <= 15 m): pop the relic up ("The ember appears!") and only then allow scanning. It stays until the player is 20 m away.
+5. **Proximity on phones with "virtual" sensors.** Some phones (for example Xiaomi "Virtual_Prox") don't report proximity outside calls, so the gate never opens. Provide a fallback such as **holding the shield card**, accepted only after the fusion threshold is reached (GPS + light + motion). Decide with M3 whether to keep it.
+6. **Reveal and progression (sections 15, 32-37).** Show the checkpoint `lore` as "Memory restored"; refuse a second claim of an already-found checkpoint (no double points); after the last chapter show a quest-complete finale.
