@@ -4,15 +4,36 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import com.campusquest.CampusQuestApplication
 import com.campusquest.R
 import com.campusquest.databinding.FragmentCreatorDashboardBinding
+import kotlinx.coroutines.launch
 
 class CreatorDashboardFragment : Fragment() {
 
     private var _binding: FragmentCreatorDashboardBinding? = null
     private val binding get() = _binding!!
+
+    private val viewModel: CreatorGamesViewModel by viewModels {
+        CreatorGamesViewModelFactory(
+            repository = CampusQuestApplication.instance.gameRepository,
+            // TODO: replace with AuthRepository.getCurrentUserId() once we know where to get it
+            currentUserId = { "TEMP_CREATOR_ID" }
+        )
+    }
+
+    private val adapter = GameCardAdapter { game ->
+        // TODO: navigate to game editor / checkpoint list when those screens exist
+        Toast.makeText(requireContext(), "Open ${game.title}", Toast.LENGTH_SHORT).show()
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -26,12 +47,25 @@ class CreatorDashboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.rvAuthoredGames.layoutManager = LinearLayoutManager(requireContext())
+        binding.rvAuthoredGames.adapter = adapter
+
         binding.btnCreateNewQuest.setOnClickListener {
             findNavController().navigate(R.id.action_creator_to_createGame)
         }
-
         binding.btnSwitchPlayer.setOnClickListener {
             findNavController().navigate(R.id.action_creator_to_playerDashboard)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.state.collect { state ->
+                    adapter.submitList(state.games)
+                    state.error?.let {
+                        Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
     }
 
