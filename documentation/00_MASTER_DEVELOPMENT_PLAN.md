@@ -56,7 +56,7 @@ Owns the creator side:
 Owns the physical discovery system:
 - Fused Location Provider
 - Location permissions/settings
-- Google Maps
+- Campus map (OpenStreetMap via osmdroid; no API key)
 - Distance calculation
 - Dynamic checkpoint markers
 - Dynamic geofences

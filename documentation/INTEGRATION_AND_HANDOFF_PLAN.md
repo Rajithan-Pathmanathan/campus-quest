@@ -265,7 +265,7 @@ Owns:
 ``` text
 Location permission handling
 Fused Location Provider
-Google Maps
+Campus map (OpenStreetMap / osmdroid)
 Distance calculations
 Dynamic checkpoint geofences
 Geofence events
@@ -2144,7 +2144,7 @@ lat/lng
  ↓
 permission
  ↓
-Google Maps
+OpenStreetMap map (osmdroid)
  ↓
 marker creation
 ```
