@@ -8,6 +8,8 @@
 
 ---
 
+> **Later requirement update:** The key puzzle is now tilt-only. The user explicitly removed its touch/drag alternative. An accelerometer with usable readings is required, and preflight must block unsupported devices. This update overrides the key-puzzle touch fallback described in the original design below. The proximity cover's separate slide fallback remains supported.
+
 ## Contents
 
 1. Purpose and design rules

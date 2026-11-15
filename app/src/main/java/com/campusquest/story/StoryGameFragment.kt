@@ -39,6 +39,8 @@ class StoryGameFragment : Fragment() {
     private var diagnostics: TextView?=null
     private var compass: TrailCompassView?=null
     private var maze: KeyBoxView?=null
+    private var keyStarted=false
+    private var tiltStatus: TextView?=null
     private var lamp: LampView?=null
     private var scanner: CardScanner?=null
     private var cameraPreview: PreviewView?=null
@@ -83,7 +85,8 @@ class StoryGameFragment : Fragment() {
                 AppProviders.gameRepository.joinGame(gameId).getOrThrow()
                found=app.database.playerProgressDao().getProgress(gameId,uid)?.completedCheckpointIds.orEmpty()
                 session=app.database.storyDao().session(gameId,uid) ?: StorySessionEntity(gameId,uid,
-                    motionFallback=sensors?.hasTilt!=true, coverFallback=sensors?.hasProximity!=true)
+                    motionFallback=false, coverFallback=sensors?.hasProximity!=true)
+                session=session?.copy(motionFallback=false)
                 stage="preflight";draw()
             } catch(e: Exception) {stage="error";draw();status?.text=e.message ?: "Could not load story"}
         }
@@ -100,6 +103,7 @@ class StoryGameFragment : Fragment() {
     }
     override fun onPause() {
         closeScanner();sensors?.stop();compass?.stop();app.locationRepository.stopTracking()
+        keyStarted=false
         alignHold.reset();coverHold.reset();arrivalHold.reset();arrived=false;coverPressed=false
         super.onPause()
     }
@@ -124,7 +128,7 @@ class StoryGameFragment : Fragment() {
     private fun draw() {
         val b=body ?: return
         closeScanner();compass?.stop();compass=null;maze=null;torchButton=null
-        b.removeAllViews();live=null;lightHint=null;diagnostics=null;lamp=null
+        b.removeAllViews();live=null;lightHint=null;diagnostics=null;lamp=null;tiltStatus=null
         StoryUi.button(b,"Back to quest") {findNavController().navigateUp()}
         StoryUi.text(b,"LIGHT THE WAY",28f)
         status=StoryUi.text(b,"")
@@ -133,14 +137,15 @@ class StoryGameFragment : Fragment() {
         if(stage=="preflight") {
             StoryUi.text(b,"Can you help light the way?",23f)
             StoryUi.text(b,"The welcome walk starts soon, but the old meeting lamp is not working. Find its key, follow the repair note and bring its light back.")
-            StoryUi.text(b, "Tilt controls: ${if(sensors?.hasTilt==true)"available" else "touch alternative"}\nDirection guidance: ${if(sensors?.hasHeading==true)"available" else "map and dial alternative"}\nLamp cover: ${if(session?.coverFallback==true)"slide control" else "hand-cover check"}",14f)
+            StoryUi.text(b, "Tilt controls: ${if(sensors?.hasTilt==true)"accelerometer available" else "unavailable — required for this game"}\nDirection guidance: ${if(sensors?.hasHeading==true)"available" else "map and dial alternative"}\nLamp cover: ${if(session?.coverFallback==true)"slide control" else "hand-cover check"}",14f)
             StoryUi.text(b, "Camera: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)} · Flashlight: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)}",14f)
-            StoryUi.text(b,"Cover the top front of your phone, then move your hand away. If the cover sensor does not respond, choose the slide control. You can always use touch controls.")
+            StoryUi.text(b,"Cover the top front of your phone, then move your hand away. If the cover sensor does not respond, choose the slide control. Tilting is required for the key puzzle.")
             live=StoryUi.text(b,"")
-            StoryUi.button(b,"Use touch controls for the key") {session=session?.copy(motionFallback=true);saveSession();status?.text="Key puzzle will use touch controls."}
             StoryUi.button(b,"Use slide control for the cover") {session=session?.copy(coverFallback=true);saveSession();status?.text="Lamp cover will use a slide control."}
             StoryUi.button(b,"Allow location") {locationAccess.request()}
             StoryUi.button(b,"Start / resume the walk") {
+                if(sensors?.hasTilt!=true){status?.text="This game needs an accelerometer for tilt controls. This phone cannot play the key puzzle.";return@button}
+                if(sensors?.tilt?.fresh(SystemClock.elapsedRealtime())!=true){status?.text="Waiting for the tilt sensor. Hold your phone still briefly and try again.";return@button}
                 if(sensors?.sawFar!=true || sensors?.sawNear!=true)session=session?.copy(coverFallback=true)
                 saveSession();switch(if(index()<0)"ending" else "walk")
             }
@@ -168,10 +173,14 @@ class StoryGameFragment : Fragment() {
             StoryUi.button(b,"Open map") {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
         } else if(stage=="key") {
             StoryUi.text(b,"The key has slipped behind the wooden bars. Stop in a safe place. Tilt left/right and forward/back to move it to the green opening.")
-            sensors?.calibrate()
-            maze=KeyBoxView(requireContext()).also {m -> m.touchControls=session?.motionFallback==true;m.onSolved={award()};b.addView(m,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),320)))}
-            StoryUi.button(b,"Use drag controls") {session=session?.copy(motionFallback=true);maze?.touchControls=true;saveSession();status?.text="Drag anywhere in the box to guide the key."}
-            StoryUi.button(b,"Recalibrate / restart puzzle") {maze?.box=KeyBox();sensors?.calibrate();maze?.invalidate()}
+            keyStarted=false
+            tiltStatus=StoryUi.text(b,"Hold your phone comfortably, then tap Start tilting.",16f)
+            maze=KeyBoxView(requireContext()).also {m -> m.onSolved={award()};b.addView(m,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),320)))}
+            StoryUi.button(b,"Start tilting / recalibrate") {
+                sensors?.calibrate();keyStarted=true
+                tiltStatus?.text="Keep still briefly while tilt is calibrated…"
+            }
+            StoryUi.button(b,"Restart key puzzle") {maze?.box=KeyBox();keyStarted=false;maze?.invalidate();tiltStatus?.text="Tap Start tilting when you are ready."}
         } else if(stage=="card") {
             StoryUi.text(b,"The repair card is inside the shaded pocket. Point the camera at it. Use the light if it is dark, or enter the code below the card.")
             StoryUi.button(b,"Open camera") {if(cameraGranted())openCamera() else permissions.launch(arrayOf(Manifest.permission.CAMERA))}
@@ -252,12 +261,19 @@ class StoryGameFragment : Fragment() {
         }
         val target=if(recent)HaversineDistanceCalculator().calculateBearingDegrees(loc.smoothedLatitude!!,loc.smoothedLongitude!!,cp.lat,cp.lng)else null
         compass?.update(if(stage=="aim")config!!.targetBearing else target,distance,loc.smoothedLatitude,loc.smoothedLongitude)
-        diagnostics?.text="${s.summary()}\nGPS accuracy: ${loc.accuracyMeters}; arrived: $arrived\nLight: ${s.lux}; gyro turn rate: ${s.turnRate}\nCover: ${s.near}; compass: ${s.heading}\nTilt: ${s.tiltX}, ${s.tiltY}\nControls: drag=${session?.motionFallback}, slide=${session?.coverFallback}"
+        diagnostics?.text="${s.summary()}\nGPS accuracy: ${loc.accuracyMeters}; arrived: $arrived\nLight: ${s.lux}; gyro turn rate: ${s.turnRate}\nCover: ${s.near}; compass: ${s.heading}\nTilt: ${s.tiltX}, ${s.tiltY}\nControls: tilt only, cover slide=${session?.coverFallback}"
         val dt=if(lastTick==0L)0f else ((now-lastTick)/1000f).coerceAtMost(.1f);lastTick=now
-        maze?.active=arrived && !saving
-        if(stage=="key" && session?.motionFallback!=true && now-s.lastMotion<1000) {
-            fun dead(v: Float)=if(abs(v)<.08f)0f else v
-            maze?.step(dead(s.tiltX)*dt*.5f,dead(s.tiltY)*dt*.5f)
+        maze?.active=arrived && !saving && keyStarted && s.tilt.fresh(now)
+        if(stage=="key") {
+            tiltStatus?.text=when {
+                !s.hasTilt -> "Tilt sensor unavailable. This puzzle requires an accelerometer."
+                !arrived -> "Puzzle paused: return to the circle and wait for GPS."
+                !keyStarted -> "Hold your phone comfortably and tap Start tilting."
+                !s.tilt.fresh(now) -> "Waiting for tilt readings. Hold still briefly, or tap recalibrate."
+                abs(s.tiltX)+abs(s.tiltY)<.04f -> "Tilt ready. Gently lower the side you want the key to move toward."
+                else -> "Tilt is moving the key. Keep steering around the bars."
+            }
+            if(maze?.active==true)maze?.step(s.tiltX*dt*.65f,s.tiltY*dt*.65f)
         }
         if(stage=="aim") {
             val declination=if(recent)GeomagneticField(loc.smoothedLatitude!!.toFloat(),loc.smoothedLongitude!!.toFloat(),0f,System.currentTimeMillis()).declination else 0f

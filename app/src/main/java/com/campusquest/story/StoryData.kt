@@ -64,7 +64,7 @@ class ContinuousHold(private val durationMs: Long) {
     fun reset() { started = null }
 }
 
-/** Shared maze collisions for tilt and touch controls. Normalized screen coordinates. */
+/** Maze collisions in normalized screen coordinates for accelerometer-controlled movement. */
 class KeyBox {
     var x = 0.12f; private set
     var y = 0.88f; private set

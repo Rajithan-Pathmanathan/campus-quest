@@ -15,12 +15,9 @@ class StorySensors(context: Context) : SensorEventListener {
     val hasHeading get() = available[Sensor.TYPE_ROTATION_VECTOR] != null
     val hasProximity get() = available[Sensor.TYPE_PROXIMITY] != null
     var rotation = Surface.ROTATION_0
-    var tiltX = 0f; private set
-    var tiltY = 0f; private set
-    private var neutralX = 0f
-    private var neutralY = 0f
-    private var gx = 0f
-    private var gy = 0f
+    val tilt = TiltControl()
+    val tiltX get() = tilt.x
+    val tiltY get() = tilt.y
     var heading: Float? = null; private set
     var headingReliable = true; private set
     var near: Boolean? = null; private set
@@ -38,10 +35,11 @@ class StorySensors(context: Context) : SensorEventListener {
     fun start() {
         if (running) return
         running = true
+        tilt.reset()
         available.values.filterNotNull().forEach { manager.registerListener(this, it, SensorManager.SENSOR_DELAY_GAME) }
     }
     fun stop() { manager.unregisterListener(this); running = false; gyroTime = 0; heading = null; near = null }
-    fun calibrate() { neutralX = gx; neutralY = gy; relativeTurn = 0f }
+    fun calibrate() { tilt.calibrate(); relativeTurn = 0f }
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
         if (sensor?.type == Sensor.TYPE_ROTATION_VECTOR) headingReliable = accuracy != SensorManager.SENSOR_STATUS_UNRELIABLE
     }
@@ -49,16 +47,7 @@ class StorySensors(context: Context) : SensorEventListener {
         val now = SystemClock.elapsedRealtime()
         when (event.sensor.type) {
             Sensor.TYPE_ACCELEROMETER -> {
-                gx = gx * 0.82f + event.values[0] * 0.18f
-                gy = gy * 0.82f + event.values[1] * 0.18f
-                val x = (gx-neutralX) / 4f; val y = (gy-neutralY) / 4f
-                val axes = when (rotation) {
-                    Surface.ROTATION_90 -> y to -x
-                    Surface.ROTATION_180 -> -x to -y
-                    Surface.ROTATION_270 -> -y to x
-                    else -> x to y
-                }
-                tiltX = -axes.first.coerceIn(-1f,1f); tiltY = axes.second.coerceIn(-1f,1f)
+                tilt.sample(event.values[0],event.values[1],rotation,now,event.values[2])
                 lastMotion = now
             }
             Sensor.TYPE_GYROSCOPE -> {
