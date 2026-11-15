@@ -6,10 +6,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- Location & Dynamic Geofencing Permissions (Member 3) -->
+    <!-- Location Permissions (Member 3) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION" />
 
     <!-- Hardware Sensor & Camera Permissions (Member 2, 3, 4) -->
     <uses-permission android:name="android.permission.CAMERA" />
@@ -58,11 +57,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Dynamic Geofence Transition Broadcast Receiver (Member 3) -->
-        <receiver
-            android:name=".device.location.geofence.GeofenceBroadcastReceiver"
-            android:exported="false" />
 
         <!-- Firebase Cloud Messaging Push Service (Member 5) -->
         <service

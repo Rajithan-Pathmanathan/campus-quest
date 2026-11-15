@@ -203,3 +203,15 @@ The map uses **OpenStreetMap tiles through osmdroid 6.1.20** instead of the Goog
 - **Not used any more:** `play-services-maps`, the `com.google.android.geo.API_KEY` manifest entry and `MAPS_API_KEY`. Location still comes from Google Play services (`FusedLocationProviderClient`), which needs no key.
 - **Fair use:** OpenStreetMap's public tile servers are free for light use like this project. A large public release should use a commercial OSM tile provider or self-hosted tiles.
 - **Still to build on the map (M3):** live zone/warmth/heartbeat cues from section 4 and the "relic appears" pop-up; the top card still shows fixed placeholder text.
+
+## 6. Removed: geofencing (2026-11-15)
+
+The geofencing layer was never wired into the app, and the scan screen's **zones** (section 4, `nextQuestZone`) already decide when a relic appears. To keep the MVP simple it has been **removed**:
+
+- Deleted: `device/location/geofence/*` (`GeofenceManagerHelper`, `GeofenceBroadcastReceiver`, `ScopedGeofenceFallback`, `BoundaryHysteresis`, `GeofenceKey`), `MapGeofenceDataProvider`, and the models `GeofenceState`, `GeofenceVisualState`, `GeofenceEvents`, `CheckpointEligibility`, plus the unused `FusionState` and `SensorReading`.
+- The manifest no longer declares `ACCESS_BACKGROUND_LOCATION` or the geofence receiver.
+- **The geofence parts of sections 1–3 above (the `CheckpointEligibility` contract, map geofence overlays, geofence keys and the "background location" policy) no longer apply.** Location is foreground-only through `LocationRepository`.
+
+## 7. Creator map picker (2026-11-15)
+
+The checkpoint editor (`CheckpointEditorFragment`) now offers **two ways** to set a checkpoint's location: type the latitude/longitude, or **tap the OpenStreetMap map** (drag the pin to adjust). Both fill the same fields, so `CheckpointEditorViewModel` and its validation are unchanged. The map uses the same osmdroid setup as the campus map (section 5).
