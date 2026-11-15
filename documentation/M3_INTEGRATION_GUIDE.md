@@ -34,7 +34,7 @@ Member 3 owns all physical-signal acquisition and processing:
 ## 2. Integration Contracts for Dependent Members
 
 ### 2.1 For Member 1 (Player UI & Campus Map)
-Member 1 renders the live map and navigates players toward checkpoints.
+M3 owns the campus map and its gameplay markers (see `00_MASTER_DEVELOPMENT_PLAN.md`, M3 section, and section 5 below); Member 1 owns the screen structure and the navigation into and out of it.
 
 1. **Location Tracking ([`LocationRepository`](file:///d:/MIT/Academics/Year%2002/Semester%2002/Mobile%20Application%20Development/Slides/Mobile%20Application%20Project/campus-quest/app/src/main/java/com/campusquest/domain/repository/LocationRepository.kt)):**
    ```kotlin
@@ -189,3 +189,17 @@ Story: the founders' lantern fell and its flame split into three embers hiding a
 | 3 | The Ember in the Dark | Medical Centre | 6.976196957961348, 79.91471980379754 | 0 – 60 (dark) | `SWEEP` |
 
 Chapters are ~230 m and ~250 m apart. Use `radiusM = 15` (GPS scoring scale); the relic itself appears at `QuestZones.RELIC_RADIUS_M` (10 m). Memory (`lore`) texts still need real facts about each place. Light thresholds and the 10 m radius are first guesses to tune after an on-campus walk test.
+
+---
+
+## 5. Campus Map: OpenStreetMap (osmdroid)
+
+The map uses **OpenStreetMap tiles through osmdroid 6.1.20** instead of the Google Maps SDK. Google Maps needs an API key and an active Google Cloud **billing account** (some regions require a prepayment before any Maps API works); OpenStreetMap needs **no key, no account and no billing**.
+
+- **Setup for developers:** none. Build and run; the phone only needs internet to download tiles.
+- **Layout:** `fragment_campus_map.xml` uses `org.osmdroid.views.MapView` (`@+id/map_view`).
+- **Code:** `CampusMapFragment.setupMap()` sets the OSM tile source (`MAPNIK`), pinch-zoom, and osmdroid's configuration. Per OSM's tile usage policy the app identifies itself with its package name as the user agent; tiles are cached in the app's own cache folder, so no storage permission is needed. The map view follows the fragment lifecycle (`onResume` / `onPause`).
+- **Overlays:** each checkpoint is drawn as a circle of `radiusM` plus a marker (found checkpoints are green and ticked); the player's latest position from `LocationRepository` is a "You" marker; the camera starts on the next unfound checkpoint (`NextCheckpointResolver`).
+- **Not used any more:** `play-services-maps`, the `com.google.android.geo.API_KEY` manifest entry and `MAPS_API_KEY`. Location still comes from Google Play services (`FusedLocationProviderClient`), which needs no key.
+- **Fair use:** OpenStreetMap's public tile servers are free for light use like this project. A large public release should use a commercial OSM tile provider or self-hosted tiles.
+- **Still to build on the map (M3):** live zone/warmth/heartbeat cues from section 4 and the "relic appears" pop-up; the top card still shows fixed placeholder text.

@@ -23,8 +23,6 @@ android {
             useSupportLibrary = true
         }
 
-        // Default placeholder for Google Maps API Key
-        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSy_CampusQuest_Default_Placeholder_Key"
     }
 
     buildTypes {
@@ -95,7 +93,8 @@ dependencies {
 
     // Google Play Services: Location & Maps
     implementation(libs.play.services.location)
-    implementation(libs.play.services.maps)
+    // Map: OpenStreetMap tiles via osmdroid (free, no API key or billing)
+    implementation(libs.osmdroid.android)
 
     // CameraX for Scan HUD
     implementation(libs.androidx.camera.core)

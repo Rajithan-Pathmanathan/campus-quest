@@ -48,11 +48,6 @@
         android:theme="@style/Theme.CampusQuest"
         tools:targetApi="34">
 
-        <!-- Google Maps API Key Meta-Data -->
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="${MAPS_API_KEY}" />
-
         <!-- Main Single-Activity -->
         <activity
             android:name=".ui.common.MainActivity"

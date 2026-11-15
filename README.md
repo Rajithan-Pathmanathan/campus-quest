@@ -9,7 +9,7 @@
 **Campus Quest** is an enterprise-grade, native Android application engineered in **Kotlin** that transforms university campuses into interactive, gamified adventure arenas. The platform operates on a **Dual-Role Model**:
 
 1. **Game Creators** design custom campus quests, define dynamic GPS checkpoint boundaries, set environmental unlock conditions, configure sensor fusion puzzles, and broadcast quest alerts.
-2. **Game Players** discover and enroll in quests, navigate campus grounds using interactive Google Maps, enter geofenced zones, and solve multi-sensor hardware challenges (accelerometer, ambient light, proximity) to unlock clues, climb live leaderboards, and earn achievements.
+2. **Game Players** discover and enroll in quests, navigate campus grounds using an interactive OpenStreetMap map, enter geofenced zones, and solve multi-sensor hardware challenges (accelerometer, ambient light, proximity) to unlock clues, climb live leaderboards, and earn achievements.
 
 ---
 
@@ -18,7 +18,7 @@
 - **Platform & Language:** Native Android (API 26+ / Android 8.0 to Android 14+), Kotlin 1.9+, Coroutines & Flow
 - **Architecture Pattern:** Clean Architecture + MVVM (Model-View-ViewModel) + Repository Pattern
 - **UI & Presentation:** Material Design 3 (MD3), Jetpack Navigation Component, Single-Activity Architecture, CameraX & Custom Scan HUD
-- **Location & Mapping:** Google Play Services Location API (`FusedLocationProviderClient`), Google Maps Android SDK, Geofencing API
+- **Location & Mapping:** Google Play Services Location API (`FusedLocationProviderClient`), OpenStreetMap via osmdroid (no API key), Geofencing API
 - **Sensor Engine:** Android Sensor Framework (`SensorManager`) — Multi-sensor fusion combining 3-axis Accelerometer, Ambient Light Sensor, and Proximity Gate
 - **Local Persistence:** Jetpack Room ORM (SQLite) with TypeConverters, SQLite Transactions, and Offline Mutation Sync Queue
 - **Cloud Backend & Realtime:** Firebase Suite — Firebase Authentication, Cloud Firestore (Real-time Snapshots & Offline Cache), Cloud Storage, and Firebase Cloud Messaging (FCM)
@@ -139,7 +139,7 @@ graph TD
     C -->|3. Triggers FCM Broadcast| D[Player Devices Notification]
     
     E[Game Player] -->|4. Browses & Enrolls| F(Player Dashboard)
-    F -->|5. GPS Navigation| G[Google Maps & Geofencing]
+    F -->|5. GPS Navigation| G[OpenStreetMap & Geofencing]
     G -->|6. Arrives within Geofence Radius| H{In Geofence?}
     H -->|Yes| I[Unlock Sensor Fusion HUD]
     H -->|No| G

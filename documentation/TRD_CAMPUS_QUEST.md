@@ -50,7 +50,7 @@ Room local persistence
 Firebase Authentication
 Cloud Firestore
 FCM notifications
-Google Maps/location services
+OpenStreetMap map (osmdroid) and Google Play location services
 Dynamic geofencing
 Ambient-light sensing
 Accelerometer motion detection
