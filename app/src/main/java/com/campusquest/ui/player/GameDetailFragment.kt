@@ -23,6 +23,7 @@ class GameDetailFragment : Fragment() {
 
     private val viewModel: GameDetailViewModel by viewModels()
     private val gameId: String get() = arguments?.getString("gameId").orEmpty()
+    private val geofencePermissions = com.campusquest.ui.quest.GeofencePermissionFlow(this)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -43,11 +44,8 @@ class GameDetailFragment : Fragment() {
         binding.btnJoin.setOnClickListener { viewModel.join() }
 
         binding.btnStartQuest.setOnClickListener {
-            viewLifecycleOwner.lifecycleScope.launch {
-                val story = com.campusquest.CampusQuestApplication.instance.database.storyDao().config(gameId)
-                findNavController().navigate(if (story != null) R.id.storyGameFragment else R.id.campusMapFragment,
-                    Bundle().apply {putString("gameId",gameId)})
-            }
+            // M3: permissions for the quest geofence, then a real geofence around the next place.
+            geofencePermissions.run { startQuest() }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             val app = com.campusquest.CampusQuestApplication.instance
@@ -70,6 +68,16 @@ class GameDetailFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.uiState.collect { render(it) }
             }
+        }
+    }
+
+    private fun startQuest() {
+        if (_binding == null) return
+        com.campusquest.CampusQuestApplication.instance.questGeofences.activate(gameId, force = true)
+        viewLifecycleOwner.lifecycleScope.launch {
+            val story = com.campusquest.CampusQuestApplication.instance.database.storyDao().config(gameId)
+            findNavController().navigate(if (story != null) R.id.storyGameFragment else R.id.campusMapFragment,
+                Bundle().apply {putString("gameId",gameId)})
         }
     }
 

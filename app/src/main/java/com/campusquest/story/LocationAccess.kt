@@ -33,7 +33,10 @@ class LocationAccess(private val fragment: Fragment, private val refresh: () -> 
     private val permissions = fragment.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refresh()
         if (granted()) enableServices()
-        else message("Location access was not allowed. Tap Allow location to try again or open app settings.")
+        else {
+            message("Location access was not allowed. Tap Allow location to try again or open app settings.")
+            com.campusquest.ui.common.PermissionNotice.show(fragment, com.campusquest.ui.common.AppPermission.LOCATION)
+        }
     }
     private fun granted(): Boolean = listOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION).any {
         ContextCompat.checkSelfPermission(fragment.requireContext(),it)==PackageManager.PERMISSION_GRANTED

@@ -49,4 +49,29 @@
     <string name="map_no_remaining">No remaining checkpoints</string>
     <string name="map_load_failed">Unable to load checkpoints</string>
     <string name="map_you">You</string>
+    <string name="checkpoint_map_picker_hint">Type the latitude and longitude, or tap the map to place the checkpoint (drag the pin to adjust).</string>
+    <string name="checkpoint_map_picker_description">Map for choosing the checkpoint location</string>
+    <string name="geofence_alert_title">Something stirs nearby…</string>
+    <string name="geofence_alert_body">You\'re close to %1$s. Open Campus Quest and follow the warmth.</string>
+    <string name="geofence_permission_title">Feel the call even when the app is closed</string>
+    <string name="geofence_permission_message">Allow location “All the time” and Campus Quest will alert you when you get close to the next place, even with the app closed. You can still play without it.</string>
+    <string name="geofence_permission_allow">Allow</string>
+    <string name="geofence_permission_not_now">Not now</string>
+    <!-- Shown when a permission is declined (PermissionNotice) -->
+    <string name="perm_open_settings">Open settings</string>
+    <string name="perm_continue_without">Continue without</string>
+    <string name="perm_several_title">Some permissions were declined</string>
+    <string name="perm_how_prefix">To enable it: %1$s</string>
+    <string name="perm_location_title">Location permission is required</string>
+    <string name="perm_location_impact">Campus Quest uses your location to guide you to each checkpoint, show your position on the map and confirm when you have reached a place. Without it, the map cannot show where you are, distance guidance will not appear and checkpoints cannot be discovered. The game will not work properly.</string>
+    <string name="perm_location_how">Settings → Apps → Campus Quest → Permissions → Location → “Allow only while using the app”, and switch on “Use precise location”.</string>
+    <string name="perm_camera_title">Camera permission is required</string>
+    <string name="perm_camera_impact">The camera is used to scan the repair card in the Light the Way quest. Without it, the card step cannot be completed and the quest cannot be finished.</string>
+    <string name="perm_camera_how">Settings → Apps → Campus Quest → Permissions → Camera → “Allow only while using the app”.</string>
+    <string name="perm_notifications_title">Notifications are turned off</string>
+    <string name="perm_notifications_impact">Notifications tell you when you are near the next checkpoint and when new quests are published. Without them you will not receive these alerts. The game itself will still work.</string>
+    <string name="perm_notifications_how">Settings → Apps → Campus Quest → Notifications → “Allow notifications”.</string>
+    <string name="perm_background_title">Background location was not allowed</string>
+    <string name="perm_background_impact">Background location lets Campus Quest alert you when you approach the next checkpoint while the app is closed. Without it these alerts will not appear. Guidance inside the app will still work.</string>
+    <string name="perm_background_how">Settings → Apps → Campus Quest → Permissions → Location → “Allow all the time”.</string>
 </resources>

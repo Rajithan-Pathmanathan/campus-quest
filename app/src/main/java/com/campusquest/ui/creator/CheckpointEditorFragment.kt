@@ -20,11 +20,21 @@ import com.campusquest.databinding.FragmentCheckpointEditorBinding
 import com.campusquest.domain.model.MotionType
 import com.campusquest.ui.creator.validation.CreatorLimits
 import kotlinx.coroutines.launch
+import org.osmdroid.config.Configuration
+import org.osmdroid.events.MapEventsReceiver
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.CustomZoomButtonsController
+import org.osmdroid.views.overlay.MapEventsOverlay
+import org.osmdroid.views.overlay.Marker
+import java.io.File
+import java.util.Locale
 
 class CheckpointEditorFragment : Fragment() {
 
     private var _binding: FragmentCheckpointEditorBinding? = null
     private val binding get() = _binding!!
+    private var pin: Marker? = null
 
     private val viewModel: CheckpointEditorViewModel by viewModels {
         CheckpointEditorViewModelFactory(
@@ -75,6 +85,7 @@ class CheckpointEditorFragment : Fragment() {
         }
 
         binding.btnSaveCheckpoint.setOnClickListener { viewModel.save() }
+        setupMapPicker()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -82,6 +93,7 @@ class CheckpointEditorFragment : Fragment() {
                     binding.etCpName.setIfDifferent(s.name)
                     binding.etLat.setIfDifferent(s.lat)
                     binding.etLng.setIfDifferent(s.lng)
+                    showPin(s.lat, s.lng)
                     binding.etRadius.setIfDifferent(s.radiusM)
                     binding.etMinLux.setIfDifferent(s.minLux)
                     binding.etMaxLux.setIfDifferent(s.maxLux)
@@ -113,8 +125,76 @@ class CheckpointEditorFragment : Fragment() {
         }
     }
 
+    /** Second way to set the location: tap the map (or drag the pin). It fills the same lat/lng fields. */
+    private fun setupMapPicker() {
+        val ctx = requireContext().applicationContext
+        Configuration.getInstance().apply {
+            userAgentValue = ctx.packageName
+            osmdroidBasePath = ctx.cacheDir
+            osmdroidTileCache = File(ctx.cacheDir, "osm-tiles")
+        }
+        binding.mapPicker.apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(true)
+            zoomController.setVisibility(CustomZoomButtonsController.Visibility.NEVER)
+            controller.setZoom(17.0)
+            controller.setCenter(CAMPUS_CENTER)
+            // Let the map pan and zoom instead of the page scrolling.
+            setOnTouchListener { v, _ -> v.parent.requestDisallowInterceptTouchEvent(true); false }
+            overlays.add(MapEventsOverlay(object : MapEventsReceiver {
+                override fun singleTapConfirmedHelper(p: GeoPoint): Boolean { setLocation(p); return true }
+                override fun longPressHelper(p: GeoPoint): Boolean = false
+            }))
+        }
+    }
+
+    /** Writing the fields triggers the existing text watchers, so the ViewModel stays the single source of truth. */
+    private fun setLocation(p: GeoPoint) {
+        binding.etLat.setText(String.format(Locale.US, "%.6f", p.latitude))
+        binding.etLng.setText(String.format(Locale.US, "%.6f", p.longitude))
+    }
+
+    private fun showPin(lat: String, lng: String) {
+        val la = lat.trim().toDoubleOrNull()?.takeIf { it in -90.0..90.0 } ?: return
+        val lo = lng.trim().toDoubleOrNull()?.takeIf { it in -180.0..180.0 } ?: return
+        val map = binding.mapPicker
+        val point = GeoPoint(la, lo)
+        val marker = pin ?: Marker(map).also { m ->
+            m.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            m.isDraggable = true
+            m.setOnMarkerDragListener(object : Marker.OnMarkerDragListener {
+                override fun onMarkerDrag(marker: Marker) = Unit
+                override fun onMarkerDragStart(marker: Marker) = Unit
+                override fun onMarkerDragEnd(marker: Marker) = setLocation(marker.position)
+            })
+            map.overlays.add(m)
+            pin = m
+            map.controller.setCenter(point)
+        }
+        if (marker.position == point) return
+        marker.position = point
+        if (map.width > 0 && !map.boundingBox.contains(point)) map.controller.animateTo(point)
+        map.invalidate()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        _binding?.mapPicker?.onResume()
+    }
+
+    override fun onPause() {
+        _binding?.mapPicker?.onPause()
+        super.onPause()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        pin = null
         _binding = null
+    }
+
+    private companion object {
+        /** Default view before a location is chosen (central campus, near the Buddha statue). */
+        val CAMPUS_CENTER = GeoPoint(6.9743, 79.9160)
     }
 }

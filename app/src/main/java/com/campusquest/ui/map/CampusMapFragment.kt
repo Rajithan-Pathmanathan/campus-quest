@@ -41,6 +41,7 @@ class CampusMapFragment : Fragment() {
 
     private val requestLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         startMapLocation()
+        if (!hasLocationPermission()) com.campusquest.ui.common.PermissionNotice.show(this, com.campusquest.ui.common.AppPermission.LOCATION)
     }
 
     override fun onStart() {
