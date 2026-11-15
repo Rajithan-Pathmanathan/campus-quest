@@ -21,11 +21,22 @@ class FakeGameRepository : GameRepository {
         return games.toList()
     }
 
+    override suspend fun getCreatorGames(creatorId: String): List<Game> {
+        if (failLoading) throw RuntimeException("boom")
+        return games.filter { it.creatorId == creatorId }
+    }
+
     override suspend fun getGameDetails(gameId: String) = games.firstOrNull { it.id == gameId }
 
     override suspend fun createGame(game: Game): Result<Game> {
         games.add(game)
         return Result.success(game)
+    }
+
+    override suspend fun updateGame(game: Game): Result<Unit> {
+        val i = games.indexOfFirst { it.id == game.id }
+        if (i >= 0) games[i] = game
+        return Result.success(Unit)
     }
 
     override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Checkpoint> {
@@ -37,6 +48,11 @@ class FakeGameRepository : GameRepository {
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Unit> {
         val i = checkpoints.indexOfFirst { it.id == checkpoint.id && it.gameId == gameId }
         if (i >= 0) checkpoints[i] = checkpoint
+        return Result.success(Unit)
+    }
+
+    override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> {
+        checkpoints.removeAll { it.gameId == gameId && it.id == checkpointId }
         return Result.success(Unit)
     }
 
@@ -62,6 +78,8 @@ class FakeGameRepository : GameRepository {
     override fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> = flowOf(emptyList())
 
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> = flowOf(null)
+
+    override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress> = emptyList()
 
     override suspend fun syncPending() {}
 }

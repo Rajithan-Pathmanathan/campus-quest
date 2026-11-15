@@ -29,7 +29,7 @@ object MockDataCatalog {
             radiusM = 15f,
             lightSignature = LightSignature(minLux = 10000f, maxLux = 120000f),
             clue = "Seek the open courts where the sun blazes brightest. Step into the full sunlight and shake the Resonator three times to wake the sleeping ember.",
-            lore = "Memory Restored: The campus Tennis Courts have hosted generations of spirited matches under the tropical sun, where the first spark of the Founder's Lantern took refuge in the open light.",
+            lore = "[Placeholder — replace with verified Tennis Court facts] The first ember of the Founder's Lantern rests here in the open sunlight.",
             order = 1,
             motionType = "SHAKE",
             rarity = "COMMON"
@@ -43,7 +43,7 @@ object MockDataCatalog {
             radiusM = 15f,
             lightSignature = LightSignature(minLux = 500f, maxLux = 10000f),
             clue = "Find the tranquil canopy near the Buddha Statue where harsh glare softens into calm shade. Hold the Resonator steady for ten seconds as if carrying a sacred water jar.",
-            lore = "Memory Restored: Beneath the peaceful shade of the sacred tree at the heart of campus, students pause in quiet reflection—preserving the second ember in stillness and balance.",
+            lore = "[Placeholder — replace with verified Buddha Statue facts] The second ember of the Founder's Lantern is kept in calm shade and stillness.",
             order = 2,
             motionType = "TILT",
             rarity = "RARE"
@@ -57,18 +57,12 @@ object MockDataCatalog {
             radiusM = 15f,
             lightSignature = LightSignature(minLux = 0f, maxLux = 60f),
             clue = "Follow the path to the sheltered shadows near the Medical Centre. Shield the Resonator from bright light and sweep three times to clear the cobwebs.",
-            lore = "Memory Restored: In the cool, dim shelter of the Medical Centre, care and resilience have guarded the final ember—completing the triad and relighting the Founder's Lantern!",
+            lore = "[Placeholder — replace with verified Medical Centre facts] The final ember of the Founder's Lantern hides here in the sheltered dark, ready to relight the lantern.",
             order = 3,
             motionType = "SWEEP",
             rarity = "LEGENDARY"
         )
     )
-
-    // Backwards-compatible aliases so existing callers/tests compile cleanly
-    val sampleGame1: Game = foundersLanternGame
-    val sampleGame2: Game = foundersLanternGame
-    val sampleCheckpointsGame1: List<Checkpoint> = foundersLanternCheckpoints
-    val sampleCheckpointsGame2: List<Checkpoint> = emptyList()
 
     val allSampleGames = listOf(foundersLanternGame)
 }

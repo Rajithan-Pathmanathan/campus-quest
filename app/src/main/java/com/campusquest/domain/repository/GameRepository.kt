@@ -10,20 +10,19 @@ import kotlinx.coroutines.flow.Flow
 interface GameRepository {
     suspend fun getAvailableGames(): List<Game>
 
-    suspend fun getCreatorGames(creatorId: String): List<Game> =
-        getAvailableGames().filter { it.creatorId == creatorId }
+    suspend fun getCreatorGames(creatorId: String): List<Game>
 
     suspend fun getGameDetails(gameId: String): Game?
 
     suspend fun createGame(game: Game): Result<Game>
 
-    suspend fun updateGame(game: Game): Result<Unit> = Result.success(Unit)
+    suspend fun updateGame(game: Game): Result<Unit>
 
     suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Checkpoint>
 
     suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Unit>
 
-    suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> = Result.success(Unit)
+    suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit>
 
     suspend fun publishGame(gameId: String): Result<Unit>
 
@@ -39,7 +38,7 @@ interface GameRepository {
 
     fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?>
 
-    suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress> = emptyList()
+    suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress>
 
     suspend fun syncPending()
 }

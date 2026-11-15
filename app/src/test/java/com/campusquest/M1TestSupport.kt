@@ -77,6 +77,12 @@ class M1FakeGameRepository : GameRepository {
         return games
     }
 
+    override suspend fun getCreatorGames(creatorId: String): List<Game> {
+        availableGamesGate?.await()
+        availableGamesError?.let { throw it }
+        return games.filter { it.creatorId == creatorId }
+    }
+
     override suspend fun getGameDetails(gameId: String): Game? {
         detailsError?.let { throw it }
         return games.firstOrNull { it.id == gameId }
@@ -84,10 +90,15 @@ class M1FakeGameRepository : GameRepository {
 
     override suspend fun createGame(game: Game): Result<Game> = Result.success(game)
 
+    override suspend fun updateGame(game: Game): Result<Unit> = Result.success(Unit)
+
     override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Checkpoint> =
         Result.success(checkpoint)
 
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Unit> =
+        Result.success(Unit)
+
+    override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> =
         Result.success(Unit)
 
     override suspend fun publishGame(gameId: String): Result<Unit> = Result.success(Unit)
@@ -112,6 +123,8 @@ class M1FakeGameRepository : GameRepository {
     }
 
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> = flowOf(null)
+
+    override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress> = emptyList()
 
     override suspend fun syncPending() {}
 }
