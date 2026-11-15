@@ -18,6 +18,9 @@ interface SyncQueueDao {
     @Query("DELETE FROM sync_queue WHERE syncId = :syncId")
     suspend fun deleteById(syncId: Long)
 
+    @Query("UPDATE sync_queue SET retryCount = retryCount + 1 WHERE syncId = :syncId")
+    suspend fun incrementRetryCount(syncId: Long)
+
     @Update
     suspend fun update(item: SyncQueueEntity)
 

@@ -5,8 +5,11 @@ import androidx.room.PrimaryKey
 
 enum class SyncOperationType {
     CREATE_GAME,
+    CREATE_CHECKPOINT,
     UPDATE_CHECKPOINT,
+    DELETE_CHECKPOINT,
     PUBLISH_GAME,
+    JOIN_GAME,
     RECORD_DISCOVERY,
     UPDATE_PROGRESS
 }

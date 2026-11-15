@@ -6,14 +6,17 @@ import android.app.NotificationManager
 import android.content.Context
 import android.os.Build
 import com.campusquest.data.local.AppDatabase
+import com.campusquest.data.repository.AuthRepositoryImpl
 import com.campusquest.data.repository.GameRepositoryImpl
 import com.campusquest.data.repository.LocationRepositoryImpl
 import com.campusquest.data.repository.SensorRepositoryImpl
 import com.campusquest.device.location.LocationManagerHelper
 import com.campusquest.device.sensor.SensorFusionEngine
+import com.campusquest.domain.repository.AuthRepository
 import com.campusquest.domain.repository.GameRepository
 import com.campusquest.domain.repository.LocationRepository
 import com.campusquest.domain.repository.SensorRepository
+import com.google.firebase.auth.FirebaseAuth
 
 class CampusQuestApplication : Application() {
 
@@ -29,12 +32,21 @@ class CampusQuestApplication : Application() {
         AppDatabase.getDatabase(this)
     }
 
+    val authRepository: AuthRepository? by lazy {
+        try {
+            AuthRepositoryImpl(FirebaseAuth.getInstance())
+        } catch (_: Exception) {
+            null
+        }
+    }
+
     val gameRepository: GameRepository by lazy {
         GameRepositoryImpl(
             gameDao = database.gameDao(),
             checkpointDao = database.checkpointDao(),
             playerProgressDao = database.playerProgressDao(),
-            syncQueueDao = database.syncQueueDao()
+            syncQueueDao = database.syncQueueDao(),
+            authRepository = authRepository
         )
     }
 

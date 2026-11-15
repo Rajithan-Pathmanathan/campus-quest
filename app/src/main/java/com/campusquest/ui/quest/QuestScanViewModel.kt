@@ -352,8 +352,7 @@ class QuestScanViewModel(
                 gameRepository = AppProviders.gameRepository,
                 sensorRepository = app.sensorRepository,
                 locationRepository = app.locationRepository,
-                // GameRepositoryImpl currently stores progress under this fixed id (see recordDiscovery).
-                userId = { "current_user" }
+                userId = { AppProviders.currentUserId() }
             ) as T
         }
     }

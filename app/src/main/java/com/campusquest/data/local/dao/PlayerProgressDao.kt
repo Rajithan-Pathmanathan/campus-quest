@@ -16,6 +16,9 @@ interface PlayerProgressDao {
     @Query("SELECT * FROM player_progress WHERE gameId = :gameId AND userId = :userId LIMIT 1")
     suspend fun getProgress(gameId: String, userId: String): PlayerProgressEntity?
 
+    @Query("SELECT * FROM player_progress WHERE userId = :userId")
+    suspend fun getAllPlayerProgress(userId: String): List<PlayerProgressEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertOrUpdateProgress(progress: PlayerProgressEntity)
 

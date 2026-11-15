@@ -7,106 +7,68 @@ import com.campusquest.domain.model.LightSignature
 
 object MockDataCatalog {
 
-    val sampleGame1 = Game(
-        id = "GAME_HERITAGE_001",
-        title = "University Heritage Trail",
-        description = "Discover historic landmarks, the original bell tower, and the founder's archives across the North Quad.",
-        creatorId = "PROF_OAK_01",
-        creatorName = "Prof. Oak",
+    val foundersLanternGame = Game(
+        id = "GAME_FOUNDERS_LANTERN",
+        title = "The Founder's Lantern",
+        description = "Long ago, the founders' lantern fell and its flame split into three embers hiding across campus—one in the bright sun, one in the quiet shade, and one in the dark. Carry the Resonator to each place, pass its trial, and relight the lantern.",
+        creatorId = "CAMPUS_QUEST_OFFICIAL",
+        creatorName = "Campus Quest Team",
         status = GameStatus.PUBLISHED,
         checkpointCount = 3,
         createdAt = 1700000000000L,
         publishedAt = 1700001000000L
     )
 
-    val sampleGame2 = Game(
-        id = "GAME_INNOVATION_002",
-        title = "Silicon Quad Tech Hunt",
-        description = "Uncover robotics labs, clean energy testbeds, and the ancient mainframe server room.",
-        creatorId = "IEEE_STUDENT_BRANCH",
-        creatorName = "IEEE Student Branch",
-        status = GameStatus.PUBLISHED,
-        checkpointCount = 2,
-        createdAt = 1700002000000L,
-        publishedAt = 1700003000000L
-    )
-
-    val sampleCheckpointsGame1 = listOf(
+    val foundersLanternCheckpoints = listOf(
         Checkpoint(
-            id = "CP_BELL_TOWER",
-            gameId = "GAME_HERITAGE_001",
-            name = "Historic Old Clock Tower",
-            lat = 37.4275,
-            lng = -122.1697,
-            radiusM = 25f,
-            lightSignature = LightSignature(minLux = 150f, maxLux = 800f),
-            clue = "Where shadows stretch longest at noon, look beneath the bronze chime.",
-            lore = "Erected in 1891, this bell tower survived the great quake of 1906.",
+            id = "CP_EMBER_LIGHT",
+            gameId = "GAME_FOUNDERS_LANTERN",
+            name = "The Ember in the Light — Tennis Court",
+            lat = 6.9722948878782995,
+            lng = 79.91638354596967,
+            radiusM = 15f,
+            lightSignature = LightSignature(minLux = 10000f, maxLux = 120000f),
+            clue = "Seek the open courts where the sun blazes brightest. Step into the full sunlight and shake the Resonator three times to wake the sleeping ember.",
+            lore = "Memory Restored: The campus Tennis Courts have hosted generations of spirited matches under the tropical sun, where the first spark of the Founder's Lantern took refuge in the open light.",
             order = 1,
-            motionType = "SWEEP",
+            motionType = "SHAKE",
             rarity = "COMMON"
         ),
         Checkpoint(
-            id = "CP_FOUNDER_ARCHIVE",
-            gameId = "GAME_HERITAGE_001",
-            name = "Founder's Rare Archive Vault",
-            lat = 37.4282,
-            lng = -122.1685,
+            id = "CP_EMBER_SHADE",
+            gameId = "GAME_FOUNDERS_LANTERN",
+            name = "The Ember in the Shade — Buddha Statue",
+            lat = 6.974319507376335,
+            lng = 79.91600245459793,
             radiusM = 15f,
-            lightSignature = LightSignature(minLux = 5f, maxLux = 45f),
-            clue = "Seek the dim subterranean corridor where first editions rest.",
-            lore = "Preserves the original charter signed with an iron fountain pen.",
+            lightSignature = LightSignature(minLux = 500f, maxLux = 10000f),
+            clue = "Find the tranquil canopy near the Buddha Statue where harsh glare softens into calm shade. Hold the Resonator steady for ten seconds as if carrying a sacred water jar.",
+            lore = "Memory Restored: Beneath the peaceful shade of the sacred tree at the heart of campus, students pause in quiet reflection—preserving the second ember in stillness and balance.",
             order = 2,
             motionType = "TILT",
             rarity = "RARE"
         ),
         Checkpoint(
-            id = "CP_QUAD_SUNDIAL",
-            gameId = "GAME_HERITAGE_001",
-            name = "Memorial Sun Dial",
-            lat = 37.4290,
-            lng = -122.1700,
-            radiusM = 30f,
-            lightSignature = LightSignature(minLux = 400f, maxLux = 2000f),
-            clue = "Stand where solar rays cast the precise mathematical azimuth.",
-            lore = "Calibrated in 1920 by the astronomy department for celestial navigation.",
+            id = "CP_EMBER_DARK",
+            gameId = "GAME_FOUNDERS_LANTERN",
+            name = "The Ember in the Dark — Medical Centre",
+            lat = 6.976196957961348,
+            lng = 79.91471980379754,
+            radiusM = 15f,
+            lightSignature = LightSignature(minLux = 0f, maxLux = 60f),
+            clue = "Follow the path to the sheltered shadows near the Medical Centre. Shield the Resonator from bright light and sweep three times to clear the cobwebs.",
+            lore = "Memory Restored: In the cool, dim shelter of the Medical Centre, care and resilience have guarded the final ember—completing the triad and relighting the Founder's Lantern!",
             order = 3,
-            motionType = "SHAKE",
-            rarity = "EPIC"
+            motionType = "SWEEP",
+            rarity = "LEGENDARY"
         )
     )
 
-    val sampleCheckpointsGame2 = listOf(
-        Checkpoint(
-            id = "CP_ROBOTICS_LAB",
-            gameId = "GAME_INNOVATION_002",
-            name = "Robotics Lab Entrance",
-            lat = 37.4310,
-            lng = -122.1730,
-            radiusM = 20f,
-            lightSignature = LightSignature(minLux = 100f, maxLux = 600f),
-            clue = "Where machines learn to move, look for the glowing sign.",
-            lore = "The first student-built robot rolled out of this lab.",
-            order = 1,
-            motionType = "SWEEP",
-            rarity = "COMMON"
-        ),
-        Checkpoint(
-            id = "CP_SOLAR_TESTBED",
-            gameId = "GAME_INNOVATION_002",
-            name = "Solar Testbed",
-            lat = 37.4318,
-            lng = -122.1722,
-            radiusM = 25f,
-            lightSignature = LightSignature(minLux = 500f, maxLux = 2500f),
-            clue = "Face the sun and find the panels that never rest.",
-            lore = "Clean energy research began on this rooftop.",
-            order = 2,
-            motionType = "SWEEP",
-            rarity = "RARE"
-        )
-    )
+    // Backwards-compatible aliases so existing callers/tests compile cleanly
+    val sampleGame1: Game = foundersLanternGame
+    val sampleGame2: Game = foundersLanternGame
+    val sampleCheckpointsGame1: List<Checkpoint> = foundersLanternCheckpoints
+    val sampleCheckpointsGame2: List<Checkpoint> = emptyList()
 
-    val allSampleGames = listOf(sampleGame1, sampleGame2)
+    val allSampleGames = listOf(foundersLanternGame)
 }
-

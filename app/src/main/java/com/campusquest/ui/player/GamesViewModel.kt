@@ -2,7 +2,6 @@ package com.campusquest.ui.player
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.campusquest.BuildConfig
 import com.campusquest.data.mock.DebugSeeder
 import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.GameStatus
@@ -37,7 +36,7 @@ class GamesViewModel(
         viewModelScope.launch {
             _uiState.value = GamesUiState(isLoading = true)
             _uiState.value = try {
-                if (BuildConfig.DEBUG) DebugSeeder.seedIfEmpty(repository)
+                DebugSeeder.seedIfEmpty(repository)
                 val games = repository.getAvailableGames().filter { it.status == GameStatus.PUBLISHED }
                 GamesUiState(isLoading = false, games = games)
             } catch (e: CancellationException) {

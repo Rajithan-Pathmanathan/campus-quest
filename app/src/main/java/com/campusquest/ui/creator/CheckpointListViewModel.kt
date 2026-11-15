@@ -76,8 +76,30 @@ class CheckpointListViewModel(
     }
 
     fun delete(checkpointId: String) {
-        // TODO: call repository.deleteCheckpoint(gameId, checkpointId) once M6 adds it
-        _state.update { it.copy(error = "Deleting checkpoints isn't available yet.") }
+        if (_state.value.isBusy) return
+        _state.update { it.copy(isBusy = true, error = null) }
+        viewModelScope.launch {
+            try {
+                val result = repository.deleteCheckpoint(gameId, checkpointId)
+                if (result.isFailure) {
+                    _state.update { it.copy(isBusy = false, error = "Couldn't delete checkpoint. Try again.") }
+                    return@launch
+                }
+                val remaining = repository.getGameCheckpoints(gameId).sortedBy { it.order }
+                // Re-number orders 1..n after deletion
+                remaining.forEachIndexed { index, cp ->
+                    if (cp.order != index + 1) {
+                        repository.updateCheckpoint(gameId, cp.copy(order = index + 1))
+                    }
+                }
+                val fresh = repository.getGameCheckpoints(gameId).sortedBy { it.order }
+                _state.update { it.copy(checkpoints = fresh, isBusy = false) }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _state.update { it.copy(isBusy = false, error = "Couldn't delete checkpoint. Try again.") }
+            }
+        }
     }
 
     fun onErrorShown() {

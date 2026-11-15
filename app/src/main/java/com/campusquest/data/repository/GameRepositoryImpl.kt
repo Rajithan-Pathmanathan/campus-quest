@@ -15,6 +15,7 @@ import com.campusquest.domain.model.GameLeaderboardEntry
 import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.LightSignature
 import com.campusquest.domain.model.PlayerProgress
+import com.campusquest.domain.repository.AuthRepository
 import com.campusquest.domain.repository.GameRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -24,11 +25,21 @@ class GameRepositoryImpl(
     private val gameDao: GameDao,
     private val checkpointDao: CheckpointDao,
     private val playerProgressDao: PlayerProgressDao,
-    private val syncQueueDao: SyncQueueDao
+    private val syncQueueDao: SyncQueueDao,
+    private val authRepository: AuthRepository? = null,
+    private val remoteSyncHandler: (suspend (SyncQueueEntity) -> Boolean)? = null
 ) : GameRepository {
+
+    private fun currentUserId(): String {
+        return authRepository?.getCurrentUserId()?.takeIf { it.isNotBlank() } ?: DEFAULT_LOCAL_USER_ID
+    }
 
     override suspend fun getAvailableGames(): List<Game> {
         return gameDao.getPublishedGames(GameStatus.PUBLISHED).map { it.toDomain() }
+    }
+
+    override suspend fun getCreatorGames(creatorId: String): List<Game> {
+        return gameDao.getCreatorGames(creatorId).map { it.toDomain() }
     }
 
     override suspend fun getGameDetails(gameId: String): Game? {
@@ -42,7 +53,7 @@ class GameRepositoryImpl(
                 SyncQueueEntity(
                     operationType = SyncOperationType.CREATE_GAME,
                     entityId = game.id,
-                    payloadJson = "{}"
+                    payloadJson = """{"gameId":"${game.id}","creatorId":"${game.creatorId}"}"""
                 )
             )
             Result.success(game)
@@ -51,17 +62,34 @@ class GameRepositoryImpl(
         }
     }
 
-    override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Checkpoint> {
+    override suspend fun updateGame(game: Game): Result<Unit> {
         return try {
-            checkpointDao.insertCheckpoint(CheckpointEntity.fromDomain(checkpoint))
+            gameDao.updateGame(GameEntity.fromDomain(game))
             syncQueueDao.enqueue(
                 SyncQueueEntity(
-                    operationType = SyncOperationType.UPDATE_CHECKPOINT,
-                    entityId = checkpoint.id,
-                    payloadJson = "{}"
+                    operationType = SyncOperationType.CREATE_GAME,
+                    entityId = game.id,
+                    payloadJson = """{"gameId":"${game.id}","creatorId":"${game.creatorId}"}"""
                 )
             )
-            Result.success(checkpoint)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Checkpoint> {
+        return try {
+            val scopedCheckpoint = checkpoint.copy(gameId = gameId)
+            checkpointDao.insertCheckpoint(CheckpointEntity.fromDomain(scopedCheckpoint))
+            syncQueueDao.enqueue(
+                SyncQueueEntity(
+                    operationType = SyncOperationType.CREATE_CHECKPOINT,
+                    entityId = scopedCheckpoint.id,
+                    payloadJson = """{"gameId":"$gameId","checkpointId":"${scopedCheckpoint.id}"}"""
+                )
+            )
+            Result.success(scopedCheckpoint)
         } catch (e: Exception) {
             Result.failure(e)
         }
@@ -69,7 +97,31 @@ class GameRepositoryImpl(
 
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Unit> {
         return try {
-            checkpointDao.updateCheckpoint(CheckpointEntity.fromDomain(checkpoint))
+            val scopedCheckpoint = checkpoint.copy(gameId = gameId)
+            checkpointDao.updateCheckpoint(CheckpointEntity.fromDomain(scopedCheckpoint))
+            syncQueueDao.enqueue(
+                SyncQueueEntity(
+                    operationType = SyncOperationType.UPDATE_CHECKPOINT,
+                    entityId = scopedCheckpoint.id,
+                    payloadJson = """{"gameId":"$gameId","checkpointId":"${scopedCheckpoint.id}"}"""
+                )
+            )
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> {
+        return try {
+            checkpointDao.deleteCheckpoint(checkpointId)
+            syncQueueDao.enqueue(
+                SyncQueueEntity(
+                    operationType = SyncOperationType.DELETE_CHECKPOINT,
+                    entityId = checkpointId,
+                    payloadJson = """{"gameId":"$gameId","checkpointId":"$checkpointId"}"""
+                )
+            )
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -80,13 +132,19 @@ class GameRepositoryImpl(
         return try {
             val game = gameDao.getGameById(gameId)
             if (game != null) {
-                val published = game.copy(status = GameStatus.PUBLISHED, publishedAt = System.currentTimeMillis())
+                val checkpoints = checkpointDao.getCheckpointsForGame(gameId)
+                val publishedAt = System.currentTimeMillis()
+                val published = game.copy(
+                    status = GameStatus.PUBLISHED,
+                    checkpointCount = if (checkpoints.isNotEmpty()) checkpoints.size else game.checkpointCount,
+                    publishedAt = publishedAt
+                )
                 gameDao.updateGame(published)
                 syncQueueDao.enqueue(
                     SyncQueueEntity(
                         operationType = SyncOperationType.PUBLISH_GAME,
                         entityId = gameId,
-                        payloadJson = "{}"
+                        payloadJson = """{"gameId":"$gameId","publishedAt":$publishedAt}"""
                     )
                 )
                 Result.success(Unit)
@@ -100,12 +158,24 @@ class GameRepositoryImpl(
 
     override suspend fun joinGame(gameId: String): Result<Unit> {
         return try {
-            val progress = PlayerProgress(
-                gameId = gameId,
-                userId = "current_user",
-                startedAt = System.currentTimeMillis()
-            )
-            playerProgressDao.insertOrUpdateProgress(PlayerProgressEntity.fromDomain(progress))
+            val userId = currentUserId()
+            val existing = playerProgressDao.getProgress(gameId, userId)
+            if (existing == null) {
+                val joinedAt = System.currentTimeMillis()
+                val progress = PlayerProgress(
+                    gameId = gameId,
+                    userId = userId,
+                    startedAt = joinedAt
+                )
+                playerProgressDao.insertOrUpdateProgress(PlayerProgressEntity.fromDomain(progress))
+                syncQueueDao.enqueue(
+                    SyncQueueEntity(
+                        operationType = SyncOperationType.JOIN_GAME,
+                        entityId = "${gameId}_$userId",
+                        payloadJson = """{"gameId":"$gameId","userId":"$userId","joinedAt":$joinedAt}"""
+                    )
+                )
+            }
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)
@@ -117,7 +187,8 @@ class GameRepositoryImpl(
     }
 
     override suspend fun getFusionSignature(gameId: String, checkpointId: String): LightSignature {
-        val cp = checkpointDao.getCheckpointById(checkpointId)
+        val cp = checkpointDao.getCheckpointsForGame(gameId).firstOrNull { it.id == checkpointId }
+            ?: checkpointDao.getCheckpointById(checkpointId)
         return if (cp != null) {
             LightSignature(cp.minLux, cp.maxLux)
         } else {
@@ -127,24 +198,45 @@ class GameRepositoryImpl(
 
     override suspend fun recordDiscovery(gameId: String, checkpointId: String, foundAt: Long): Result<Unit> {
         return try {
-            val existing = playerProgressDao.getProgress(gameId, "current_user")
-            val completedList = (existing?.completedCheckpointIds ?: emptyList()) + checkpointId
+            val userId = currentUserId()
+            val existing = playerProgressDao.getProgress(gameId, userId)
+            val currentCompleted = existing?.completedCheckpointIds ?: emptyList()
+
+            // Task B2: Idempotent discovery — do not add points or advance order if already found
+            if (checkpointId in currentCompleted) {
+                return Result.success(Unit)
+            }
+
+            val updatedCompletedList = currentCompleted + checkpointId
+            val totalCheckpoints = checkpointDao.getCheckpointsForGame(gameId).size
+                .takeIf { it > 0 }
+                ?: gameDao.getGameById(gameId)?.checkpointCount
+                ?: 0
+
+            // Task B3: Set isCompleted = true and completedAt only when the final checkpoint is found
+            val isNowCompleted = totalCheckpoints > 0 && updatedCompletedList.size >= totalCheckpoints
+            val finalCompletedAt = when {
+                existing?.isCompleted == true -> existing.completedAt
+                isNowCompleted -> foundAt
+                else -> existing?.completedAt
+            }
+
             val updated = PlayerProgressEntity(
                 gameId = gameId,
-                userId = "current_user",
-                completedCheckpointIds = completedList.distinct(),
+                userId = userId,
+                completedCheckpointIds = updatedCompletedList,
                 currentCheckpointOrder = (existing?.currentCheckpointOrder ?: 1) + 1,
                 score = (existing?.score ?: 0) + 100,
-                startedAt = existing?.startedAt ?: System.currentTimeMillis(),
-                completedAt = foundAt,
-                isCompleted = false
+                startedAt = existing?.startedAt ?: foundAt,
+                completedAt = finalCompletedAt,
+                isCompleted = existing?.isCompleted == true || isNowCompleted
             )
             playerProgressDao.insertOrUpdateProgress(updated)
             syncQueueDao.enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.RECORD_DISCOVERY,
                     entityId = checkpointId,
-                    payloadJson = "{}"
+                    payloadJson = """{"gameId":"$gameId","checkpointId":"$checkpointId","userId":"$userId","foundAt":$foundAt}"""
                 )
             )
             Result.success(Unit)
@@ -154,7 +246,7 @@ class GameRepositoryImpl(
     }
 
     override fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> {
-        // Mock fallback or remote Firestore flow
+        // Mock fallback until M5 Firestore leaderboard listener is connected
         return flowOf(
             listOf(
                 GameLeaderboardEntry("u1", "Elena_Rostova", 500, 840, System.currentTimeMillis() - 3600000, 1),
@@ -165,14 +257,33 @@ class GameRepositoryImpl(
     }
 
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> {
-        return playerProgressDao.observeProgress(gameId, userId).map { it?.toDomain() }
+        val resolvedUserId = if (userId == "current_user" || userId.isBlank()) currentUserId() else userId
+        return playerProgressDao.observeProgress(gameId, resolvedUserId).map { it?.toDomain() }
+    }
+
+    override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress> {
+        val resolvedUserId = if (userId == "current_user" || userId.isBlank()) currentUserId() else userId
+        return playerProgressDao.getAllPlayerProgress(resolvedUserId).map { it.toDomain() }
     }
 
     override suspend fun syncPending() {
+        val handler = remoteSyncHandler ?: return
         val pending = syncQueueDao.getPendingSyncItems()
         for (item in pending) {
-            // Push to Firestore and remove on success
-            syncQueueDao.deleteById(item.syncId)
+            val uploaded = try {
+                handler(item)
+            } catch (_: Exception) {
+                false
+            }
+            if (uploaded) {
+                syncQueueDao.deleteById(item.syncId)
+            } else {
+                syncQueueDao.incrementRetryCount(item.syncId)
+            }
         }
+    }
+
+    companion object {
+        const val DEFAULT_LOCAL_USER_ID = "local_offline_user"
     }
 }
