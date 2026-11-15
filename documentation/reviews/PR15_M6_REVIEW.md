@@ -66,4 +66,4 @@ The PR's upsert test uses fake DAOs, so it cannot by itself prove actual SQLite 
 
 ## Actions taken by this review
 
-No remote review/comment, merge, push, branch deletion or phone installation was performed. Prepared local branch `codex/light-the-way-game` from updated main, with the accepted story specification and an integration plan. Findings should be resolved in follow-up changes before relying on these paths for the new story.
+No remote review/comment, merge, push, branch deletion or phone installation was performed. Prepared local branch `feature/light-the-way-game` from updated main, with the accepted story specification and an integration plan. Findings should be resolved in follow-up changes before relying on these paths for the new story.

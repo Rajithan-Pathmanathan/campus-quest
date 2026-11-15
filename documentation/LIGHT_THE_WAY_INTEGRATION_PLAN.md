@@ -2,7 +2,7 @@
 
 Date: 15 November 2026.
 
-Local branch: `codex/light-the-way-game`.
+Local branch: `feature/light-the-way-game`.
 Base: main at `0d3b0da`, including the merged M6 PR #15.
 Story specification: [complete specification](LIGHT_THE_WAY_COMPLETE_GAME_SPECIFICATION.md).
 
