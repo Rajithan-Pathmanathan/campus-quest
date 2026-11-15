@@ -3,8 +3,8 @@ package com.campusquest
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.FusionResult
 import com.campusquest.domain.model.Game
-import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.GameLeaderboardEntry
+import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.LightSignature
 import com.campusquest.domain.model.LocationPermissionState
 import com.campusquest.domain.model.LocationState
@@ -54,14 +54,18 @@ private class ScanFakeGameRepository : GameRepository {
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> =
         flowOf(PlayerProgress(gameId, userId, completedCheckpointIds = completed))
 
+    override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgress> = emptyList()
     override suspend fun getAvailableGames(): List<Game> = emptyList()
+    override suspend fun getCreatorGames(creatorId: String): List<Game> = emptyList()
     var status: GameStatus? = GameStatus.PUBLISHED
     override suspend fun getGameDetails(gameId: String): Game? = status?.let {
         Game(id = gameId, title = "Quest", description = "", creatorId = "c", creatorName = "C", status = it)
     }
     override suspend fun createGame(game: Game): Result<Game> = Result.success(game)
+    override suspend fun updateGame(game: Game): Result<Unit> = Result.success(Unit)
     override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint) = Result.success(checkpoint)
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint) = Result.success(Unit)
+    override suspend fun deleteCheckpoint(gameId: String, checkpointId: String) = Result.success(Unit)
     override suspend fun publishGame(gameId: String) = Result.success(Unit)
     override suspend fun joinGame(gameId: String) = Result.success(Unit)
     override suspend fun getFusionSignature(gameId: String, checkpointId: String) = LightSignature(0f, 1000f)
