@@ -35,7 +35,7 @@ android {
         }
         debug {
             isDebuggable = true
-            applicationIdSuffix = ".debug"
+            // Local phone build matches the registered Firebase package.
         }
     }
 
@@ -59,6 +59,8 @@ android {
 }
 
 dependencies {
+    implementation("com.google.mlkit:barcode-scanning:17.3.0")
+    implementation("com.google.zxing:core:3.5.3")
     // Core Android & Kotlin
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
@@ -114,6 +116,5 @@ dependencies {
     // Instrumented Android Testing
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    androidTestImplementation(libs.mockk)
     androidTestImplementation(libs.kotlinx.coroutines.test)
 }

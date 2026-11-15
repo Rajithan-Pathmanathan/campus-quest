@@ -28,6 +28,8 @@ data class RevealContent(
  * lux): only M3's story words. The screen derives nothing itself.
  */
 data class QuestScanUiState(
+    val navigationBearing: Float? = null,
+    val navigationDistance: Float? = null,
     val gameId: String = "",
     val checkpointId: String = "",
     val checkpointName: String = "",

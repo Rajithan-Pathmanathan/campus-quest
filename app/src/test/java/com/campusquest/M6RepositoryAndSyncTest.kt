@@ -99,6 +99,8 @@ class M6RepositoryAndSyncTest {
     }
 
     private class FakePlayerProgressDao : PlayerProgressDao {
+        override fun observeUserProgress(userId: String): Flow<List<PlayerProgressEntity>> = flowOf(progressMap.values.filter { it.userId == userId })
+        override fun observeGameProgress(gameId: String): Flow<List<PlayerProgressEntity>> = flowOf(progressMap.values.filter { it.gameId == gameId })
         private val progressMap = LinkedHashMap<String, PlayerProgressEntity>()
 
         private fun key(gameId: String, userId: String) = "$gameId#$userId"

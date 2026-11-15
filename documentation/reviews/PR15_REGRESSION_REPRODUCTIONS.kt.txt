@@ -1,0 +1,43 @@
+package com.campusquest
+
+import com.campusquest.data.local.dao.*
+import com.campusquest.data.local.entity.*
+import com.campusquest.data.repository.GameRepositoryImpl
+import com.campusquest.domain.model.*
+import com.campusquest.domain.repository.AuthRepository
+import io.mockk.*
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.*
+import org.junit.Test
+
+class Pr15ReviewRegressionTest {
+    private val games = mockk<GameDao>(relaxed = true)
+    private val checkpoints = mockk<CheckpointDao>(relaxed = true)
+    private val progress = mockk<PlayerProgressDao>(relaxed = true)
+    private val queue = mockk<SyncQueueDao>(relaxed = true)
+    private val auth = mockk<AuthRepository> { every { getCurrentUserId() } returns "player" }
+    private val repo = GameRepositoryImpl(games, checkpoints, progress, queue, auth)
+    private fun cp(id: String) = CheckpointEntity.fromDomain(Checkpoint(id, "g", id, 7.0, 81.0, clue = "clue", lore = "lore"))
+
+    @Test fun `failed queue insert must not lose discovery upload on retry`() = runBlocking {
+        var saved: PlayerProgressEntity? = null
+        coEvery { progress.getProgress("g", "player") } answers { saved }
+        coEvery { progress.insertOrUpdateProgress(any()) } answers { saved = firstArg() }
+        coEvery { checkpoints.getCheckpointsForGame("g") } returns listOf(cp("a"), cp("b"))
+        coEvery { queue.enqueue(any()) } throws IllegalStateException("database write failed")
+        assertTrue(repo.recordDiscovery("g", "a", 1000L).isFailure)
+        clearMocks(queue)
+        coEvery { queue.enqueue(any()) } returns 1L
+        assertTrue(repo.recordDiscovery("g", "a", 1000L).isSuccess)
+        coVerify(exactly = 1) { queue.enqueue(any()) }
+    }
+
+    @Test fun `deleted completed checkpoint must not complete an unfinished game`() = runBlocking {
+        coEvery { progress.getProgress("g", "player") } returns PlayerProgressEntity("g", "player", listOf("removed"), 2, 100, 1000, null, false)
+        coEvery { checkpoints.getCheckpointsForGame("g") } returns listOf(cp("b"), cp("c"))
+        val result = slot<PlayerProgressEntity>()
+        coEvery { progress.insertOrUpdateProgress(capture(result)) } just Runs
+        assertTrue(repo.recordDiscovery("g", "b", 2000L).isSuccess)
+        assertFalse("Checkpoint c is still unfinished", result.captured.isCompleted)
+    }
+}

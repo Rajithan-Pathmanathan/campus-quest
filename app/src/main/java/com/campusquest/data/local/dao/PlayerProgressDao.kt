@@ -10,6 +10,11 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface PlayerProgressDao {
+    @Query("SELECT * FROM player_progress WHERE userId = :userId")
+    fun observeUserProgress(userId: String): Flow<List<PlayerProgressEntity>>
+    @Query("SELECT * FROM player_progress WHERE gameId = :gameId ORDER BY score DESC, completedAt ASC")
+    fun observeGameProgress(gameId: String): Flow<List<PlayerProgressEntity>>
+
     @Query("SELECT * FROM player_progress WHERE gameId = :gameId AND userId = :userId LIMIT 1")
     fun observeProgress(gameId: String, userId: String): Flow<PlayerProgressEntity?>
 

@@ -27,7 +27,8 @@ class GameRepositoryImpl(
     private val playerProgressDao: PlayerProgressDao,
     private val syncQueueDao: SyncQueueDao,
     private val authRepository: AuthRepository? = null,
-    private val remoteSyncHandler: (suspend (SyncQueueEntity) -> Boolean)? = null
+    private val remoteSyncHandler: (suspend (SyncQueueEntity) -> Boolean)? = null,
+    private val inTransaction: suspend (suspend () -> Unit) -> Unit = { it() }
 ) : GameRepository {
 
     private fun currentUserId(): String {
@@ -199,61 +200,34 @@ class GameRepositoryImpl(
     override suspend fun recordDiscovery(gameId: String, checkpointId: String, foundAt: Long): Result<Unit> {
         return try {
             val userId = currentUserId()
-            val existing = playerProgressDao.getProgress(gameId, userId)
-            val currentCompleted = existing?.completedCheckpointIds ?: emptyList()
-
-            // Task B2: Idempotent discovery — do not add points or advance order if already found
-            if (checkpointId in currentCompleted) {
-                return Result.success(Unit)
+            inTransaction {
+                val valid = checkpointDao.getCheckpointsForGame(gameId).map { it.id }.toSet()
+                require(checkpointId in valid) { "Checkpoint does not belong to this game" }
+                val existing = playerProgressDao.getProgress(gameId, userId)
+                val completed = existing?.completedCheckpointIds.orEmpty().filter { it in valid }
+                if (checkpointId !in completed) {
+                    val updatedIds = completed + checkpointId
+                    val finished = valid.all { it in updatedIds }
+                    val updated = PlayerProgressEntity(gameId, userId, updatedIds, updatedIds.size + 1,
+                        (existing?.score ?: 0) + 100, existing?.startedAt ?: foundAt,
+                        if (finished) foundAt else null, finished)
+                    playerProgressDao.insertOrUpdateProgress(updated)
+                    syncQueueDao.enqueue(SyncQueueEntity(operationType = SyncOperationType.RECORD_DISCOVERY,
+                        entityId = checkpointId,
+                        payloadJson = """{"gameId":"$gameId","checkpointId":"$checkpointId","userId":"$userId","foundAt":$foundAt}"""))
+                }
             }
-
-            val updatedCompletedList = currentCompleted + checkpointId
-            val totalCheckpoints = checkpointDao.getCheckpointsForGame(gameId).size
-                .takeIf { it > 0 }
-                ?: gameDao.getGameById(gameId)?.checkpointCount
-                ?: 0
-
-            // Task B3: Set isCompleted = true and completedAt only when the final checkpoint is found
-            val isNowCompleted = totalCheckpoints > 0 && updatedCompletedList.size >= totalCheckpoints
-            val finalCompletedAt = when {
-                existing?.isCompleted == true -> existing.completedAt
-                isNowCompleted -> foundAt
-                else -> existing?.completedAt
-            }
-
-            val updated = PlayerProgressEntity(
-                gameId = gameId,
-                userId = userId,
-                completedCheckpointIds = updatedCompletedList,
-                currentCheckpointOrder = (existing?.currentCheckpointOrder ?: 1) + 1,
-                score = (existing?.score ?: 0) + 100,
-                startedAt = existing?.startedAt ?: foundAt,
-                completedAt = finalCompletedAt,
-                isCompleted = existing?.isCompleted == true || isNowCompleted
-            )
-            playerProgressDao.insertOrUpdateProgress(updated)
-            syncQueueDao.enqueue(
-                SyncQueueEntity(
-                    operationType = SyncOperationType.RECORD_DISCOVERY,
-                    entityId = checkpointId,
-                    payloadJson = """{"gameId":"$gameId","checkpointId":"$checkpointId","userId":"$userId","foundAt":$foundAt}"""
-                )
-            )
             Result.success(Unit)
-        } catch (e: Exception) {
-            Result.failure(e)
-        }
+        } catch (e: kotlinx.coroutines.CancellationException) { throw e
+        } catch (e: Exception) { Result.failure(e) }
     }
 
     override fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> {
-        // Mock fallback until M5 Firestore leaderboard listener is connected
-        return flowOf(
-            listOf(
-                GameLeaderboardEntry("u1", "Elena_Rostova", 500, 840, System.currentTimeMillis() - 3600000, 1),
-                GameLeaderboardEntry("u2", "Marcus_Vance", 400, 1020, System.currentTimeMillis() - 7200000, 2),
-                GameLeaderboardEntry("u3", "Dev_Priya", 300, 1250, System.currentTimeMillis() - 10800000, 3)
-            )
-        )
+        return playerProgressDao.observeGameProgress(gameId).map { rows -> rows.mapIndexed { index, row ->
+            GameLeaderboardEntry(row.userId, row.userId, row.score,
+                ((row.completedAt ?: System.currentTimeMillis()) - row.startedAt).coerceAtLeast(0) / 1000,
+                row.completedAt ?: 0, index + 1)
+        } }
     }
 
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> {

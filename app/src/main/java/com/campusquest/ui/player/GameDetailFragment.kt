@@ -43,10 +43,21 @@ class GameDetailFragment : Fragment() {
         binding.btnJoin.setOnClickListener { viewModel.join() }
 
         binding.btnStartQuest.setOnClickListener {
-            findNavController().navigate(
-                R.id.action_gameDetail_to_campusMap,
-                Bundle().apply { putString("gameId", gameId) }
-            )
+            viewLifecycleOwner.lifecycleScope.launch {
+                val story = com.campusquest.CampusQuestApplication.instance.database.storyDao().config(gameId)
+                findNavController().navigate(if (story != null) R.id.storyGameFragment else R.id.campusMapFragment,
+                    Bundle().apply {putString("gameId",gameId)})
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            val app = com.campusquest.CampusQuestApplication.instance
+            if(app.database.storyDao().config(gameId) != null && app.database.gameDao().getGameById(gameId)?.creatorId == com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId()) {
+                val button = com.google.android.material.button.MaterialButton(requireContext()).apply {
+                    text = "View / save repair card"
+                    setOnClickListener {findNavController().navigate(R.id.storySetupFragment,Bundle().apply {putString("gameId",gameId)})}
+                }
+                (binding.btnJoin.parent as android.view.ViewGroup).addView(button)
+            }
         }
         binding.btnViewLeaderboard.setOnClickListener {
             findNavController().navigate(
@@ -105,5 +116,3 @@ class GameDetailFragment : Fragment() {
         _binding = null
     }
 }
-
-

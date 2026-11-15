@@ -165,4 +165,10 @@
             app:argType="string" />
     </fragment>
 
+    <fragment android:id="@+id/storyGameFragment" android:name="com.campusquest.story.StoryGameFragment" android:label="Light the Way">
+        <argument android:name="gameId" app:argType="string" />
+    </fragment>
+    <fragment android:id="@+id/storySetupFragment" android:name="com.campusquest.story.StorySetupFragment" android:label="Story setup">
+        <argument android:name="gameId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
+    </fragment>
 </navigation>

@@ -83,11 +83,13 @@ class QuestScanFragment : Fragment() {
         super.onStart()
         requestLocationPermission()
         viewModel.onScreenStarted()
+        _binding?.trailCompass?.start()
     }
 
     override fun onStop() {
         super.onStop()
         haptics?.stop()
+        _binding?.trailCompass?.stop()
         viewModel.onScreenStopped()
     }
 
@@ -108,12 +110,14 @@ class QuestScanFragment : Fragment() {
 
     private fun render(state: QuestScanUiState) {
         val b = _binding ?: return
+        val location = com.campusquest.CampusQuestApplication.instance.locationRepository.locationState.value
+        b.trailCompass.update(state.navigationBearing, state.navigationDistance, location.smoothedLatitude, location.smoothedLongitude)
         b.tvCheckpointName.text = state.checkpointName
         b.tvHeadline.text = state.headline
         b.progressLoading.visibility = if (state.scanState == ScanState.LOADING) View.VISIBLE else View.GONE
 
-        b.tvDistance.setTextOrHide(state.distanceText)
-        b.tvWarmth.setTextOrHide(state.warmth)
+        b.tvDistance.setTextOrHide(if (state.navigationDistance == null) state.distanceText else null)
+        b.tvWarmth.setTextOrHide(null)
         b.tvLightHint.setTextOrHide(state.lightHint)
         b.tvTrialHint.setTextOrHide(state.trialHint)
         b.tvShieldHint.setTextOrHide(state.shieldHint)
