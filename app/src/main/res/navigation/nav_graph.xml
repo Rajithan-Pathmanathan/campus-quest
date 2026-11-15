@@ -75,6 +75,9 @@
         <action
             android:id="@+id/action_creator_to_playerDashboard"
             app:destination="@id/playerDashboardFragment" />
+        <action
+            android:id="@+id/action_creator_to_checkpointList"
+            app:destination="@id/checkpointListFragment" />
     </fragment>
 
     <fragment
@@ -90,6 +93,10 @@
         <action
             android:id="@+id/action_createGame_to_checkpointEditor"
             app:destination="@id/checkpointEditorFragment" />
+        <action
+            android:id="@+id/action_createGame_to_checkpointList"
+            app:destination="@id/checkpointListFragment" />
+
     </fragment>
 
     <fragment
@@ -107,6 +114,18 @@
             app:nullable="true" />
     </fragment>
 
+    <fragment
+        android:id="@+id/checkpointListFragment"
+        android:name="com.campusquest.ui.creator.CheckpointListFragment"
+        android:label="Checkpoints"
+        tools:layout="@layout/fragment_checkpoint_list">
+        <argument
+            android:name="gameId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_checkpointList_to_checkpointEditor"
+            app:destination="@id/checkpointEditorFragment" />
+    </fragment>
     <!-- Location & Campus Map (M3) -->
     <fragment
         android:id="@+id/campusMapFragment"

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background_light">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/primary_emerald"
+        app:title="Checkpoints"
+        app:titleTextColor="@color/on_primary_emerald"
+        app:navigationIcon="@android:drawable/ic_menu_revert" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rv_checkpoints"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/spacing_s" />
+
+        <TextView
+            android:id="@+id/tv_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:padding="@dimen/spacing_l"
+            android:text="No checkpoints yet.\n\nAdd your first checkpoint to begin building the quest."
+            android:textColor="@color/text_secondary"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_add_checkpoint"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="@dimen/spacing_m"
+        android:text="+ Add Checkpoint"
+        android:backgroundTint="@color/primary_emerald" />
+
+</LinearLayout>
