@@ -218,6 +218,8 @@ Real Android (Play Services) geofencing is **wired into the game**. It complemen
 
 **Testing on a phone:** start a quest, allow "All the time", close the app and walk (or use a mock-location app) to within ~100 m of the next place. Geofence alerts can take a minute or two to arrive; that is normal Android behaviour.
 
+**Declined permissions:** whenever the player says no to a permission, `ui/common/PermissionNotice` shows a formal notice. It says what will stop working and gives the exact Settings path, with an **Open settings** button and a **Continue without** button. It covers location (map, scan screen, Light the Way, Start quest), camera (repair card), notifications and background location. Each permission is explained once per app session. Phone sensors (light, motion, proximity) need no permission.
+
 ## 7. Creator map picker (2026-11-15)
 
 The checkpoint editor (`CheckpointEditorFragment`) now offers **two ways** to set a checkpoint's location: type the latitude/longitude, or **tap the OpenStreetMap map** (drag the pin to adjust). Both fill the same fields, so `CheckpointEditorViewModel` and its validation are unchanged. The map uses the same osmdroid setup as the campus map (section 5).

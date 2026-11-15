@@ -41,6 +41,7 @@ class QuestScanFragment : Fragment() {
         val granted = grants[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
             grants[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         viewModel.onLocationPermissionResult(granted)
+        if (!granted) com.campusquest.ui.common.PermissionNotice.show(this, com.campusquest.ui.common.AppPermission.LOCATION)
     }
 
     override fun onCreateView(

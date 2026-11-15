@@ -8,6 +8,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import com.campusquest.R
+import com.campusquest.ui.common.AppPermission
+import com.campusquest.ui.common.PermissionNotice
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 /**
@@ -23,11 +25,16 @@ class GeofencePermissionFlow(private val fragment: Fragment) {
 
     private var then: (() -> Unit)? = null
 
-    private val foreground = fragment.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        askBackgroundOnce()
+    private val foreground = fragment.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grants ->
+        val declined = buildList {
+            if (!granted(Manifest.permission.ACCESS_FINE_LOCATION) && !granted(Manifest.permission.ACCESS_COARSE_LOCATION)) add(AppPermission.LOCATION)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                grants[Manifest.permission.POST_NOTIFICATIONS] == false) add(AppPermission.NOTIFICATIONS)
+        }
+        PermissionNotice.show(fragment, declined) { askBackgroundOnce() }
     }
-    private val background = fragment.registerForActivityResult(ActivityResultContracts.RequestPermission()) {
-        finish()
+    private val background = fragment.registerForActivityResult(ActivityResultContracts.RequestPermission()) { allowed ->
+        if (allowed) finish() else PermissionNotice.show(fragment, AppPermission.BACKGROUND_LOCATION) { finish() }
     }
 
     fun run(onDone: () -> Unit) {

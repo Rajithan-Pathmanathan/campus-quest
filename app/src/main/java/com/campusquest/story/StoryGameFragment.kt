@@ -59,6 +59,7 @@ class StoryGameFragment : Fragment() {
     private val permissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshLocation()
         if(stage=="card" && cameraGranted()) openCamera()
+        else if(stage=="card") com.campusquest.ui.common.PermissionNotice.show(this, com.campusquest.ui.common.AppPermission.CAMERA)
     }
     private fun closeScanner() {
         scanner?.close();scanner=null
