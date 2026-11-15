@@ -1,5 +1,6 @@
 package com.campusquest
 
+import androidx.room.withTransaction
 import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -46,7 +47,8 @@ class CampusQuestApplication : Application() {
             checkpointDao = database.checkpointDao(),
             playerProgressDao = database.playerProgressDao(),
             syncQueueDao = database.syncQueueDao(),
-            authRepository = authRepository
+            authRepository = authRepository,
+            inTransaction = { block -> database.withTransaction { block() } }
         )
     }
 

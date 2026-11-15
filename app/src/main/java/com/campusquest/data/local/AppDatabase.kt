@@ -13,24 +13,26 @@ import com.campusquest.data.local.entity.CheckpointEntity
 import com.campusquest.data.local.entity.GameEntity
 import com.campusquest.data.local.entity.PlayerProgressEntity
 import com.campusquest.data.local.entity.SyncQueueEntity
-import com.campusquest.data.mock.DebugSeeder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
+import com.campusquest.story.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [
         GameEntity::class,
         CheckpointEntity::class,
         PlayerProgressEntity::class,
+        StoryConfigEntity::class,
+        StorySessionEntity::class,
         SyncQueueEntity::class
     ],
-    version = 1,
+    version = 2,
     exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
+
+    abstract fun storyDao(): StoryDao
 
     abstract fun gameDao(): GameDao
     abstract fun checkpointDao(): CheckpointDao
@@ -40,7 +42,12 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
-        private val dbScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val STORY_MIGRATION = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS story_config (gameId TEXT NOT NULL PRIMARY KEY, cardId TEXT NOT NULL, backupCode TEXT NOT NULL, targetBearing REAL NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS story_session (gameId TEXT NOT NULL, userId TEXT NOT NULL, aligned INTEGER NOT NULL, motionFallback INTEGER NOT NULL, coverFallback INTEGER NOT NULL, PRIMARY KEY(gameId, userId))")
+            }
+        }
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -49,13 +56,10 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "campus_quest_db"
                 )
-                    .fallbackToDestructiveMigration()
+                    .addMigrations(STORY_MIGRATION)
                     .build()
                 INSTANCE = instance
-                // Task D2: Ensure story quest is seeded in both debug and release builds
-                dbScope.launch {
-                    DebugSeeder.seedDatabase(instance)
-                }
+
                 instance
             }
         }
