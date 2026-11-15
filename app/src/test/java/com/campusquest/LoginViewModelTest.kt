@@ -149,4 +149,3 @@ class LoginViewModelTest {
     fun `signed-out startup still asks for login`() {
         assertEquals(UiState.Idle, LoginViewModel(M1FakeAuthRepository()).uiState.value)
     }}
-
