@@ -63,22 +63,3 @@ class ContinuousHold(private val durationMs: Long) {
     }
     fun reset() { started = null }
 }
-
-/** Maze collisions in normalized screen coordinates for accelerometer-controlled movement. */
-class KeyBox {
-    var x = 0.12f; private set
-    var y = 0.88f; private set
-    private fun free(x: Float, y: Float): Boolean {
-        val r = 0.035f
-        if (x !in r..(1-r) || y !in r..(1-r)) return false
-        return !(x+r > 0.32f && x-r < 0.38f && y-r < 0.72f) && !(x+r > 0.62f && x-r < 0.68f && y+r > 0.28f)
-    }
-    fun move(dx: Float, dy: Float) {
-        val steps = (kotlin.math.max(kotlin.math.abs(dx), kotlin.math.abs(dy)) / 0.015f).toInt().coerceIn(1, 200)
-        repeat(steps) {
-            if (free(x+dx/steps,y)) x += dx/steps
-            if (free(x,y+dy/steps)) y += dy/steps
-        }
-    }
-    val complete get() = x > 0.84f && y < 0.16f
-}

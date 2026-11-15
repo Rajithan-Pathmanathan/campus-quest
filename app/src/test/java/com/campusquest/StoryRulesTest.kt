@@ -22,15 +22,24 @@ class StoryRulesTest {
         assertEquals(0f, hold.update(true, 900), 0f)
         assertEquals(1f, hold.update(true, 1900), 0f)
     }
-    @Test fun `maze walls cannot be crossed and route reaches exit`() {
-        val box = KeyBox()
-        box.move(0.7f,0f)
-        assertTrue(box.x < 0.62f)
-        box.move(-1f,0f)
-        box.move(0f,-0.05f)
-        box.move(0.42f,0f)
-        box.move(0f,-0.72f)
-        box.move(0.45f,0f)
+    @Test fun `maze requires the switchback route and cannot cut through walls`() {
+        val box=KeyBox()
+        box.move(0f,-.8f)
+        assertTrue(box.y >= .80f + KeyBox.RADIUS - .001f)
+        fun to(x:Float,y:Float){box.move(x-box.x,y-box.y)}
+        to(.89f,.90f);to(.89f,.70f);to(.11f,.70f)
+        to(.11f,.56f);to(.89f,.56f)
+        to(.89f,.38f);to(.11f,.38f)
+        to(.11f,.22f);to(.89f,.22f)
+        assertFalse(box.complete)
+        to(.89f,.07f)
         assertTrue(box.complete)
+    }
+    @Test fun `short barriers block diagonal shortcuts and invalid input cannot corrupt position`() {
+        val box=KeyBox()
+        box.move(Float.NaN,0f);assertEquals(.12f,box.x,0f)
+        box.move(.77f,0f);box.move(0f,-.18f)
+        box.move(-.7f,0f)
+        assertTrue("Short barrier must block crossing at its height",box.x>.52f)
     }
 }

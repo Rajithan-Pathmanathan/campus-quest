@@ -172,7 +172,7 @@ class StoryGameFragment : Fragment() {
             }
             StoryUi.button(b,"Open map") {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
         } else if(stage=="key") {
-            StoryUi.text(b,"The key has slipped behind the wooden bars. Stop in a safe place. Tilt left/right and forward/back to move it to the green opening.")
+            StoryUi.text(b,"The key is trapped behind eight barriers. Stop in a safe place. Tilt gently through the alternating gaps to the gold opening at the top right.")
             keyStarted=false
             tiltStatus=StoryUi.text(b,"Hold your phone comfortably, then tap Start tilting.",16f)
             maze=KeyBoxView(requireContext()).also {m -> m.onSolved={award()};b.addView(m,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),320)))}
