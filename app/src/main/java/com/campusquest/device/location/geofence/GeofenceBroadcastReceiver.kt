@@ -1,20 +1,11 @@
 package com.campusquest.device.location.geofence
 
-import android.app.NotificationManager
-import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import com.campusquest.CampusQuestApplication
-import com.campusquest.R
-import com.campusquest.ui.common.AppProviders
-import com.campusquest.ui.common.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import com.campusquest.domain.model.GeofenceTransitionEvent
 import com.campusquest.domain.model.GeofenceTransitionType
@@ -74,36 +65,11 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         alertFor?.let { (gameId, checkpointId) -> showNearbyAlert(context, gameId, checkpointId) }
     }
 
-    /** "You're close" notification; tapping it opens the quest. Skipped if that place is already found. */
     private fun showNearbyAlert(context: Context, gameId: String, checkpointId: String) {
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return
         val pending = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val repo = CampusQuestApplication.instance.gameRepository
-                val found = repo.observePlayerProgress(gameId, AppProviders.currentUserId()).first()
-                    ?.completedCheckpointIds.orEmpty()
-                val checkpoint = repo.getGameCheckpoints(gameId).firstOrNull { it.id == checkpointId }
-                if (checkpoint == null || checkpointId in found) return@launch
-
-                val open = Intent(context, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    putExtra(MainActivity.EXTRA_GAME_ID, gameId)
-                }
-                val tap = PendingIntent.getActivity(
-                    context, checkpointId.hashCode(), open,
-                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-                )
-                val notification = NotificationCompat.Builder(context, CampusQuestApplication.CHANNEL_GEOFENCE_EVENTS)
-                    .setSmallIcon(android.R.drawable.ic_dialog_map)
-                    .setContentTitle(context.getString(R.string.geofence_alert_title))
-                    .setContentText(context.getString(R.string.geofence_alert_body, checkpoint.name))
-                    .setAutoCancel(true)
-                    .setContentIntent(tap)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .build()
-                val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                manager.notify(checkpointId.hashCode(), notification)
+                GeofenceAlerts.notifyIfUnfound(context, gameId, checkpointId)
             } catch (e: Exception) {
                 Log.w(TAG, "Could not show geofence alert: ${e.message}")
             } finally {

@@ -134,6 +134,8 @@ class QuestScanViewModel(
     }
 
     /** Screen is in the foreground: start/resume M3 collection. */
+    private var shieldHeld = false
+
     fun onScreenStarted() {
         screenVisible = true
         startSession()
@@ -181,6 +183,13 @@ class QuestScanViewModel(
     }
 
     /** The reveal was dismissed. */
+    /** Proximity fallback: the player pressed and held the shield (only matters once fusion is reached). */
+    fun onShieldHeld() {
+        if (_uiState.value.scanState != ScanState.WAITING_FOR_PROXIMITY) return
+        shieldHeld = true
+        recompute()
+    }
+
     fun onRevealDismissed() {
         if (_uiState.value.scanState == ScanState.REVEALING) setState(ScanState.COMPLETED)
     }
@@ -231,7 +240,7 @@ class QuestScanViewModel(
         if (!ScanStateMachine.isActive(current)) return
 
         // Leaving the relic ring closes the scan; the player must wake the Resonator again.
-        if (zone != QuestZone.RELIC) scanStarted = false
+        if (zone != QuestZone.RELIC) { scanStarted = false; shieldHeld = false }
 
         val fusion = lastFusion
         val signals = ScanSignals(
@@ -239,7 +248,8 @@ class QuestScanViewModel(
             zone = zone,
             scanStarted = scanStarted,
             fusionThresholdReached = fusion?.thresholdReached == true,
-            proximityNear = fusion?.proximityNear == true
+            proximityNear = fusion?.proximityNear == true,
+            shieldHeld = shieldHeld
         )
         val next = ScanStateMachine.transition(current, ScanStateMachine.resolve(current, signals))
         _uiState.value = ScanNarrator.hud(

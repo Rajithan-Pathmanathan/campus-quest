@@ -26,7 +26,6 @@ class CreatorDashboardFragment : Fragment() {
     private val viewModel: CreatorGamesViewModel by viewModels {
         CreatorGamesViewModelFactory(
             repository = CampusQuestApplication.instance.gameRepository,
-            // TODO: replace with AuthRepository.getCurrentUserId() once we know where to get it
             currentUserId = {AppProviders.authRepository.getCurrentUserId() }
         )
     }

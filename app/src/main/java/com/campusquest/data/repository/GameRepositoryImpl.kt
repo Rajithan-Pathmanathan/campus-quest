@@ -17,9 +17,16 @@ import com.campusquest.domain.model.LightSignature
 import com.campusquest.domain.model.PlayerProgress
 import com.campusquest.domain.repository.AuthRepository
 import com.campusquest.domain.repository.GameRepository
+import com.campusquest.data.remote.FirestoreService
+import com.campusquest.data.remote.dto.FirestoreStoryConfigDto
+import com.campusquest.story.StoryConfigEntity
+import com.campusquest.story.StoryDao
+import android.util.Log
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withTimeoutOrNull
 
 class GameRepositoryImpl(
     private val gameDao: GameDao,
@@ -28,15 +35,70 @@ class GameRepositoryImpl(
     private val syncQueueDao: SyncQueueDao,
     private val authRepository: AuthRepository? = null,
     private val remoteSyncHandler: (suspend (SyncQueueEntity) -> Boolean)? = null,
-    private val inTransaction: suspend (suspend () -> Unit) -> Unit = { it() }
+    private val inTransaction: suspend (suspend () -> Unit) -> Unit = { it() },
+    /** Cloud backend; null in tests or when Firebase is unavailable (the app then works offline). */
+    private val remote: FirestoreService? = null,
+    private val storyDao: StoryDao? = null,
+    /** Display name shown on leaderboards. */
+    private val userName: () -> String = { DEFAULT_PLAYER_NAME },
+    /** Called after anything is queued for upload (schedules the sync worker). */
+    private val onQueued: () -> Unit = {},
+    /** Called once a newly published quest reached the cloud (sends the "new quest" push). */
+    private val onPublished: suspend (gameId: String) -> Unit = {}
 ) : GameRepository {
+
+    private suspend fun enqueue(item: SyncQueueEntity) {
+        syncQueueDao.enqueue(item)
+        onQueued()
+    }
 
     private fun currentUserId(): String {
         return authRepository?.getCurrentUserId()?.takeIf { it.isNotBlank() } ?: DEFAULT_LOCAL_USER_ID
     }
 
     override suspend fun getAvailableGames(): List<Game> {
+        refreshFromCloud()
         return gameDao.getPublishedGames(GameStatus.PUBLISHED).map { it.toDomain() }
+    }
+
+    /**
+     * Downloads published quests (with checkpoints and Light the Way config) and the signed-in
+     * player's progress into Room. Best effort: offline, the app keeps using what is stored.
+     */
+    private suspend fun refreshFromCloud() {
+        val cloud = remote ?: return
+        val uid = authRepository?.getCurrentUserId()
+        try {
+            withTimeoutOrNull(CLOUD_TIMEOUT_MS) {
+                val pendingGameIds = syncQueueDao.getPendingSyncItems()
+                    .map { payloadValue(it.payloadJson, "gameId") ?: it.entityId }.toSet()
+                for (remoteGame in cloud.fetchPublishedGames()) {
+                    val game = remoteGame.game
+                    if (game.id in pendingGameIds) continue // local edits not uploaded yet win
+                    inTransaction {
+                        gameDao.insertGame(GameEntity.fromDomain(game))
+                        val keep = remoteGame.checkpoints.map { it.id }.toSet()
+                        checkpointDao.getCheckpointsForGame(game.id).filter { it.id !in keep }
+                            .forEach { checkpointDao.deleteCheckpoint(it.id) }
+                        checkpointDao.insertCheckpoints(remoteGame.checkpoints.map { CheckpointEntity.fromDomain(it.copy(gameId = game.id)) })
+                        remoteGame.story?.let { storyDao?.putConfig(StoryConfigEntity(game.id, it.cardId, it.backupCode, it.targetBearing)) }
+                    }
+                }
+                if (uid != null) {
+                    for (cloudProgress in cloud.fetchProgress(uid)) {
+                        if (gameDao.getGameById(cloudProgress.gameId) == null) continue
+                        val local = playerProgressDao.getProgress(cloudProgress.gameId, uid)
+                        if (local == null || cloudProgress.completedCheckpointIds.size > local.completedCheckpointIds.size) {
+                            playerProgressDao.insertOrUpdateProgress(PlayerProgressEntity.fromDomain(cloudProgress))
+                        }
+                    }
+                }
+            }
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Log.w(TAG, "Cloud refresh failed, using local data: ${e.message}")
+        }
     }
 
     override suspend fun getCreatorGames(creatorId: String): List<Game> {
@@ -50,7 +112,7 @@ class GameRepositoryImpl(
     override suspend fun createGame(game: Game): Result<Game> {
         return try {
             gameDao.insertGame(GameEntity.fromDomain(game))
-            syncQueueDao.enqueue(
+            enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.CREATE_GAME,
                     entityId = game.id,
@@ -66,7 +128,7 @@ class GameRepositoryImpl(
     override suspend fun updateGame(game: Game): Result<Unit> {
         return try {
             gameDao.updateGame(GameEntity.fromDomain(game))
-            syncQueueDao.enqueue(
+            enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.CREATE_GAME,
                     entityId = game.id,
@@ -83,7 +145,7 @@ class GameRepositoryImpl(
         return try {
             val scopedCheckpoint = checkpoint.copy(gameId = gameId)
             checkpointDao.insertCheckpoint(CheckpointEntity.fromDomain(scopedCheckpoint))
-            syncQueueDao.enqueue(
+            enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.CREATE_CHECKPOINT,
                     entityId = scopedCheckpoint.id,
@@ -100,7 +162,7 @@ class GameRepositoryImpl(
         return try {
             val scopedCheckpoint = checkpoint.copy(gameId = gameId)
             checkpointDao.updateCheckpoint(CheckpointEntity.fromDomain(scopedCheckpoint))
-            syncQueueDao.enqueue(
+            enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.UPDATE_CHECKPOINT,
                     entityId = scopedCheckpoint.id,
@@ -116,7 +178,7 @@ class GameRepositoryImpl(
     override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> {
         return try {
             checkpointDao.deleteCheckpoint(checkpointId)
-            syncQueueDao.enqueue(
+            enqueue(
                 SyncQueueEntity(
                     operationType = SyncOperationType.DELETE_CHECKPOINT,
                     entityId = checkpointId,
@@ -141,7 +203,7 @@ class GameRepositoryImpl(
                     publishedAt = publishedAt
                 )
                 gameDao.updateGame(published)
-                syncQueueDao.enqueue(
+                enqueue(
                     SyncQueueEntity(
                         operationType = SyncOperationType.PUBLISH_GAME,
                         entityId = gameId,
@@ -169,7 +231,7 @@ class GameRepositoryImpl(
                     startedAt = joinedAt
                 )
                 playerProgressDao.insertOrUpdateProgress(PlayerProgressEntity.fromDomain(progress))
-                syncQueueDao.enqueue(
+                enqueue(
                     SyncQueueEntity(
                         operationType = SyncOperationType.JOIN_GAME,
                         entityId = "${gameId}_$userId",
@@ -212,7 +274,7 @@ class GameRepositoryImpl(
                         (existing?.score ?: 0) + 100, existing?.startedAt ?: foundAt,
                         if (finished) foundAt else null, finished)
                     playerProgressDao.insertOrUpdateProgress(updated)
-                    syncQueueDao.enqueue(SyncQueueEntity(operationType = SyncOperationType.RECORD_DISCOVERY,
+                    enqueue(SyncQueueEntity(operationType = SyncOperationType.RECORD_DISCOVERY,
                         entityId = checkpointId,
                         payloadJson = """{"gameId":"$gameId","checkpointId":"$checkpointId","userId":"$userId","foundAt":$foundAt}"""))
                 }
@@ -222,12 +284,20 @@ class GameRepositoryImpl(
         } catch (e: Exception) { Result.failure(e) }
     }
 
+    /** Cloud leaderboard (all players); falls back to this phone's players if the cloud is unavailable. */
     override fun observeGameLeaderboard(gameId: String): Flow<List<GameLeaderboardEntry>> {
-        return playerProgressDao.observeGameProgress(gameId).map { rows -> rows.mapIndexed { index, row ->
-            GameLeaderboardEntry(row.userId, row.userId, row.score,
+        val me = authRepository?.getCurrentUserId()
+        val local = playerProgressDao.observeGameProgress(gameId).map { rows -> rows.mapIndexed { index, row ->
+            GameLeaderboardEntry(row.userId, if (row.userId == me) userName() else DEFAULT_PLAYER_NAME, row.score,
                 ((row.completedAt ?: System.currentTimeMillis()) - row.startedAt).coerceAtLeast(0) / 1000,
                 row.completedAt ?: 0, index + 1)
         } }
+        val cloud = remote ?: return local
+        if (me == null) return local
+        return cloud.observeLeaderboard(gameId).catch { e ->
+            Log.w(TAG, "Cloud leaderboard unavailable: ${e.message}")
+            emitAll(local)
+        }
     }
 
     override fun observePlayerProgress(gameId: String, userId: String): Flow<PlayerProgress?> {
@@ -241,7 +311,9 @@ class GameRepositoryImpl(
     }
 
     override suspend fun syncPending() {
-        val handler = remoteSyncHandler ?: return
+        val cloud = remote
+        val handler: suspend (SyncQueueEntity) -> Boolean = remoteSyncHandler
+            ?: if (cloud != null) { item -> upload(cloud, item) } else return
         val pending = syncQueueDao.getPendingSyncItems()
         for (item in pending) {
             val uploaded = try {
@@ -257,7 +329,47 @@ class GameRepositoryImpl(
         }
     }
 
+    /** Uploads one queued change. Returns true when it is done (or nothing needs uploading). */
+    private suspend fun upload(cloud: FirestoreService, item: SyncQueueEntity): Boolean {
+        val uid = authRepository?.getCurrentUserId() ?: return false // wait until signed in
+        return when (item.operationType) {
+            SyncOperationType.CREATE_GAME, SyncOperationType.CREATE_CHECKPOINT,
+            SyncOperationType.UPDATE_CHECKPOINT, SyncOperationType.DELETE_CHECKPOINT,
+            SyncOperationType.PUBLISH_GAME -> {
+                val gameId = payloadValue(item.payloadJson, "gameId") ?: item.entityId
+                val game = gameDao.getGameById(gameId)?.toDomain() ?: return true // deleted locally
+                if (game.status != GameStatus.PUBLISHED || game.creatorId != uid) return true // drafts stay on the phone
+                val story = storyDao?.config(gameId)?.let { FirestoreStoryConfigDto(it.cardId, it.backupCode, it.targetBearing) }
+                cloud.publishGame(game, checkpointDao.getCheckpointsForGame(gameId).map { it.toDomain() }, story)
+                if (item.operationType == SyncOperationType.PUBLISH_GAME) {
+                    try { onPublished(gameId) } catch (e: Exception) { Log.w(TAG, "New-quest notification failed: ${e.message}") }
+                }
+                true
+            }
+            SyncOperationType.JOIN_GAME, SyncOperationType.RECORD_DISCOVERY, SyncOperationType.UPDATE_PROGRESS -> {
+                val userId = payloadValue(item.payloadJson, "userId") ?: uid
+                if (userId != uid) return true // recorded by an offline/other account on this phone
+                val gameId = payloadValue(item.payloadJson, "gameId") ?: return true
+                val progress = playerProgressDao.getProgress(gameId, uid)?.toDomain() ?: return true
+                cloud.saveProgress(progress)
+                if (progress.score > 0) {
+                    val seconds = ((progress.completedAt ?: System.currentTimeMillis()) - progress.startedAt).coerceAtLeast(0) / 1000
+                    cloud.submitLeaderboardEntry(gameId, GameLeaderboardEntry(uid, userName(), progress.score, seconds, progress.completedAt ?: 0))
+                }
+                true
+            }
+        }
+    }
+
     companion object {
         const val DEFAULT_LOCAL_USER_ID = "local_offline_user"
+        const val DEFAULT_PLAYER_NAME = "Explorer"
+        private const val TAG = "GameRepository"
+        private const val CLOUD_TIMEOUT_MS = 10_000L
+        private val FIELD = Regex("\"([A-Za-z]+)\":\"?([^\",}]*)")
+
+        /** Reads a field from the small JSON payloads this class writes, e.g. {"gameId":"G1"}. */
+        internal fun payloadValue(json: String, key: String): String? =
+            FIELD.findAll(json).firstOrNull { it.groupValues[1] == key }?.groupValues?.get(2)?.takeIf { it.isNotEmpty() }
     }
 }

@@ -122,6 +122,8 @@ class QuestScanFragment : Fragment() {
         b.tvLightHint.setTextOrHide(state.lightHint)
         b.tvTrialHint.setTextOrHide(state.trialHint)
         b.tvShieldHint.setTextOrHide(state.shieldHint)
+        // Proximity fallback: press and hold the hint if covering the sensor does nothing.
+        b.tvShieldHint.setOnLongClickListener { viewModel.onShieldHeld(); true }
         b.tvErrorMessage.setTextOrHide(state.error?.message)
 
         val glow = state.glow

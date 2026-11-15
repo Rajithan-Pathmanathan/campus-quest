@@ -1,0 +1,46 @@
+rules_version = '2';
+// Campus Quest security rules. Publish in Firebase Console -> Firestore -> Rules
+// (or `firebase deploy --only firestore:rules`).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() { return request.auth != null; }
+    function isUser(uid) { return signedIn() && request.auth.uid == uid; }
+
+    // Player profiles (display name, FCM token).
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update, delete: if isUser(uid);
+    }
+
+    // Quests: anyone signed in reads published quests; only the creator writes.
+    match /games/{gameId} {
+      allow read: if signedIn() && (resource.data.status == 'PUBLISHED' || resource.data.creatorId == request.auth.uid);
+      allow create: if signedIn() && request.resource.data.creatorId == request.auth.uid;
+      allow update, delete: if signedIn() && resource.data.creatorId == request.auth.uid
+                            && request.resource.data.creatorId == request.auth.uid;
+
+      match /checkpoints/{checkpointId} {
+        allow read: if signedIn();
+        // getAfter(): the game and its checkpoints are written in ONE batch on publish,
+        // so get() would still see "no game" and reject the batch.
+        allow write: if signedIn() &&
+          getAfter(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
+      }
+    }
+
+    // Progress: document id is "{uid}_{gameId}"; each player sees and writes only their own.
+    match /progress/{progressId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create, update: if signedIn() && request.resource.data.userId == request.auth.uid
+                            && progressId == request.auth.uid + '_' + request.resource.data.gameId;
+      allow delete: if signedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // Leaderboards: everyone signed in reads; each player writes only their own entry.
+    match /leaderboards/{gameId}/entries/{uid} {
+      allow read: if signedIn();
+      allow write: if isUser(uid);
+    }
+  }
+}

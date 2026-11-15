@@ -62,7 +62,7 @@
                 android:id="@+id/btn_view_details"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="View Quest"
+                android:text="@string/game_card_view_quest"
                 android:backgroundTint="@color/primary_emerald" />
         </LinearLayout>
 

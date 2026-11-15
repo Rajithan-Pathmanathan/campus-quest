@@ -226,7 +226,7 @@
                 android:id="@+id/btn_save_checkpoint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Save Checkpoint"
+                android:text="@string/checkpoint_editor_save_checkpoint"
                 android:backgroundTint="@color/primary_emerald"
                 android:layout_marginTop="@dimen/spacing_xl" />
 

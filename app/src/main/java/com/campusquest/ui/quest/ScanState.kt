@@ -40,7 +40,9 @@ data class ScanSignals(
     /** M3: weighted fusion (GPS + light + motion) >= threshold. */
     val fusionThresholdReached: Boolean,
     /** M3: proximity final gate. Not a weighted input. */
-    val proximityNear: Boolean
+    val proximityNear: Boolean,
+    /** Fallback for phones without a working proximity sensor: the player held the shield. */
+    val shieldHeld: Boolean = false
 )
 
 object ScanStateMachine {
@@ -67,7 +69,9 @@ object ScanStateMachine {
             !signals.hasLocationFix -> ScanState.WAITING_FOR_LOCATION
             signals.zone != QuestZone.RELIC -> ScanState.OUTSIDE_CHECKPOINT
             !signals.scanStarted -> ScanState.READY_TO_SCAN
-            signals.fusionThresholdReached && signals.proximityNear -> ScanState.SUCCESS
+            com.campusquest.domain.fusion.DiscoveryGateEvaluator.canDiscover(
+                signals.fusionThresholdReached, signals.proximityNear, signals.shieldHeld
+            ) -> ScanState.SUCCESS
             signals.fusionThresholdReached -> ScanState.WAITING_FOR_PROXIMITY
             else -> ScanState.SCANNING
         }

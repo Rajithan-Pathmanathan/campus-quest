@@ -26,6 +26,7 @@ class StoryDatabaseTest {
         override val currentUserState=MutableStateFlow<AuthUser?>(AuthUser("player","Player",null))
         override fun getCurrentUserId()="player"
         override suspend fun signOut(){}
+        override suspend fun deleteAccount()=Result.success(Unit)
         override suspend fun signInWithEmail(email:String,password:String)=Result.failure<AuthUser>(UnsupportedOperationException())
         override suspend fun signUpWithEmail(email:String,password:String,displayName:String)=Result.failure<AuthUser>(UnsupportedOperationException())
         override suspend fun signInAnonymously()=Result.failure<AuthUser>(UnsupportedOperationException())

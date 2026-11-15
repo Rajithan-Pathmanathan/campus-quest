@@ -41,7 +41,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center"
-            android:text="No players on this leaderboard yet"
+            android:text="@string/leaderboard_no_players_on_this"
             android:textColor="@color/text_secondary"
             android:visibility="gone" />
 
@@ -67,7 +67,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_m"
-                android:text="Retry"
+                android:text="@string/leaderboard_retry"
                 android:backgroundTint="@color/primary_emerald" />
         </LinearLayout>
     </FrameLayout>

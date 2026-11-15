@@ -1,8 +1,8 @@
 package com.campusquest.ui.creator.validation
 
 /**
- * PLACEHOLDER limits. Replace with the team's agreed values
- * from SHARED_CONTRACTS once confirmed.
+ * Limits for creator input. Radius: the relic appears within 10 m in-app, and geofence alerts
+ * use at least 100 m, so 5-500 m covers every useful checkpoint.
  */
 object CreatorLimits {
     const val TITLE_MAX_LENGTH = 60
@@ -15,7 +15,8 @@ object CreatorLimits {
     const val MAX_RADIUS_M = 500f
     const val MAX_LUX = 100_000f
 
-    const val MIN_CHECKPOINTS_TO_PUBLISH = 1   // PLACEHOLDER: ask the group for the real number
+    /** A quest needs at least one place to visit. */
+    const val MIN_CHECKPOINTS_TO_PUBLISH = 1
 
     val RARITIES = listOf("COMMON", "RARE", "EPIC", "LEGENDARY")
 }

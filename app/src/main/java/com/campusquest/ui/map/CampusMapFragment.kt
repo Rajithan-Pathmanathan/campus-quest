@@ -38,6 +38,9 @@ class CampusMapFragment : Fragment() {
     private val binding get() = _binding!!
 
     private val locationRepository get() = CampusQuestApplication.instance.locationRepository
+    /** M3: live geofence state of the target checkpoint (inside / outside, with hysteresis). */
+    private val geofenceData = com.campusquest.device.location.MapGeofenceDataProvider()
+    private var targetGeofenceState = com.campusquest.domain.model.GeofenceState.UNKNOWN
 
     private val requestLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         startMapLocation()
@@ -164,6 +167,9 @@ class CampusMapFragment : Fragment() {
                     .collect { (completed, location) ->
                         val map = _binding?.mapView ?: return@collect
                         val state = MapTargetState.from(checkpoints, completed, location)
+                        targetGeofenceState = state.checkpoint
+                            ?.let { geofenceData.createVisualState(it, location, targetGeofenceState).state }
+                            ?: com.campusquest.domain.model.GeofenceState.UNKNOWN
                         val bearing = state.checkpoint?.takeIf { location.hasValidFix && location.servicesEnabled }?.let {
                             com.campusquest.device.location.HaversineDistanceCalculator().calculateBearingDegrees(location.smoothedLatitude!!, location.smoothedLongitude!!, it.lat, it.lng)
                         }
@@ -179,7 +185,10 @@ class CampusMapFragment : Fragment() {
                         }
                         binding.fabEnterScan.isEnabled = state.checkpoint != null
                         map.overlays.clear()
-                        checkpoints.sortedBy { it.order }.forEach { addCheckpoint(it, it.id in completed) }
+                        val insideTarget = targetGeofenceState == com.campusquest.domain.model.GeofenceState.INSIDE
+                        checkpoints.sortedBy { it.order }.forEach {
+                            addCheckpoint(it, it.id in completed, inside = insideTarget && it.id == state.checkpoint?.id)
+                        }
                         if (!centered && state.checkpoint != null) {
                             map.controller.setCenter(GeoPoint(state.checkpoint.lat, state.checkpoint.lng))
                             centered = true
@@ -197,22 +206,23 @@ class CampusMapFragment : Fragment() {
         }
     }
 
-    private fun addCheckpoint(cp: Checkpoint, found: Boolean) {
+    /** [inside]: the player is inside this checkpoint's geofence; the circle is highlighted. */
+    private fun addCheckpoint(cp: Checkpoint, found: Boolean, inside: Boolean = false) {
         val map = _binding?.mapView ?: return
         val position = GeoPoint(cp.lat, cp.lng)
-        val color = ContextCompat.getColor(requireContext(), if (found) R.color.primary_emerald else R.color.secondary_amber)
+        val color = ContextCompat.getColor(requireContext(), if (found || inside) R.color.primary_emerald else R.color.secondary_amber)
         map.overlays.add(Polygon(map).apply {
             points = Polygon.pointsAsCircle(position, cp.radiusM.toDouble())
             outlinePaint.color = color
-            outlinePaint.strokeWidth = 4f
-            fillPaint.color = (color and 0x00FFFFFF) or 0x33000000
+            outlinePaint.strokeWidth = if (inside) 8f else 4f
+            fillPaint.color = (color and 0x00FFFFFF) or (if (inside) 0x66000000 else 0x33000000)
             setOnClickListener { _, _, _ -> false } // let taps reach the marker
         })
         map.overlays.add(Marker(map).apply {
             this.position = position
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             title = (if (found) "✅ " else "${cp.order}. ") + cp.name
-            snippet = cp.clue
+            snippet = if (inside) getString(R.string.map_inside_checkpoint) else cp.clue
         })
     }
 

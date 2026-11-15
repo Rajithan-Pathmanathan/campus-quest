@@ -50,7 +50,8 @@ class StorySetupFragment : Fragment() {
                     val db=CampusQuestApplication.instance.database
                     val id=LightTheWay.create(db,uid,AppProviders.authRepository.currentUserState.value?.displayName ?: "Explorer",points.map { it.first!! to it.second!! },heading)
                     showCard(body,db.storyDao().config(id)!!)
-                    message.text="Created locally. Place this card at checkpoint 2 before playing."
+                    com.campusquest.data.repository.SyncWorker.enqueue(requireContext())
+                    message.text="Created and published. Place this card at checkpoint 2 before playing."
                     fields.forEach { it.first.isEnabled=false;it.second.isEnabled=false };bearing.isEnabled=false
                     create.visibility=View.GONE
                 } catch (e: Exception) { message.text=e.message ?: "Could not create game";create.isEnabled=true }

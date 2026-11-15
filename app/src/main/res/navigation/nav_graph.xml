@@ -35,6 +35,11 @@
         <action
             android:id="@+id/action_player_to_creatorDashboard"
             app:destination="@id/creatorDashboardFragment" />
+        <action
+            android:id="@+id/action_player_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
     </fragment>
 
     <fragment

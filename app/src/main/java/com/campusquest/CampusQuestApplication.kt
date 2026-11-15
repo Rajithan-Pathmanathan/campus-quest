@@ -18,8 +18,16 @@ import com.campusquest.domain.repository.GameRepository
 import com.campusquest.domain.repository.LocationRepository
 import com.campusquest.domain.repository.SensorRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.messaging.FirebaseMessaging
+import com.campusquest.data.remote.FirestoreService
+import com.campusquest.data.remote.FirestoreServiceImpl
+import com.campusquest.data.remote.PushNotifications
+import com.campusquest.data.repository.SyncWorker
+import kotlinx.coroutines.launch
 import com.campusquest.device.location.geofence.GeofenceManagerHelper
 import com.campusquest.device.location.geofence.QuestGeofenceCoordinator
+import com.campusquest.device.location.geofence.GeofenceAlerts
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -38,9 +46,35 @@ class CampusQuestApplication : Application() {
         AppDatabase.getDatabase(this)
     }
 
+    /** App-wide scope for fire-and-forget work (profile/token sync, geofences). */
+    val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+
+    /** Cloud backend; null only if Firebase could not start (missing google-services.json). */
+    val firestore: FirestoreService? by lazy {
+        runCatching { FirestoreServiceImpl(FirebaseFirestore.getInstance()) }.getOrNull()
+    }
+
+    val pushNotifications: PushNotifications? by lazy {
+        val cloud = firestore ?: return@lazy null
+        runCatching {
+            PushNotifications(FirebaseMessaging.getInstance(), FirebaseAuth.getInstance(), cloud, BuildConfig.NEW_QUEST_NOTIFY_URL)
+        }.getOrNull()
+    }
+
     val authRepository: AuthRepository? by lazy {
         try {
-            AuthRepositoryImpl(FirebaseAuth.getInstance())
+            AuthRepositoryImpl(
+                auth = FirebaseAuth.getInstance(),
+                onSignedIn = { user ->
+                    firestore?.let { cloud -> runCatching { cloud.saveUserProfile(user) } }
+                    pushNotifications?.onSignedIn(user.uid)
+                    SyncWorker.enqueue(this)
+                },
+                deleteUserData = { uid ->
+                    firestore?.deleteUserData(uid)
+                    database.playerProgressDao().deleteUserProgress(uid)
+                }
+            )
         } catch (_: Exception) {
             null
         }
@@ -53,7 +87,12 @@ class CampusQuestApplication : Application() {
             playerProgressDao = database.playerProgressDao(),
             syncQueueDao = database.syncQueueDao(),
             authRepository = authRepository,
-            inTransaction = { block -> database.withTransaction { block() } }
+            inTransaction = { block -> database.withTransaction { block() } },
+            remote = firestore,
+            storyDao = database.storyDao(),
+            userName = { authRepository?.currentUserState?.value?.displayName?.takeIf { it.isNotBlank() } ?: GameRepositoryImpl.DEFAULT_PLAYER_NAME },
+            onQueued = { SyncWorker.enqueue(this) },
+            onPublished = { gameId -> pushNotifications?.announceNewQuest(gameId) }
         )
     }
 
@@ -63,7 +102,9 @@ class CampusQuestApplication : Application() {
             geofences = GeofenceManagerHelper(this),
             repository = gameRepository,
             userId = { authRepository?.getCurrentUserId()?.takeIf { it.isNotBlank() } ?: GameRepositoryImpl.DEFAULT_LOCAL_USER_ID },
-            scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+            scope = appScope,
+            locations = locationRepository.locationState,
+            onFallbackEnter = { gameId, checkpointId -> appScope.launch { runCatching { GeofenceAlerts.notifyIfUnfound(this@CampusQuestApplication, gameId, checkpointId) } } }
         )
     }
 
@@ -82,7 +123,18 @@ class CampusQuestApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        AppCheckSetup.install()
         createNotificationChannels()
+        // Upload anything left from a previous session, and keep retrying in the background.
+        SyncWorker.enqueue(this)
+        SyncWorker.schedulePeriodic(this)
+        // Returning players: refresh profile + FCM token once per launch.
+        authRepository?.currentUserState?.value?.let { user ->
+            appScope.launch {
+                firestore?.let { runCatching { it.saveUserProfile(user) } }
+                pushNotifications?.onSignedIn(user.uid)
+            }
+        }
     }
 
     private fun createNotificationChannels() {

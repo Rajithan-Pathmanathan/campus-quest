@@ -75,7 +75,7 @@ class QuestScanProgressionTest {
     @Test
     fun `waiting for proximity asks the player to cup the ember`() {
         val s = hud(ScanState.WAITING_FOR_PROXIMITY, QuestZone.RELIC, percent = 90, distance = 1f)
-        assertEquals("Cup the ember — hold the Resonator close.", s.shieldHint)
+        assertEquals("Cup the ember — hold the Resonator close (or press and hold here).", s.shieldHint)
     }
 
     @Test

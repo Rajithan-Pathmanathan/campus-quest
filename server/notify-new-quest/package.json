@@ -1,0 +1,9 @@
+{
+  "name": "campus-quest-notify-new-quest",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Sends the 'new quest' push notification for Campus Quest (Vercel serverless function).",
+  "dependencies": {
+    "firebase-admin": "12.1.0"
+  }
+}

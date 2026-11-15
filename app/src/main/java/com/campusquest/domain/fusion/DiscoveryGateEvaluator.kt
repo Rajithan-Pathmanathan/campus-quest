@@ -21,11 +21,22 @@ data class DiscoveryGateInput(
  */
 class DiscoveryGateEvaluator {
 
+    companion object {
+        /**
+         * The single discovery rule, used by the scan screen ([com.campusquest.ui.quest.ScanStateMachine]).
+         * [shieldHeld] is the fallback for phones whose proximity sensor never reports "near"
+         * (e.g. virtual proximity sensors): the player presses and holds the shield instead.
+         * It only counts once the fusion threshold is reached.
+         */
+        fun canDiscover(fusionThresholdReached: Boolean, proximityNear: Boolean, shieldHeld: Boolean = false): Boolean =
+            fusionThresholdReached && (proximityNear || shieldHeld)
+    }
+
     fun evaluate(input: DiscoveryGateInput): Boolean {
-        return input.fusionResult.thresholdReached && input.proximityNear
+        return canDiscover(input.fusionResult.thresholdReached, input.proximityNear)
     }
 
     fun evaluate(fusionResult: FusionResult, proximityNear: Boolean): Boolean {
-        return fusionResult.thresholdReached && proximityNear
+        return canDiscover(fusionResult.thresholdReached, proximityNear)
     }
 }

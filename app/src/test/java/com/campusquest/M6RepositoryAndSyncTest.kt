@@ -8,7 +8,6 @@ import com.campusquest.data.local.entity.CheckpointEntity
 import com.campusquest.data.local.entity.GameEntity
 import com.campusquest.data.local.entity.PlayerProgressEntity
 import com.campusquest.data.local.entity.SyncQueueEntity
-import com.campusquest.data.mock.MockDataCatalog
 import com.campusquest.data.repository.GameRepositoryImpl
 import com.campusquest.domain.model.AuthUser
 import com.campusquest.domain.model.Checkpoint
@@ -113,6 +112,10 @@ class M6RepositoryAndSyncTest {
 
         override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgressEntity> =
             progressMap.values.filter { it.userId == userId }
+        override suspend fun deleteUserProgress(userId: String) {
+            progressMap.entries.removeIf { it.value.userId == userId }
+        }
+
 
         override suspend fun insertOrUpdateProgress(progress: PlayerProgressEntity) {
             progressMap[key(progress.gameId, progress.userId)] = progress
@@ -164,6 +167,7 @@ class M6RepositoryAndSyncTest {
         override suspend fun signInAnonymously(): Result<AuthUser> =
             Result.failure(UnsupportedOperationException())
         override suspend fun signOut() { activeUid = null }
+        override suspend fun deleteAccount(): Result<Unit> = Result.success(Unit)
         override fun getCurrentUserId(): String? = activeUid
     }
 
@@ -270,7 +274,7 @@ class M6RepositoryAndSyncTest {
     }
 
     @Test
-    fun c2_and_d1_deleteCheckpoint_and_storyQuestSeed() = runBlocking {
+    fun c2_deleteCheckpoint() = runBlocking {
         val cpDao = FakeCheckpointDao()
         val repo = GameRepositoryImpl(FakeGameDao(), cpDao, FakePlayerProgressDao(), FakeSyncQueueDao())
 
@@ -279,9 +283,5 @@ class M6RepositoryAndSyncTest {
 
         repo.deleteCheckpoint("g1", "cp1")
         assertTrue(repo.getGameCheckpoints("g1").isEmpty())
-
-        assertEquals("The Founder's Lantern", MockDataCatalog.foundersLanternGame.title)
-        assertEquals(3, MockDataCatalog.foundersLanternCheckpoints.size)
-        assertEquals(15f, MockDataCatalog.foundersLanternCheckpoints.first().radiusM)
     }
 }

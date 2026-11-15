@@ -19,7 +19,7 @@
             android:id="@+id/tv_rank"
             android:layout_width="36dp"
             android:layout_height="wrap_content"
-            android:text="#1"
+            tools:text="#1"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/secondary_amber" />
@@ -34,7 +34,7 @@
                 android:id="@+id/tv_player_name"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Explorer_Alex"
+                tools:text="Explorer_Alex"
                 android:textSize="16sp"
                 android:textStyle="bold"
                 android:textColor="@color/text_primary" />
@@ -43,7 +43,7 @@
                 android:id="@+id/tv_time_score"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Completed in 14m 20s"
+                tools:text="Completed in 14m 20s"
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary" />
         </LinearLayout>
@@ -52,7 +52,7 @@
             android:id="@+id/tv_points"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="500 pts"
+            tools:text="500 pts"
             android:textStyle="bold"
             android:textColor="@color/primary_emerald" />
     </LinearLayout>
