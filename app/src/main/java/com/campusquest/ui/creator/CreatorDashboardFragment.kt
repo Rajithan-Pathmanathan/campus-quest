@@ -51,6 +51,7 @@ class CreatorDashboardFragment : Fragment() {
         binding.rvAuthoredGames.layoutManager = LinearLayoutManager(requireContext())
         binding.rvAuthoredGames.adapter = adapter
 
+        binding.btnCreateStory.setOnClickListener {findNavController().navigate(R.id.storySetupFragment)}
         binding.btnCreateNewQuest.setOnClickListener {
             findNavController().navigate(R.id.action_creator_to_createGame)
         }

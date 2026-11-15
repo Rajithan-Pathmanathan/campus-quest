@@ -39,4 +39,14 @@
     <string name="error_location_permission_required">Location permission is required to detect campus checkpoints.</string>
     <string name="error_camera_permission_required">Camera permission is required for the AR discovery HUD.</string>
     <string name="error_network_offline">Operating in Offline Mode. Actions queued for sync.</string>
+    <string name="player_progress_stats">Score: %1$d pts | Relics Found: %2$d</string>
+    <string name="map_target">Target: %1$s</string>
+    <string name="map_clue">Clue: %1$s</string>
+    <string name="map_distance">Distance: %1$d m remaining</string>
+    <string name="map_loading">Loading checkpoint…</string>
+    <string name="map_waiting_gps">Waiting for an accurate GPS location…</string>
+    <string name="map_permission_needed">Location permission is needed to show distance.</string>
+    <string name="map_no_remaining">No remaining checkpoints</string>
+    <string name="map_load_failed">Unable to load checkpoints</string>
+    <string name="map_you">You</string>
 </resources>

@@ -1,5 +1,10 @@
 package com.campusquest.ui.map
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import com.campusquest.domain.model.LocationPermissionState
+import kotlinx.coroutines.flow.combine
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -32,8 +37,32 @@ class CampusMapFragment : Fragment() {
     private var _binding: FragmentCampusMapBinding? = null
     private val binding get() = _binding!!
 
-    /** The player's position marker, moved as M3's location updates arrive. */
-    private var playerMarker: Marker? = null
+    private val locationRepository get() = CampusQuestApplication.instance.locationRepository
+
+    private val requestLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        startMapLocation()
+    }
+
+    override fun onStart() {
+        super.onStart()
+        _binding?.mapCompass?.start()
+        if (hasLocationPermission()) startMapLocation()
+        else requestLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+
+    private fun hasLocationPermission() =
+        ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+            ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+
+    private fun startMapLocation() {
+        val granted = hasLocationPermission()
+        locationRepository.updatePermissionState(if (granted) LocationPermissionState.Granted else LocationPermissionState.Denied)
+        if (granted) locationRepository.startTracking()
+    }
+
+
+
+
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -51,15 +80,14 @@ class CampusMapFragment : Fragment() {
 
         setupMap()
         showCheckpoints(gameId)
-        showPlayer()
+
 
         // Opens the scan for the player's next unfound checkpoint (dynamic, by the game's own order).
         binding.fabEnterScan.setOnClickListener {
             viewLifecycleOwner.lifecycleScope.launch {
                 val nextId = try {
                     val repo = AppProviders.gameRepository
-                    val uid = AppProviders.currentUserId()
-                    val completed = repo.observePlayerProgress(gameId, uid).first()
+                    val completed = repo.observePlayerProgress(gameId, com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId().orEmpty()).first()
                         ?.completedCheckpointIds.orEmpty()
                     NextCheckpointResolver.next(repo.getGameCheckpoints(gameId), completed)?.id
                 } catch (e: CancellationException) {
@@ -75,17 +103,22 @@ class CampusMapFragment : Fragment() {
                     putString("gameId", gameId)
                     putString("checkpointId", nextId)
                 }
-                findNavController().navigate(R.id.action_campusMap_to_questScan, bundle)
+                val story = CampusQuestApplication.instance.database.storyDao().config(gameId)
+                findNavController().navigate(if(story != null) R.id.storyGameFragment else R.id.questScanFragment, bundle)
             }
         }
     }
 
     override fun onResume() {
         super.onResume()
+        _binding?.mapCompass?.start()
+        if (hasLocationPermission()) startMapLocation()
         _binding?.mapView?.onResume()
     }
 
     override fun onPause() {
+        _binding?.mapCompass?.stop()
+        locationRepository.stopTracking()
         _binding?.mapView?.onPause()
         super.onPause()
     }
@@ -112,21 +145,54 @@ class CampusMapFragment : Fragment() {
     /** Checkpoint circles and markers (found ones ticked); the camera starts on the next unfound one. */
     private fun showCheckpoints(gameId: String) {
         viewLifecycleOwner.lifecycleScope.launch {
-            val (checkpoints, completed) = try {
-                val repo = AppProviders.gameRepository
-                val uid = AppProviders.currentUserId()
-                repo.getGameCheckpoints(gameId) to
-                        repo.observePlayerProgress(gameId, uid).first()?.completedCheckpointIds.orEmpty()
+            val repo = AppProviders.gameRepository
+            val checkpoints = try {
+                repo.getGameCheckpoints(gameId)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {
+                binding.tvTargetCpTitle.setText(R.string.map_load_failed)
                 return@launch
             }
-            val map = _binding?.mapView ?: return@launch
-            checkpoints.sortedBy { it.order }.forEach { cp -> addCheckpoint(cp, found = cp.id in completed) }
-            val target = NextCheckpointResolver.next(checkpoints, completed) ?: checkpoints.lastOrNull()
-            target?.let { map.controller.setCenter(GeoPoint(it.lat, it.lng)) }
-            map.invalidate()
+            var centered = false
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(
+                    repo.observePlayerProgress(gameId, AppProviders.authRepository.getCurrentUserId().orEmpty()),
+                    locationRepository.locationState
+                ) { progress, location -> progress?.completedCheckpointIds.orEmpty() to location }
+                    .collect { (completed, location) ->
+                        val map = _binding?.mapView ?: return@collect
+                        val state = MapTargetState.from(checkpoints, completed, location)
+                        val bearing = state.checkpoint?.takeIf { location.hasValidFix && location.servicesEnabled }?.let {
+                            com.campusquest.device.location.HaversineDistanceCalculator().calculateBearingDegrees(location.smoothedLatitude!!, location.smoothedLongitude!!, it.lat, it.lng)
+                        }
+                        binding.mapCompass.update(bearing, state.distanceMeters?.toFloat(), location.smoothedLatitude, location.smoothedLongitude)
+                        binding.tvTargetCpTitle.text = state.checkpoint?.let { getString(R.string.map_target, it.name) }
+                            ?: getString(R.string.map_no_remaining)
+                        binding.tvClueHint.text = state.checkpoint?.let { getString(R.string.map_clue, it.clue) }.orEmpty()
+                        binding.tvDistanceMeters.text = when {
+                            state.checkpoint == null -> ""
+                            location.permissionState == LocationPermissionState.Denied -> getString(R.string.map_permission_needed)
+                            state.distanceMeters != null -> getString(R.string.map_distance, state.distanceMeters)
+                            else -> getString(R.string.map_waiting_gps)
+                        }
+                        binding.fabEnterScan.isEnabled = state.checkpoint != null
+                        map.overlays.clear()
+                        checkpoints.sortedBy { it.order }.forEach { addCheckpoint(it, it.id in completed) }
+                        if (!centered && state.checkpoint != null) {
+                            map.controller.setCenter(GeoPoint(state.checkpoint.lat, state.checkpoint.lng))
+                            centered = true
+                        }
+                        if (location.hasValidFix && location.servicesEnabled) {
+                            map.overlays.add(Marker(map).apply {
+                                position = GeoPoint(location.smoothedLatitude!!, location.smoothedLongitude!!)
+                                setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+                                title = getString(R.string.map_you)
+                            })
+                        }
+                        map.invalidate()
+                    }
+            }
         }
     }
 
@@ -149,31 +215,8 @@ class CampusMapFragment : Fragment() {
         })
     }
 
-    /** Shows the player's latest position from M3's location repository (tracking is started by the scan flow). */
-    private fun showPlayer() {
-        val locationRepository = (requireActivity().application as CampusQuestApplication).locationRepository
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                locationRepository.locationState.collect { loc ->
-                    val lat = loc.smoothedLatitude ?: return@collect
-                    val lng = loc.smoothedLongitude ?: return@collect
-                    val map = _binding?.mapView ?: return@collect
-                    val marker = playerMarker ?: Marker(map).apply {
-                        setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-                        title = "You"
-                        map.overlays.add(this)
-                        playerMarker = this
-                    }
-                    marker.position = GeoPoint(lat, lng)
-                    map.invalidate()
-                }
-            }
-        }
-    }
-
     override fun onDestroyView() {
         super.onDestroyView()
-        playerMarker = null
         _binding = null
     }
 }

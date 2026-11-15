@@ -5,13 +5,13 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@color/background_light">
+    android:background="@drawable/bg_parchment">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary_emerald"
+        android:background="@color/primary_emerald_dark"
         app:title="@string/nav_creator_dashboard"
         app:titleTextColor="@color/on_primary_emerald" />
 
@@ -28,6 +28,7 @@
             android:text="➕ Create New Quest"
             android:backgroundTint="@color/primary_emerald" />
 
+        <com.google.android.material.button.MaterialButton android:id="@+id/btn_create_story" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Create Light the Way story" />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

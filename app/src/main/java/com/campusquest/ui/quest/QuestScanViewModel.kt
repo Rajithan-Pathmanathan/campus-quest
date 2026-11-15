@@ -213,12 +213,14 @@ class QuestScanViewModel(
     private fun updateDistanceAndZone(cp: Checkpoint, loc: LocationState) {
         val lat = loc.smoothedLatitude
         val lng = loc.smoothedLongitude
-        if (!loc.hasValidFix || lat == null || lng == null) {
+        if (!loc.hasValidFix || !loc.servicesEnabled || lat == null || lng == null) {
+            _uiState.value = _uiState.value.copy(navigationBearing = null, navigationDistance = null)
             lastDistanceM = null
             zone = QuestZone.FAR
             return
         }
         val d = distanceCalculator.calculateDistanceMeters(lat, lng, cp.lat, cp.lng)
+        _uiState.value = _uiState.value.copy(navigationBearing = distanceCalculator.calculateBearingDegrees(lat, lng, cp.lat, cp.lng), navigationDistance = d)
         lastDistanceM = d
         zone = nextQuestZone(zone, d, loc.accuracyMeters)
     }
@@ -352,7 +354,8 @@ class QuestScanViewModel(
                 gameRepository = AppProviders.gameRepository,
                 sensorRepository = app.sensorRepository,
                 locationRepository = app.locationRepository,
-                userId = { AppProviders.currentUserId() }
+                // GameRepositoryImpl currently stores progress under this fixed id (see recordDiscovery).
+                userId = { com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId().orEmpty() }
             ) as T
         }
     }

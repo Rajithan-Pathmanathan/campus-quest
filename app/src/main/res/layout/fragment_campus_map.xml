@@ -30,7 +30,7 @@
                 android:id="@+id/tv_target_cp_title"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Target: Old Clock Tower"
+                android:text="@string/map_loading"
                 android:textStyle="bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary" />
@@ -39,7 +39,7 @@
                 android:id="@+id/tv_distance_meters"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Distance: 85m remaining"
+                android:text="@string/map_waiting_gps"
                 android:textColor="@color/primary_emerald"
                 android:textStyle="bold"
                 android:layout_marginTop="2dp" />
@@ -48,13 +48,14 @@
                 android:id="@+id/tv_clue_hint"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Clue: Where shadows stretch longest at noon..."
+                android:text=""
                 android:textSize="12sp"
                 android:textColor="@color/text_secondary"
                 android:layout_marginTop="4dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 
+    <com.campusquest.ui.quest.TrailCompassView android:id="@+id/map_compass" android:layout_width="160dp" android:layout_height="178dp" android:layout_gravity="bottom|end" android:layout_marginBottom="96dp" android:layout_marginEnd="16dp" android:background="@drawable/bg_expedition"/>
     <!-- Bottom Action Floating Button -->
     <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
         android:id="@+id/fab_enter_scan"

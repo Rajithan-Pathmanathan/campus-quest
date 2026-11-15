@@ -18,7 +18,7 @@
             android:id="@+id/tv_game_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Campus Heritage Quest"
+            android:text=""
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
@@ -27,7 +27,7 @@
             android:id="@+id/tv_game_creator"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="By Prof. Alan Turing"
+            android:text=""
             android:textSize="12sp"
             android:textColor="@color/text_secondary"
             android:layout_marginTop="2dp" />
@@ -36,7 +36,7 @@
             android:id="@+id/tv_game_description"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Discover historical relics and hidden secrets across engineering quad."
+            android:text=""
             android:textColor="@color/text_secondary"
             android:layout_marginTop="@dimen/spacing_s"
             android:maxLines="2"
@@ -54,7 +54,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="📍 5 Checkpoints"
+                android:text=""
                 android:textColor="@color/primary_emerald"
                 android:textStyle="bold" />
 
