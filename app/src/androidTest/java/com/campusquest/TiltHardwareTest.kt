@@ -20,6 +20,10 @@ class TiltHardwareTest {
             scenario.onActivity {activity ->
                 sensors=StorySensors(activity).also {it.start();it.calibrate()}
                 val maze=KeyBoxView(activity).apply {active=true;layout(0,0,500,500)}
+                val bitmap=android.graphics.Bitmap.createBitmap(1000,1000,android.graphics.Bitmap.Config.ARGB_8888)
+                maze.layout(0,0,1000,1000);maze.draw(android.graphics.Canvas(bitmap))
+                java.io.File(activity.getExternalFilesDir(null),"tilt-maze-preview.png").outputStream().use {bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
+                bitmap.recycle()
                 val x=maze.box.x;val y=maze.box.y
                 for((action,px,py) in listOf(Triple(MotionEvent.ACTION_DOWN,50f,450f),Triple(MotionEvent.ACTION_MOVE,300f,100f),Triple(MotionEvent.ACTION_UP,300f,100f))){
                     val event=MotionEvent.obtain(0,0,action,px,py,0)
