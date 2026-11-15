@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -23,8 +25,18 @@ android {
             useSupportLibrary = true
         }
 
-        // Default placeholder for Google Maps API Key
-        manifestPlaceholders["MAPS_API_KEY"] = "AIzaSy_CampusQuest_Default_Placeholder_Key"
+        // Google Maps API key: each developer puts their own key in local.properties
+        // (MAPS_API_KEY=AIza...), which is git-ignored. A -PMAPS_API_KEY=... Gradle property or a
+        // MAPS_API_KEY environment variable also work (e.g. for CI). Without a key the map shows
+        // grey tiles; location, distance and the story cues still work.
+        val localProps = Properties().apply {
+            rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+        }
+        val mapsApiKey = (project.findProperty("MAPS_API_KEY") as? String)
+            ?: System.getenv("MAPS_API_KEY")
+            ?: localProps.getProperty("MAPS_API_KEY")
+            ?: "AIzaSy_CampusQuest_Default_Placeholder_Key"
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
     }
 
     buildTypes {
