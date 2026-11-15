@@ -1,103 +1,130 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/text_primary">
+    android:background="@color/text_primary"
+    android:padding="@dimen/spacing_m">
 
-    <!-- CameraX Preview View -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/camera_preview"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" />
-
-    <!-- Dark HUD Overlay Top -->
-    <LinearLayout
-        android:id="@+id/hud_top_panel"
-        android:layout_width="match_parent"
+    <TextView
+        android:id="@+id/tv_checkpoint_name"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_m"
-        android:background="@color/hud_background_transparent"
-        app:layout_constraintTop_toTopOf="parent">
+        android:textColor="@color/hud_text_glow"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:accessibilityHeading="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
-        <TextView
-            android:id="@+id/tv_hud_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Checkpoint Scan: Relic Detection"
-            android:textColor="@color/hud_text_glow"
-            android:textStyle="bold"
-            android:textSize="16sp" />
-
-        <TextView
-            android:id="@+id/tv_hud_status"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Aligning environmental sensors..."
-            android:textColor="@color/on_primary_emerald"
-            android:textSize="12sp"
-            android:layout_marginTop="2dp" />
-    </LinearLayout>
-
-    <!-- Center Reticle / Scanner Circle -->
-    <ImageView
-        android:id="@+id/iv_reticle"
-        android:layout_width="220dp"
-        android:layout_height="220dp"
-        android:src="@android:drawable/ic_menu_compass"
-        app:tint="@color/primary_emerald_light"
-        android:contentDescription="Scanning Reticle"
+    <ProgressBar
+        android:id="@+id/progress_loading"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="gone"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
 
-    <!-- Bottom Sensor Fusion Meter Panel -->
     <LinearLayout
-        android:id="@+id/hud_bottom_panel"
-        android:layout_width="match_parent"
+        android:id="@+id/hud_center"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="@dimen/spacing_m"
-        android:background="@color/hud_background_transparent"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:gravity="center_horizontal"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
 
         <TextView
+            android:id="@+id/tv_headline"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textColor="@color/on_primary_emerald"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:accessibilityLiveRegion="polite" />
+
+        <TextView
+            android:id="@+id/tv_distance"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Sensor Fusion Progress"
-            android:textColor="@color/on_primary_emerald"
-            android:textStyle="bold" />
+            android:layout_marginTop="@dimen/spacing_s"
+            android:textColor="@color/secondary_amber"
+            android:textSize="18sp"
+            android:visibility="gone" />
 
+        <TextView
+            android:id="@+id/tv_warmth"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="@color/secondary_amber"
+            android:textSize="16sp"
+            android:visibility="gone" />
+
+        <!-- Ember glow: five coarse stages (cold ... blazing), never a percentage. -->
         <ProgressBar
-            android:id="@+id/pb_fusion_meter"
+            android:id="@+id/pb_ember"
             style="?android:attr/progressBarStyleHorizontal"
             android:layout_width="match_parent"
             android:layout_height="12dp"
-            android:max="100"
+            android:layout_marginTop="@dimen/spacing_m"
+            android:max="4"
             android:progress="0"
             android:progressTint="@color/secondary_amber"
-            android:layout_marginTop="@dimen/spacing_xs" />
+            android:visibility="gone" />
 
         <TextView
-            android:id="@+id/tv_sensor_diagnostics"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Accel: 9.8 m/s² | Lux: 120 | Proximity: Far"
-            android:textColor="@color/text_hint"
-            android:textSize="11sp"
-            android:layout_marginTop="4dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_simulate_unlock"
+            android:id="@+id/tv_light_hint"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Claim Discovery"
-            android:backgroundTint="@color/primary_emerald"
+            android:layout_marginTop="@dimen/spacing_m"
+            android:gravity="center"
+            android:textColor="@color/on_primary_emerald"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_trial_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_s"
-            android:enabled="false" />
+            android:gravity="center"
+            android:textColor="@color/on_primary_emerald"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_shield_hint"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:gravity="center"
+            android:textColor="@color/hud_text_glow"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/tv_error_message"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_s"
+            android:gravity="center"
+            android:textColor="@color/text_hint"
+            android:visibility="gone" />
     </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_primary"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:backgroundTint="@color/primary_emerald"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
