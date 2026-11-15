@@ -13,6 +13,11 @@ import com.campusquest.data.local.entity.CheckpointEntity
 import com.campusquest.data.local.entity.GameEntity
 import com.campusquest.data.local.entity.PlayerProgressEntity
 import com.campusquest.data.local.entity.SyncQueueEntity
+import com.campusquest.data.mock.DebugSeeder
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 @Database(
     entities = [
@@ -35,6 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
     companion object {
         @Volatile
         private var INSTANCE: AppDatabase? = null
+        private val dbScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
         fun getDatabase(context: Context): AppDatabase {
             return INSTANCE ?: synchronized(this) {
@@ -46,6 +52,10 @@ abstract class AppDatabase : RoomDatabase() {
                     .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
+                // Task D2: Ensure story quest is seeded in both debug and release builds
+                dbScope.launch {
+                    DebugSeeder.seedDatabase(instance)
+                }
                 instance
             }
         }

@@ -58,7 +58,8 @@ class CampusMapFragment : Fragment() {
             viewLifecycleOwner.lifecycleScope.launch {
                 val nextId = try {
                     val repo = AppProviders.gameRepository
-                    val completed = repo.observePlayerProgress(gameId, "current_user").first()
+                    val uid = AppProviders.currentUserId()
+                    val completed = repo.observePlayerProgress(gameId, uid).first()
                         ?.completedCheckpointIds.orEmpty()
                     NextCheckpointResolver.next(repo.getGameCheckpoints(gameId), completed)?.id
                 } catch (e: CancellationException) {
@@ -113,9 +114,9 @@ class CampusMapFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             val (checkpoints, completed) = try {
                 val repo = AppProviders.gameRepository
-                // Same player id the scan screen uses until real user ids are wired in (M6).
+                val uid = AppProviders.currentUserId()
                 repo.getGameCheckpoints(gameId) to
-                    repo.observePlayerProgress(gameId, "current_user").first()?.completedCheckpointIds.orEmpty()
+                        repo.observePlayerProgress(gameId, uid).first()?.completedCheckpointIds.orEmpty()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Exception) {

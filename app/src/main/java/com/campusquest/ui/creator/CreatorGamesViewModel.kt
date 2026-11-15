@@ -41,8 +41,7 @@ class CreatorGamesViewModel(
         _state.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
             try {
-                // TODO: replace with getCreatorGames(creatorId) once the team adds it
-                val mine = repository.getAvailableGames().filter { it.creatorId == creatorId }
+                val mine = repository.getCreatorGames(creatorId)
                 _state.update { it.copy(games = mine, isLoading = false) }
             } catch (e: CancellationException) {
                 throw e
