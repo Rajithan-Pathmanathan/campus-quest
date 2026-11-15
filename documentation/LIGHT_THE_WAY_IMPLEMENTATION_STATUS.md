@@ -9,6 +9,7 @@ Branch: `feature/light-the-way-game`. Local only. Based on main `0d3b0da`, inclu
 - New game creation preserves existing games and authenticated ownership.
 - Unique checkpoint-specific QR card and case-insensitive printed backup code; complete printable PNG export through Android's document picker.
 - Device preflight, proximity functional check and selected touch/slide alternatives persisted per account/game.
+- Allow location handles runtime permission separately from the device location switch. It offers Android's location-settings resolution dialog, falls back to system settings when needed, and explains app-settings recovery after blocked permission. Access is rechecked on return; the walking screen has the same recovery button.
 - GPS-gated, sequential three-chapter flow with stable arrival, an exit margin, stale-fix rejection and explicit waiting/recovery text.
 - Tilt key maze with shared drag-control collisions and wall-tunnelling protection; calibration/restart controls.
 - CameraX QR scanning using bundled ML Kit, in-app camera-owned torch controls, actual torch-state feedback and printed-code fallback.

@@ -53,6 +53,7 @@ class StoryGameFragment : Fragment() {
     private val arrivalHold=StoryArrival()
     private val alignHold=ContinuousHold(2000)
     private val coverHold=ContinuousHold(1000)
+    private val locationAccess = LocationAccess(this, { refreshLocation() }, { status?.text=it })
     private val permissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshLocation()
         if(stage=="card" && cameraGranted()) openCamera()
@@ -138,7 +139,7 @@ class StoryGameFragment : Fragment() {
             live=StoryUi.text(b,"")
             StoryUi.button(b,"Use touch controls for the key") {session=session?.copy(motionFallback=true);saveSession();status?.text="Key puzzle will use touch controls."}
             StoryUi.button(b,"Use slide control for the cover") {session=session?.copy(coverFallback=true);saveSession();status?.text="Lamp cover will use a slide control."}
-            StoryUi.button(b,"Allow location") {permissions.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION,Manifest.permission.ACCESS_COARSE_LOCATION))}
+            StoryUi.button(b,"Allow location") {locationAccess.request()}
             StoryUi.button(b,"Start / resume the walk") {
                 if(sensors?.sawFar!=true || sensors?.sawNear!=true)session=session?.copy(coverFallback=true)
                 saveSession();switch(if(index()<0)"ending" else "walk")
@@ -152,6 +153,7 @@ class StoryGameFragment : Fragment() {
             return
         }
         val cp=cp() ?: run {stage="ending";draw();return}
+        StoryUi.button(b,"Allow location") {locationAccess.request()}
         StoryUi.text(b,cp.name,23f)
         StoryUi.text(b,"Inventory: ${if(found.isEmpty())"No items yet" else if(found.size==1)"Key found" else "Key and glass cover found"}",14f)
         live=StoryUi.text(b,"")
@@ -325,10 +327,3 @@ class StoryGameFragment : Fragment() {
         }
     }
 }
-
-
-
-
-
-
-
