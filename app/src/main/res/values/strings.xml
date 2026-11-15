@@ -49,4 +49,6 @@
     <string name="map_no_remaining">No remaining checkpoints</string>
     <string name="map_load_failed">Unable to load checkpoints</string>
     <string name="map_you">You</string>
+    <string name="checkpoint_map_picker_hint">Type the latitude and longitude, or tap the map to place the checkpoint (drag the pin to adjust).</string>
+    <string name="checkpoint_map_picker_description">Map for choosing the checkpoint location</string>
 </resources>

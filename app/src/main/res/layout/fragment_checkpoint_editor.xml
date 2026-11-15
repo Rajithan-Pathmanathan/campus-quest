@@ -79,6 +79,20 @@
                 </com.google.android.material.textfield.TextInputLayout>
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_map_picker_hint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_s"
+                android:text="@string/checkpoint_map_picker_hint" />
+
+            <org.osmdroid.views.MapView
+                android:id="@+id/map_picker"
+                android:layout_width="match_parent"
+                android:layout_height="240dp"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:contentDescription="@string/checkpoint_map_picker_description" />
+
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_radius"
                 android:layout_width="match_parent"
