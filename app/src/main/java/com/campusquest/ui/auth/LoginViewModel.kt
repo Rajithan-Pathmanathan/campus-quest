@@ -10,6 +10,8 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class LoginViewModel(
@@ -21,6 +23,14 @@ class LoginViewModel(
 
     private val _isRegisterMode = MutableStateFlow(false)
     val isRegisterMode: StateFlow<Boolean> = _isRegisterMode.asStateFlow()
+
+    init {
+        // Firebase may deliver its persisted session after this ViewModel is created.
+        viewModelScope.launch {
+            val user = authRepository.currentUserState.filterNotNull().first()
+            _uiState.value = UiState.Success(user)
+        }
+    }
 
     fun toggleMode() {
         if (_uiState.value is UiState.Loading) return
@@ -69,3 +79,4 @@ class LoginViewModel(
         }
     }
 }
+

@@ -2,6 +2,11 @@ package com.campusquest
 
 import com.campusquest.ui.auth.LoginViewModel
 import com.campusquest.ui.common.UiState
+import com.campusquest.domain.model.AuthUser
+import com.campusquest.domain.repository.AuthRepository
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -107,4 +112,41 @@ class LoginViewModelTest {
         assertTrue(state is UiState.Success)
         assertTrue((state as UiState.Success).data.isAnonymous)
     }
-}
+    @Test
+    fun `restored email session skips login without a sign-in request`() {
+        val user = AuthUser("saved-user", "Explorer", "user@test.com")
+        val session = MutableStateFlow<AuthUser?>(user)
+        val repo = mockk<AuthRepository>()
+        every { repo.currentUserState } returns session
+
+        assertEquals(UiState.Success(user), LoginViewModel(repo).uiState.value)
+    }
+
+    @Test
+    fun `session restored after startup skips login`() {
+        val session = MutableStateFlow<AuthUser?>(null)
+        val repo = mockk<AuthRepository>()
+        every { repo.currentUserState } returns session
+        val vm = LoginViewModel(repo)
+        assertEquals(UiState.Idle, vm.uiState.value)
+
+        val user = AuthUser("saved-user", "Explorer", "user@test.com")
+        session.value = user
+
+        assertEquals(UiState.Success(user), vm.uiState.value)
+    }
+
+    @Test
+    fun `restored anonymous session skips login`() {
+        val user = AuthUser("saved-guest", null, null, isAnonymous = true)
+        val repo = mockk<AuthRepository>()
+        every { repo.currentUserState } returns MutableStateFlow(user)
+
+        assertEquals(UiState.Success(user), LoginViewModel(repo).uiState.value)
+    }
+
+    @Test
+    fun `signed-out startup still asks for login`() {
+        assertEquals(UiState.Idle, LoginViewModel(M1FakeAuthRepository()).uiState.value)
+    }}
+
