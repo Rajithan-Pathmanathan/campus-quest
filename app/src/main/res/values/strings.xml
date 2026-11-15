@@ -51,4 +51,10 @@
     <string name="map_you">You</string>
     <string name="checkpoint_map_picker_hint">Type the latitude and longitude, or tap the map to place the checkpoint (drag the pin to adjust).</string>
     <string name="checkpoint_map_picker_description">Map for choosing the checkpoint location</string>
+    <string name="geofence_alert_title">Something stirs nearby…</string>
+    <string name="geofence_alert_body">You\'re close to %1$s. Open Campus Quest and follow the warmth.</string>
+    <string name="geofence_permission_title">Feel the call even when the app is closed</string>
+    <string name="geofence_permission_message">Allow location “All the time” and Campus Quest will alert you when you get close to the next place, even with the app closed. You can still play without it.</string>
+    <string name="geofence_permission_allow">Allow</string>
+    <string name="geofence_permission_not_now">Not now</string>
 </resources>

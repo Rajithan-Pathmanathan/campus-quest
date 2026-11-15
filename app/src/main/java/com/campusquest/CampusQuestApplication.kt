@@ -18,6 +18,11 @@ import com.campusquest.domain.repository.GameRepository
 import com.campusquest.domain.repository.LocationRepository
 import com.campusquest.domain.repository.SensorRepository
 import com.google.firebase.auth.FirebaseAuth
+import com.campusquest.device.location.geofence.GeofenceManagerHelper
+import com.campusquest.device.location.geofence.QuestGeofenceCoordinator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 
 class CampusQuestApplication : Application() {
 
@@ -49,6 +54,16 @@ class CampusQuestApplication : Application() {
             syncQueueDao = database.syncQueueDao(),
             authRepository = authRepository,
             inTransaction = { block -> database.withTransaction { block() } }
+        )
+    }
+
+    // Member 3: real geofence around the player's next checkpoint (see QuestGeofenceCoordinator).
+    val questGeofences: QuestGeofenceCoordinator by lazy {
+        QuestGeofenceCoordinator(
+            geofences = GeofenceManagerHelper(this),
+            repository = gameRepository,
+            userId = { authRepository?.getCurrentUserId()?.takeIf { it.isNotBlank() } ?: GameRepositoryImpl.DEFAULT_LOCAL_USER_ID },
+            scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
         )
     }
 

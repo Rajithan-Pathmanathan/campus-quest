@@ -135,7 +135,7 @@ GPS is never re-normalized away: otherwise a device without a fix could discover
 
 ### 3.4 Permissions & geofencing
 - Foreground location (FINE/COARSE) is requested at runtime on the Scan screen; `LocationManagerHelper.startLocationUpdates` refuses to start without it.
-- Background location is **not** requested in the MVP. On Android 10+ `GeofencingClient` therefore cannot register geofences; geofence ENTER is foreground-only and `ScopedGeofenceFallback` (distance-based) is the source of truth for scan eligibility. `GeofenceBroadcastReceiver` events are in-memory and are lost if the process is not running.
+- Background location is requested once, when a quest starts (see section 6); without it the in-app zones still work and no geofence alert is shown.
 - `LocationState` / `LocationPermissionState` live in `domain.model` and contain no Android types.
 
 ---
@@ -204,13 +204,19 @@ The map uses **OpenStreetMap tiles through osmdroid 6.1.20** instead of the Goog
 - **Fair use:** OpenStreetMap's public tile servers are free for light use like this project. A large public release should use a commercial OSM tile provider or self-hosted tiles.
 - **Still to build on the map (M3):** live zone/warmth/heartbeat cues from section 4 and the "relic appears" pop-up; the top card still shows fixed placeholder text.
 
-## 6. Removed: geofencing (2026-11-15)
+## 6. Geofencing: how it is used (2026-11-15)
 
-The geofencing layer was never wired into the app, and the scan screen's **zones** (section 4, `nextQuestZone`) already decide when a relic appears. To keep the MVP simple it has been **removed**:
+Real Android (Play Services) geofencing is **wired into the game**. It complements the in-app zones (section 4): the zones guide the player while the app is open, and the geofence alerts them when they get close **even when the app is closed**.
 
-- Deleted: `device/location/geofence/*` (`GeofenceManagerHelper`, `GeofenceBroadcastReceiver`, `ScopedGeofenceFallback`, `BoundaryHysteresis`, `GeofenceKey`), `MapGeofenceDataProvider`, and the models `GeofenceState`, `GeofenceVisualState`, `GeofenceEvents`, `CheckpointEligibility`, plus the unused `FusionState` and `SensorReading`.
-- The manifest no longer declares `ACCESS_BACKGROUND_LOCATION` or the geofence receiver.
-- **The geofence parts of sections 1–3 above (the `CheckpointEligibility` contract, map geofence overlays, geofence keys and the "background location" policy) no longer apply.** Location is foreground-only through `LocationRepository`.
+**Flow**
+1. The player taps **Start quest** on the quest details screen (`GameDetailFragment`).
+2. `GeofencePermissionFlow` asks for location (+ notifications on Android 13+). Then, **once**, after a short explanation, it asks for background location ("Allow all the time"), which Android 10+ requires before geofences can be registered. Declining is fine: the game still works through the zones.
+3. `CampusQuestApplication.questGeofences` (`QuestGeofenceCoordinator`) registers **one geofence around the next unfound checkpoint**, widened to the story's middle ring (`QuestZones.MIDDLE_RING_M` = 100 m, because geofences are unreliable below ~100 m). It observes the player's progress: after each discovery the fence moves to the next place, and it is removed when the quest is complete.
+4. When the player enters the fence, `GeofenceBroadcastReceiver` shows a notification on the `campus_quest_geofences` channel ("Something stirs nearby… You're close to *place*."). Tapping it opens that quest (`MainActivity.EXTRA_GAME_ID`). No alert is shown for a place already found.
+
+**Files:** `device/location/geofence/GeofenceManagerHelper.kt` (register/remove), `GeofenceKey.kt` (`gameId#checkpointId` ids), `GeofenceBroadcastReceiver.kt` (events + alert), `QuestGeofenceCoordinator.kt` (which fence, when), `ui/quest/GeofencePermissionFlow.kt` (permissions). Test: `QuestGeofenceTest`.
+
+**Testing on a phone:** start a quest, allow "All the time", close the app and walk (or use a mock-location app) to within ~100 m of the next place. Geofence alerts can take a minute or two to arrive; that is normal Android behaviour.
 
 ## 7. Creator map picker (2026-11-15)
 
