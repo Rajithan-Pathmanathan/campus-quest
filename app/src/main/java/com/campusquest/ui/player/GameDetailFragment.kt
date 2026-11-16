@@ -47,16 +47,6 @@ class GameDetailFragment : Fragment() {
             // M3: permissions for the quest geofence, then a real geofence around the next place.
             geofencePermissions.run { startQuest() }
         }
-        viewLifecycleOwner.lifecycleScope.launch {
-            val app = com.campusquest.CampusQuestApplication.instance
-            if(app.database.storyDao().config(gameId) != null && app.database.gameDao().getGameById(gameId)?.creatorId == com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId()) {
-                val button = com.google.android.material.button.MaterialButton(requireContext()).apply {
-                    text = "View / save repair card"
-                    setOnClickListener {findNavController().navigate(R.id.storySetupFragment,Bundle().apply {putString("gameId",gameId)})}
-                }
-                (binding.btnJoin.parent as android.view.ViewGroup).addView(button)
-            }
-        }
         binding.btnDeleteQuest.setOnClickListener {
             com.campusquest.ui.creator.QuestDeletion.confirmAndDelete(this, gameId) { findNavController().navigateUp() }
         }

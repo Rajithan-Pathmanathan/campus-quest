@@ -122,6 +122,7 @@
     <string name="creator_dashboard_create_light_the_way">Create Light the Way story</string>
     <string name="creator_dashboard_your_authored_quests_and">Your Authored Quests &amp; Drafts</string>
     <string name="creator_dashboard_switch_to_player_mode">Switch to Player Mode</string>
+    <string name="creator_repair_card">Repair card</string>
     <string name="game_detail_retry">Retry</string>
     <string name="game_detail_join_quest">Join Quest</string>
     <string name="game_detail_start_quest_navigation">Start Quest Navigation</string>
