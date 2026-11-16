@@ -10,6 +10,7 @@ import java.util.UUID
 @Entity(tableName = "story_config")
 data class StoryConfigEntity(@PrimaryKey val gameId: String, val cardId: String, val backupCode: String, val targetBearing: Float)
 
+/** motionFallback/coverFallback belong to the retired lamp tasks; kept so the Room schema (v2) needs no migration. */
 @Entity(tableName = "story_session", primaryKeys = ["gameId", "userId"])
 data class StorySessionEntity(val gameId: String, val userId: String, val aligned: Boolean = false,
     val motionFallback: Boolean = false, val coverFallback: Boolean = false)
@@ -24,7 +25,22 @@ interface StoryDao {
     @Query("DELETE FROM story_session WHERE gameId = :gameId") suspend fun deleteSessions(gameId: String)
 }
 
+/** The supported story is "The Golden Tree" (object name kept for compatibility with stored records). */
 object LightTheWay {
+    const val STOPS = 3
+    /** Records created before the Golden Tree rewrite; shown with the current copy, never rewritten. */
+    const val LEGACY_TITLE = "Light the Way"
+
+    /** A new printable-card configuration (QR token + backup code) for a quest. */
+    fun newConfig(gameId: String): StoryConfigEntity {
+        val token = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(java.util.Locale.ROOT)
+        return StoryConfigEntity(gameId, token, token, 0f)
+    }
+
+    /** Playable = has its card configuration and exactly three stops. */
+    suspend fun isPlayable(db: AppDatabase, gameId: String): Boolean =
+        db.storyDao().config(gameId) != null && db.checkpointDao().getCheckpointsForGame(gameId).size == STOPS
+
     val names = listOf("Find the Key", "Find the Instruction Card", "Bring the Golden Water")
     val clues = listOf("Follow the arrow to the first stop. Open the key box on your screen when you arrive.",
         "Follow the arrow to the second stop. Look for the keeper's printed QR card there.",

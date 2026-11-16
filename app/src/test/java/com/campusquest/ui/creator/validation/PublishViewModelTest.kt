@@ -28,7 +28,12 @@ class PublishViewModelTest {
         repo.games += Game(id = "G1", title = "Trail", description = "A walk", creatorId = "me", creatorName = "Me")
     }
 
+    /** A Golden Tree quest has three stops; [clue] is used for stop 1. */
     private fun addCheckpoint(clue: String = "clue") {
+        for (order in 2..3) repo.checkpoints += Checkpoint(
+            id = "c$order", gameId = "G1", name = "Stop $order", lat = 6.9, lng = 79.8,
+            lightSignature = LightSignature(0f, 100f), clue = "clue", lore = "lore", order = order
+        )
         repo.checkpoints += Checkpoint(
             id = "c1", gameId = "G1", name = "Library", lat = 6.9, lng = 79.8,
             lightSignature = LightSignature(0f, 100f), clue = clue, lore = "lore", order = 1

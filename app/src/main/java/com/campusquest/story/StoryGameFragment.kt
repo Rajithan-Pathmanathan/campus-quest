@@ -151,6 +151,8 @@ class StoryGameFragment : Fragment() {
         if(stage=="walk") {
             val c=TrailCompassView(requireContext());c.setBackgroundResource(R.drawable.bg_expedition);compass=c;b.addView(c,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),300)));if(isResumed)c.start()
             StoryUi.text(b,LightTheWay.clues[index()])
+            // The creator's description of the real place (stop 2: where the printed card is).
+            cp()?.clue?.trim()?.takeIf { it.isNotEmpty() && it !in LightTheWay.clues }?.let { StoryUi.text(b,"Where: $it") }
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
                 if(!arrived){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}

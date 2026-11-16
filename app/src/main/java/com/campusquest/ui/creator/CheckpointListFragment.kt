@@ -66,6 +66,10 @@ class CheckpointListFragment : Fragment() {
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         // Only the quest's creator ever reaches this screen (Creator Studio lists their own quests),
         // and the repository checks again before deleting.
+        binding.toolbar.menu.add(R.string.quest_instruction_card).setOnMenuItemClickListener {
+            findNavController().navigate(R.id.storySetupFragment, Bundle().apply { putString("gameId", gameId) })
+            true
+        }
         binding.toolbar.menu.add(R.string.quest_delete).setOnMenuItemClickListener {
             QuestDeletion.confirmAndDelete(this, gameId) { findNavController().navigateUp() }
             true
@@ -78,6 +82,8 @@ class CheckpointListFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { s ->
                     adapter.submitList(s.checkpoints)
+                    // The Golden Tree has exactly three stops.
+                    binding.btnAddCheckpoint.isEnabled = s.checkpoints.size < com.campusquest.ui.creator.validation.CreatorLimits.MAX_CHECKPOINTS
                     binding.tvEmpty.visibility =
                         if (s.checkpoints.isEmpty() && !s.isLoading) View.VISIBLE else View.GONE
                     s.error?.let {

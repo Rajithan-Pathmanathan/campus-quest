@@ -140,23 +140,6 @@
         <argument
             android:name="gameId"
             app:argType="string" />
-        <action
-            android:id="@+id/action_campusMap_to_questScan"
-            app:destination="@id/questScanFragment" />
-    </fragment>
-
-    <!-- Live Quest & Scan Gameplay (M4) -->
-    <fragment
-        android:id="@+id/questScanFragment"
-        android:name="com.campusquest.story.StoryGameFragment"
-        android:label="The Golden Tree"
-        tools:layout="@layout/fragment_quest_scan">
-        <argument
-            android:name="gameId"
-            app:argType="string" />
-        <argument
-            android:name="checkpointId"
-            app:argType="string" />
     </fragment>
 
     <!-- Leaderboard (M1 + M5) -->
@@ -170,7 +153,7 @@
             app:argType="string" />
     </fragment>
 
-    <fragment android:id="@+id/storyGameFragment" android:name="com.campusquest.story.StoryGameFragment" android:label="Light the Way">
+    <fragment android:id="@+id/storyGameFragment" android:name="com.campusquest.story.StoryGameFragment" android:label="The Golden Tree">
         <argument android:name="gameId" app:argType="string" />
     </fragment>
     <fragment android:id="@+id/storySetupFragment" android:name="com.campusquest.story.StorySetupFragment" android:label="Story setup">

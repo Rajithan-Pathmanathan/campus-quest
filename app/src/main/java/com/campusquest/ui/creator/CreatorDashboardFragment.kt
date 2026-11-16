@@ -32,12 +32,8 @@ class CreatorDashboardFragment : Fragment() {
 
     private val adapter = GameCardAdapter { game ->
         val bundle = Bundle().apply { putString("gameId", game.id) }
-        // Drafts open the quest editor (title, checkpoints, Publish); published quests open their checkpoints.
-        if (game.status == com.campusquest.domain.model.GameStatus.DRAFT) {
-            findNavController().navigate(R.id.action_creator_to_createGame, bundle)
-        } else {
-            findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
-        }
+        // Every quest opens the editor: stops, publish/update, and conversion of old quests.
+        findNavController().navigate(R.id.action_creator_to_createGame, bundle)
     }
 
     override fun onCreateView(
@@ -55,7 +51,7 @@ class CreatorDashboardFragment : Fragment() {
         binding.rvAuthoredGames.layoutManager = LinearLayoutManager(requireContext())
         binding.rvAuthoredGames.adapter = adapter
 
-        binding.btnCreateStory.setOnClickListener {findNavController().navigate(R.id.storySetupFragment)}
+        binding.btnCreateStory.visibility = View.GONE // single creator route: Create New Quest
         binding.btnCreateNewQuest.setOnClickListener {
             findNavController().navigate(R.id.action_creator_to_createGame)
         }

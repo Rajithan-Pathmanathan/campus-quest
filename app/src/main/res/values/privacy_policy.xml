@@ -15,13 +15,13 @@ Campus Quest is a location-based campus exploration game built by a student team
 These are handled by Firebase Authentication so you can sign in and keep your progress. Your display name appears on quest leaderboards.<br><br>
 
 <b>2. Location</b><br>
-• <b>While you play or create quests</b>, the app uses your precise location to show you on the map, measure your distance to the next checkpoint, decide when a relic appears and help creators place checkpoints.<br>
+• <b>While you play or create quests</b>, the app uses your precise location to show you on the map, measure your distance to the next checkpoint, confirm when you have arrived at a stop and help creators place stops.<br>
 • Your location is processed <b>on your phone</b>. It is not uploaded and no location history is kept.<br>
 • <b>Background location (optional):</b> if you choose “Allow all the time”, Android checks whether you are near the next checkpoint so the app can alert you while it is closed. This also runs on your phone.<br>
 • <b>Exception:</b> the coordinates of checkpoints that <i>you place</i> in a quest you publish are uploaded, because other players need them to play.<br><br>
 
 <b>3. Phone sensors and camera</b><br>
-• The light, motion, proximity and compass sensors are read only during a quest and never leave your phone.<br>
+• The motion (tilt), compass and light sensors are read only during a quest and never leave your phone. The light level is only used to suggest turning on the flashlight.<br>
 • The camera is used only in The Golden Tree to scan the instruction card. Images are processed on the phone and are not stored or uploaded.<br><br>
 
 <b>4. Game data stored in the cloud</b><br>

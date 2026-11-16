@@ -77,6 +77,17 @@ class CheckpointListViewModel(
 
     fun delete(checkpointId: String) {
         if (_state.value.isBusy) return
+        // Players may already be part-way through a published quest: keep its three stops.
+        viewModelScope.launch {
+            val published = repository.getGameDetails(gameId)?.status == com.campusquest.domain.model.GameStatus.PUBLISHED
+            // Old quests with more than three stops may still be trimmed down to three.
+            if (published && repository.getGameCheckpoints(gameId).size <= com.campusquest.ui.creator.validation.CreatorLimits.MAX_CHECKPOINTS) {
+                _state.update { it.copy(error = "Published quests keep their three stops. Edit a stop's place instead.") }
+            } else deleteNow(checkpointId)
+        }
+    }
+
+    private fun deleteNow(checkpointId: String) {
         _state.update { it.copy(isBusy = true, error = null) }
         viewModelScope.launch {
             try {

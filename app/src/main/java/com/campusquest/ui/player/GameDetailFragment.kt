@@ -38,6 +38,10 @@ class GameDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         viewModel.load(gameId)
+        viewLifecycleOwner.lifecycleScope.launch {
+            playable = com.campusquest.story.LightTheWay.isPlayable(com.campusquest.CampusQuestApplication.instance.database, gameId)
+            viewModel.uiState.value.let { render(it) }
+        }
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         binding.btnRetry.setOnClickListener { viewModel.load(gameId, force = true) }
@@ -84,6 +88,9 @@ class GameDetailFragment : Fragment() {
         }
     }
 
+    /** False for old-format quests (no card or not three stops); checked once per screen. */
+    private var playable = true
+
     private fun render(state: GameDetailUiState) {
         binding.progressBar.isVisible = state.isLoading
         binding.layoutError.isVisible = !state.isLoading && state.error != null
@@ -115,13 +122,19 @@ class GameDetailFragment : Fragment() {
                     else -> R.string.join_quest
                 }
             )
-            binding.btnStartQuest.isVisible = joined
+            binding.btnStartQuest.isVisible = joined && playable
             // Only the person who created the quest (guest or email account) sees "Delete quest".
             binding.btnDeleteQuest.isVisible = com.campusquest.ui.creator.QuestDeletion.isCreator(game.creatorId)
         }
 
         binding.tvJoinError.isVisible = state.joinError != null
         binding.tvJoinError.text = state.joinError
+        // Old-format quests (no card or not three stops) can't be joined or started.
+        if (!playable && state.game != null) {
+            binding.btnJoin.isVisible = false
+            binding.tvJoinError.isVisible = true
+            binding.tvJoinError.setText(R.string.quest_needs_update)
+        }
     }
 
     override fun onDestroyView() {

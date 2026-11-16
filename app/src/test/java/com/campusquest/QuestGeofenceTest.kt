@@ -3,7 +3,7 @@ package com.campusquest
 import com.campusquest.device.location.geofence.QuestGeofenceCoordinator
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.LightSignature
-import com.campusquest.domain.quest.QuestZones
+import com.campusquest.device.location.geofence.QuestGeofenceCoordinator.Companion.MIN_FENCE_RADIUS_M
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -19,7 +19,7 @@ class QuestGeofenceTest {
     fun fenceIsTheNextUnfoundChapter_widenedToTheMiddleRing() {
         val fence = QuestGeofenceCoordinator.fenceFor(chapters, setOf("A"))!!
         assertEquals("B", fence.id)
-        assertEquals(QuestZones.MIDDLE_RING_M, fence.radiusM)
+        assertEquals(MIN_FENCE_RADIUS_M, fence.radiusM)
     }
 
     @Test
