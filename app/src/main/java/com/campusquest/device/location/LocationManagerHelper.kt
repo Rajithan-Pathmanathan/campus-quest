@@ -111,12 +111,21 @@ class LocationManagerHelper(
             )
 
             isCurrentlyListening = true
-            _locationState.value = _locationState.value.copy(
+            // Start from a clean slate: a position from an earlier session must never look current.
+            smoothingFilter.reset()
+            _locationState.value = LocationState(
                 permissionState = LocationPermissionState.Granted,
                 isUpdating = true,
-                servicesEnabled = true,
-                error = null
+                servicesEnabled = true
             )
+            // Ask Android for a one-off current fix too: continuous high-accuracy updates can take
+            // a long time indoors, and screens (e.g. the checkpoint editor) need a position quickly.
+            fusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
+                .addOnSuccessListener { location ->
+                    if (location != null && isCurrentlyListening && _locationState.value.smoothedLatitude == null) {
+                        locationCallback.onLocationResult(LocationResult.create(listOf(location)))
+                    }
+                }
         } catch (e: SecurityException) {
             _locationState.value = _locationState.value.copy(
                 permissionState = LocationPermissionState.Denied,
