@@ -86,6 +86,14 @@
                 android:layout_marginTop="@dimen/spacing_s"
                 android:text="@string/checkpoint_map_picker_hint" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_use_my_location"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:text="@string/checkpoint_use_my_location" />
+
             <org.osmdroid.views.MapView
                 android:id="@+id/map_picker"
                 android:layout_width="match_parent"

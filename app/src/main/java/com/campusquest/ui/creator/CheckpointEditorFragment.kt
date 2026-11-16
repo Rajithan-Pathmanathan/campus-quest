@@ -16,6 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.campusquest.CampusQuestApplication
+import com.campusquest.R
 import com.campusquest.databinding.FragmentCheckpointEditorBinding
 import com.campusquest.domain.model.MotionType
 import com.campusquest.ui.creator.validation.CreatorLimits
@@ -29,12 +30,30 @@ import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import java.io.File
 import java.util.Locale
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import com.campusquest.domain.model.LocationPermissionState
+import com.campusquest.domain.model.LocationState
+import com.campusquest.ui.common.AppPermission
+import com.campusquest.ui.common.PermissionNotice
 
 class CheckpointEditorFragment : Fragment() {
 
     private var _binding: FragmentCheckpointEditorBinding? = null
     private val binding get() = _binding!!
     private var pin: Marker? = null
+    private var youMarker: Marker? = null
+    /** The map starts on the creator's real position (once), unless the checkpoint already has one. */
+    private var centeredOnUser = false
+    private var lastUserLocation: GeoPoint? = null
+    private val locationRepository get() = CampusQuestApplication.instance.locationRepository
+
+    private val requestLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+        startLocation()
+        if (!hasLocationPermission()) PermissionNotice.show(this, AppPermission.LOCATION)
+    }
 
     private val viewModel: CheckpointEditorViewModel by viewModels {
         CheckpointEditorViewModelFactory(
@@ -86,6 +105,16 @@ class CheckpointEditorFragment : Fragment() {
 
         binding.btnSaveCheckpoint.setOnClickListener { viewModel.save() }
         setupMapPicker()
+        binding.btnUseMyLocation.setOnClickListener {
+            val here = lastUserLocation
+            if (here != null) setLocation(here)
+            else Toast.makeText(requireContext(), R.string.checkpoint_waiting_location, Toast.LENGTH_SHORT).show()
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                locationRepository.locationState.collect { showUser(it) }
+            }
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -177,6 +206,48 @@ class CheckpointEditorFragment : Fragment() {
         map.invalidate()
     }
 
+    override fun onStart() {
+        super.onStart()
+        if (hasLocationPermission()) startLocation()
+        else requestLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+    }
+
+    override fun onStop() {
+        locationRepository.stopTracking()
+        super.onStop()
+    }
+
+    private fun hasLocationPermission() = listOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        .any { ContextCompat.checkSelfPermission(requireContext(), it) == PackageManager.PERMISSION_GRANTED }
+
+    private fun startLocation() {
+        val granted = hasLocationPermission()
+        locationRepository.updatePermissionState(if (granted) LocationPermissionState.Granted else LocationPermissionState.Denied)
+        if (granted) locationRepository.startTracking()
+    }
+
+    /** "You are here" marker; the first fix also moves the map to the creator's area (if no pin is set yet). */
+    private fun showUser(location: LocationState) {
+        val map = _binding?.mapPicker ?: return
+        val lat = location.smoothedLatitude ?: return
+        val lng = location.smoothedLongitude ?: return
+        val here = GeoPoint(lat, lng)
+        lastUserLocation = here
+        val marker = youMarker ?: Marker(map).also {
+            it.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            it.title = getString(R.string.map_you)
+            it.icon = ContextCompat.getDrawable(requireContext(), android.R.drawable.presence_online)
+            map.overlays.add(it)
+            youMarker = it
+        }
+        marker.position = here
+        if (!centeredOnUser) {
+            centeredOnUser = true
+            if (pin == null) map.controller.animateTo(here)
+        }
+        map.invalidate()
+    }
+
     override fun onResume() {
         super.onResume()
         _binding?.mapPicker?.onResume()
@@ -190,11 +261,12 @@ class CheckpointEditorFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         pin = null
+        youMarker = null
         _binding = null
     }
 
     private companion object {
-        /** Default view before a location is chosen (central campus, near the Buddha statue). */
+        /** Shown only until the creator's own location arrives (or if location is off). */
         val CAMPUS_CENTER = GeoPoint(6.9743, 79.9160)
     }
 }
