@@ -57,6 +57,7 @@ class CheckpointEditorViewModelTest {
         assertEquals(1, repo.checkpoints.size)
         assertEquals("GAME-A", repo.checkpoints[0].gameId)
         assertEquals(20f, repo.checkpoints[0].radiusM, 0.001f)
+        assertEquals("TILT_MAZE", repo.checkpoints[0].motionType)
         assertTrue(vm.state.value.saved)
     }
 

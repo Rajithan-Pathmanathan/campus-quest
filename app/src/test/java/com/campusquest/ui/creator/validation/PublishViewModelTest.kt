@@ -1,6 +1,7 @@
 package com.campusquest.ui.creator.validation
 
 import com.campusquest.domain.model.Checkpoint
+import com.campusquest.domain.model.CheckpointActivity
 import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.LightSignature
 import com.campusquest.ui.creator.PublishUiState
@@ -29,10 +30,13 @@ class PublishViewModelTest {
     }
 
     private fun addCheckpoint(clue: String = "clue") {
-        repo.checkpoints += Checkpoint(
-            id = "c1", gameId = "G1", name = "Library", lat = 6.9, lng = 79.8,
-            lightSignature = LightSignature(0f, 100f), clue = clue, lore = "lore", order = 1
-        )
+        repo.checkpoints += (1..3).map { order ->
+            Checkpoint(
+                id = "c$order", gameId = "G1", name = "Checkpoint $order", lat = 6.9, lng = 79.8,
+                lightSignature = LightSignature(0f, 100f), clue = if (order == 1) clue else "clue",
+                lore = "lore", order = order, motionType = CheckpointActivity.forOrder(order).name
+            )
+        }
     }
 
     @Test fun gameWithNoCheckpoints_isInvalid_andNotPublished() {

@@ -18,7 +18,7 @@ import androidx.navigation.fragment.findNavController
 import com.campusquest.CampusQuestApplication
 import com.campusquest.R
 import com.campusquest.databinding.FragmentCheckpointEditorBinding
-import com.campusquest.domain.model.MotionType
+import com.campusquest.domain.model.CheckpointActivity
 import com.campusquest.ui.creator.validation.CreatorLimits
 import kotlinx.coroutines.launch
 import org.osmdroid.config.Configuration
@@ -96,8 +96,8 @@ class CheckpointEditorFragment : Fragment() {
         binding.etLore.doAfterTextChanged { t -> viewModel.update { it.copy(lore = t?.toString().orEmpty()) } }
         binding.etOrder.doAfterTextChanged { t -> viewModel.update { it.copy(order = t?.toString().orEmpty()) } }
 
-        binding.actMotion.setupDropdown(MotionType.values().map { it.name }) { pick ->
-            viewModel.update { it.copy(motionType = pick) }
+        binding.actMotion.setupDropdown(CheckpointActivity.entries.map { it.label }) { pick ->
+            viewModel.update { it.copy(motionType = CheckpointActivity.fromLabel(pick).name) }
         }
         binding.actRarity.setupDropdown(CreatorLimits.RARITIES) { pick ->
             viewModel.update { it.copy(rarity = pick) }
@@ -129,7 +129,7 @@ class CheckpointEditorFragment : Fragment() {
                     binding.etClue.setIfDifferent(s.clue)
                     binding.etLore.setIfDifferent(s.lore)
                     binding.etOrder.setIfDifferent(s.order)
-                    binding.actMotion.setText(s.motionType, false)
+                    binding.actMotion.setText(CheckpointActivity.fromStored(s.motionType,s.order.toIntOrNull() ?: 1).label, false)
                     binding.actRarity.setText(s.rarity, false)
 
                     binding.tilCpName.error = s.errors["name"]
@@ -139,6 +139,7 @@ class CheckpointEditorFragment : Fragment() {
                     binding.tilMinLux.error = s.errors["lux"]
                     binding.tilClue.error = s.errors["clue"]
                     binding.tilOrder.error = s.errors["order"]
+                    binding.tilMotion.error = s.errors["activity"]
                     binding.tilRarity.error = s.errors["rarity"]
 
                     binding.btnSaveCheckpoint.isEnabled = !s.isSaving

@@ -1,6 +1,7 @@
 package com.campusquest.ui.creator.validation
 
 import com.campusquest.domain.model.Checkpoint
+import com.campusquest.domain.model.CheckpointActivity
 import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.GameStatus
 
@@ -15,8 +16,8 @@ object PublishValidator {
         GameValidator.validateTitle(game.title)?.let { problems += it }
         GameValidator.validateDescription(game.description, forPublish = true)?.let { problems += it }
 
-        if (checkpoints.size < CreatorLimits.MIN_CHECKPOINTS_TO_PUBLISH) {
-            problems += "Add at least ${CreatorLimits.MIN_CHECKPOINTS_TO_PUBLISH} checkpoint(s)."
+        if (checkpoints.size != 3) {
+            problems += "This story needs exactly 3 checkpoints."
         }
 
         val sorted = checkpoints.sortedBy { it.order }
@@ -33,6 +34,10 @@ object PublishValidator {
             if (cp.lore.isBlank()) problems += "$label: Lore is required to publish"
             CheckpointValidator.validateRarity(cp.rarity)?.let { problems += "$label: $it" }
             if (cp.order < 1) problems += "$label: Order must be 1 or more"
+            val expected = CheckpointActivity.forOrder(index + 1)
+            if (CheckpointActivity.fromStored(cp.motionType, cp.order) != expected) {
+                problems += "$label: Choose ${expected.label} for chapter ${index + 1}"
+            }
         }
 
         val duplicateOrders = checkpoints.groupBy { it.order }.filter { it.value.size > 1 }.keys

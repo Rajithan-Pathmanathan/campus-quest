@@ -15,4 +15,10 @@ class CheckpointValidatorTest {
     @Test fun negativeLux_isRejected() = assertNotNull(CheckpointValidator.validateLux("-1", "100"))
 
     @Test fun latitudeOutOfRange_isRejected() = assertNotNull(CheckpointValidator.validateLatitude("95"))
+
+    @Test fun realCheckpointActivity_isAccepted() =
+        assertNull(CheckpointValidator.validateActivity("QR_SCAN"))
+
+    @Test fun oldMotionType_isRejectedForNewEdits() =
+        assertNotNull(CheckpointValidator.validateActivity("SWEEP"))
 }
