@@ -145,14 +145,15 @@ class StoryGameFragment : Fragment() {
             StoryUi.button(b,"View my results") {findNavController().navigate(R.id.leaderboardFragment,Bundle().apply {putString("gameId",gameId)})}
             return
         }
-        val cp=cp() ?: run {stage="ending";draw();return}
+        if(cp()==null){stage="ending";draw();return}
+        val chapter=index()
         StoryUi.button(b,"Allow location") {locationAccess.request()}
-        StoryUi.text(b,cp.name,23f)
+        StoryUi.text(b,"Chapter ${chapter+1} - ${LightTheWay.names[chapter]}",23f)
         StoryUi.text(b,"Inventory: ${if(found.isEmpty())"No items yet" else if(found.size==1)"Key found" else "Key and lamp oil found"}",14f)
         live=StoryUi.text(b,"")
         if(stage=="walk") {
             val c=TrailCompassView(requireContext());c.setBackgroundResource(R.drawable.bg_expedition);compass=c;b.addView(c,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),300)));if(isResumed)c.start()
-            StoryUi.text(b,cp.clue)
+            StoryUi.text(b,LightTheWay.clues[chapter])
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
                 if(!arrived){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}
