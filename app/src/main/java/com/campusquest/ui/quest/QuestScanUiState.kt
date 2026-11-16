@@ -8,6 +8,12 @@ import com.campusquest.domain.quest.EmberGlow
 import com.campusquest.domain.quest.QuestCues
 import com.campusquest.domain.quest.QuestZone
 
+/** How far along one physical signal is. Shown as a word and a colour, never a number. */
+enum class SignalLevel { WAITING, CLOSE, MATCHED }
+
+/** One of the three signal chips (GPS, light, motion) on the scan screen. */
+data class SignalChip(val status: String, val level: SignalLevel)
+
 data class ScanErrorUiState(
     val title: String,
     val message: String,
@@ -20,8 +26,14 @@ data class RevealContent(
     val clue: String,
     val lore: String,
     val rarity: String,
-    val isFinalCheckpoint: Boolean
-)
+    val isFinalCheckpoint: Boolean,
+    /** Points the repository awards for a first discovery. */
+    val points: Int = POINTS_PER_CHECKPOINT
+) {
+    companion object {
+        const val POINTS_PER_CHECKPOINT = 100
+    }
+}
 
 /**
  * Everything the scan screen draws. The player never sees raw numbers (no fusion %, GPS score or
@@ -44,6 +56,10 @@ data class QuestScanUiState(
     val trialHint: String? = null,
     val shieldHint: String? = null,
     val heartbeatIntervalMs: Long? = null,
+    val showSignals: Boolean = false,
+    val gps: SignalChip = SignalChip("Searching", SignalLevel.WAITING),
+    val light: SignalChip = SignalChip("Waiting", SignalLevel.WAITING),
+    val motion: SignalChip = SignalChip("Ready", SignalLevel.WAITING),
     val primaryAction: ScanAction = ScanAction.NONE,
     val permissionDenied: Boolean = false,
     val isRecordingDiscovery: Boolean = false,
@@ -55,7 +71,7 @@ data class QuestScanUiState(
 /** Turns state + M3 signals into story copy. Pure, so it is unit-testable. */
 object ScanNarrator {
 
-    const val SEARCHING_FOR_FIX = "Searching for your position… make sure location is switched on."
+    const val SEARCHING_FOR_FIX = "Finding your position… check that location is on."
     const val NEEDS_PERMISSION = "The Resonator needs your location to find the ember."
 
     fun unavailableError() = ScanErrorUiState(
@@ -82,6 +98,37 @@ object ScanNarrator {
         retryAvailable = true
     )
 
+    /** GPS, light and motion as short words (workplan 9-12). Raw values never reach the screen. */
+    fun signals(
+        state: QuestScanUiState,
+        checkpoint: Checkpoint,
+        distanceM: Float?,
+        sensor: SensorState?
+    ): Triple<SignalChip, SignalChip, SignalChip> {
+        val gps = when {
+            distanceM == null -> SignalChip("Searching", SignalLevel.WAITING)
+            state.zone == QuestZone.RELIC -> SignalChip("Locked", SignalLevel.MATCHED)
+            state.zone == QuestZone.FAR -> SignalChip("Far", SignalLevel.WAITING)
+            else -> SignalChip("Nearby", SignalLevel.CLOSE)
+        }
+        val lux = sensor?.currentLux
+        val light = when {
+            lux == null -> SignalChip("Waiting", SignalLevel.WAITING)
+            checkpoint.lightSignature.matches(lux) -> SignalChip("Match", SignalLevel.MATCHED)
+            checkpoint.lightSignature.score(lux) >= 0.4f -> SignalChip("Almost", SignalLevel.CLOSE)
+            else -> SignalChip("Off", SignalLevel.WAITING)
+        }
+        val trial = sensor?.trialStatus
+        val motionType = MotionType.fromString(checkpoint.motionType)
+        val started = trial != null && (trial.started || (motionType != MotionType.TILT && trial.remaining in 1..2))
+        val motion = when {
+            sensor?.motionDetected == true || trial?.completed == true -> SignalChip("Done", SignalLevel.MATCHED)
+            started -> SignalChip("In progress", SignalLevel.CLOSE)
+            else -> SignalChip("Ready", SignalLevel.WAITING)
+        }
+        return Triple(gps, light, motion)
+    }
+
     /** Fills in all story text for [state]. Distance is the player's distance to the checkpoint, if known. */
     fun hud(
         state: QuestScanUiState,
@@ -102,7 +149,7 @@ object ScanNarrator {
             ScanState.WAITING_FOR_LOCATION ->
                 if (state.permissionDenied) NEEDS_PERMISSION else SEARCHING_FOR_FIX
             ScanState.OUTSIDE_CHECKPOINT -> QuestCues.zoneLine(state.zone)
-            ScanState.READY_TO_SCAN -> "✨ The ember appears! Wake the Resonator when you're ready."
+            ScanState.READY_TO_SCAN -> "The ember appears. Wake the Resonator when you're ready."
             ScanState.SCANNING ->
                 fusion?.let { QuestCues.glow(it.progressPercent).label } ?: EmberGlow.COLD.label
             ScanState.WAITING_FOR_PROXIMITY -> "The signals are aligned! Almost there…"
@@ -111,7 +158,14 @@ object ScanNarrator {
             ScanState.ERROR -> state.error?.title ?: "Something went wrong"
         }
 
+        val (gps, light, motion) = signals(state, checkpoint, distanceM, sensor)
+        val showSignals = s != ScanState.LOADING && s != ScanState.UNAVAILABLE && s != ScanState.ERROR
+
         return state.copy(
+            showSignals = showSignals,
+            gps = gps,
+            light = light,
+            motion = motion,
             headline = headline,
             distanceText = if (approaching) distanceM?.let(QuestCues::distanceText) else null,
             warmth = if (approaching) distanceM?.let(QuestCues::warmth) else null,
