@@ -32,7 +32,12 @@ class CreatorDashboardFragment : Fragment() {
 
     private val adapter = GameCardAdapter { game ->
         val bundle = Bundle().apply { putString("gameId", game.id) }
-        findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
+        // Drafts open the quest editor (title, checkpoints, Publish); published quests open their checkpoints.
+        if (game.status == com.campusquest.domain.model.GameStatus.DRAFT) {
+            findNavController().navigate(R.id.action_creator_to_createGame, bundle)
+        } else {
+            findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
+        }
     }
 
     override fun onCreateView(

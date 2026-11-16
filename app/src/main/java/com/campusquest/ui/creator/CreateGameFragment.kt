@@ -49,6 +49,11 @@ class CreateGameFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+        // Opened from Creator Studio with an existing draft: load it so it can be finished and published.
+        arguments?.getString("gameId")?.let { id ->
+            binding.toolbar.setTitle(R.string.creator_edit_quest_title)
+            viewModel.loadExisting(id)
+        }
 
         binding.etTitle.doAfterTextChanged { viewModel.onTitleChanged(it?.toString().orEmpty()) }
         binding.etDesc.doAfterTextChanged { viewModel.onDescriptionChanged(it?.toString().orEmpty()) }
@@ -77,6 +82,8 @@ class CreateGameFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { state ->
+                    if (binding.etTitle.text?.toString() != state.title) binding.etTitle.setText(state.title)
+                    if (binding.etDesc.text?.toString() != state.description) binding.etDesc.setText(state.description)
                     binding.tilTitle.error = state.titleError
                     binding.tilDesc.error = state.descriptionError
                     binding.btnSaveDraft.isEnabled = !state.isSaving
