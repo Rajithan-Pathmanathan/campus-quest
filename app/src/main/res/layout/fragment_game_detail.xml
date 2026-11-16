@@ -49,7 +49,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_m"
-                android:text="Retry"
+                android:text="@string/game_detail_retry"
                 android:backgroundTint="@color/primary_emerald" />
         </LinearLayout>
 
@@ -116,7 +116,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_xl"
-                    android:text="Join Quest"
+                    android:text="@string/game_detail_join_quest"
                     android:backgroundTint="@color/primary_emerald" />
 
                 <com.google.android.material.button.MaterialButton
@@ -124,7 +124,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_xl"
-                    android:text="Start Quest Navigation"
+                    android:text="@string/game_detail_start_quest_navigation"
                     android:backgroundTint="@color/primary_emerald"
                     android:visibility="gone" />
 
@@ -134,7 +134,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_s"
-                    android:text="View Quest Leaderboard" />
+                    android:text="@string/game_detail_view_quest_leaderboard" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>

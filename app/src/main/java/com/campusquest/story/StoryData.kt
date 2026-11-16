@@ -49,6 +49,10 @@ object LightTheWay {
                     radiusM = 15f, lightSignature = LightSignature(0f, 100000f), clue = clues[i], lore = reveals[i], order = i + 1))
             })
             db.storyDao().putConfig(StoryConfigEntity(id, token, token, bearing))
+            // Upload to the cloud (game + checkpoints + card config) so other phones can play it.
+            db.syncQueueDao().enqueue(com.campusquest.data.local.entity.SyncQueueEntity(
+                operationType = com.campusquest.data.local.entity.SyncOperationType.PUBLISH_GAME,
+                entityId = id, payloadJson = "{\"gameId\":\"$id\"}"))
         }
         return id
     }

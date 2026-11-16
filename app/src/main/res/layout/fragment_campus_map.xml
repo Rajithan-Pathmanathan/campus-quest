@@ -63,7 +63,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
         android:layout_marginBottom="@dimen/spacing_l"
-        android:text="Enter Discovery HUD"
+        android:text="@string/campus_map_enter_discovery_hud"
         android:backgroundTint="@color/primary_emerald"
         android:textColor="@color/on_primary_emerald"
         app:icon="@android:drawable/ic_menu_camera"

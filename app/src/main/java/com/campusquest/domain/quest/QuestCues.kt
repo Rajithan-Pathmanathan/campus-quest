@@ -143,5 +143,5 @@ object QuestCues {
     }
 
     fun shieldHint(near: Boolean): String =
-        if (near) "The ember is safe in your hands." else "Cup the ember — hold the Resonator close."
+        if (near) "The ember is safe in your hands." else "Cup the ember — hold the Resonator close (or press and hold here)."
 }

@@ -1,19 +1,24 @@
 package com.campusquest.ui.player
 
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import com.campusquest.BuildConfig
 import com.campusquest.CampusQuestApplication
-import com.campusquest.ui.common.AppProviders
-import kotlinx.coroutines.launch
 import com.campusquest.R
 import com.campusquest.databinding.FragmentPlayerDashboardBinding
+import com.campusquest.ui.common.AppProviders
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import kotlinx.coroutines.launch
 
 class PlayerDashboardFragment : Fragment() {
 
@@ -31,8 +36,19 @@ class PlayerDashboardFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val auth = AppProviders.authRepository
 
-        val uid = AppProviders.authRepository.getCurrentUserId()
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                auth.currentUserState.collect { user ->
+                    val name = user?.displayName?.takeIf { it.isNotBlank() }
+                    binding.tvWelcome.text = if (name != null) getString(R.string.dashboard_welcome, name)
+                    else getString(R.string.dashboard_welcome_default)
+                }
+            }
+        }
+
+        val uid = auth.getCurrentUserId()
         if (uid != null) {
             viewLifecycleOwner.lifecycleScope.launch {
                 viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -48,10 +64,46 @@ class PlayerDashboardFragment : Fragment() {
         binding.btnBrowseQuests.setOnClickListener {
             findNavController().navigate(R.id.action_player_to_gamesList)
         }
-
         binding.btnSwitchCreator.setOnClickListener {
             findNavController().navigate(R.id.action_player_to_creatorDashboard)
         }
+        binding.btnSignOut.setOnClickListener {
+            viewLifecycleOwner.lifecycleScope.launch {
+                auth.signOut()
+                findNavController().navigate(R.id.action_player_to_login)
+            }
+        }
+        binding.btnPrivacyPolicy.setOnClickListener { openPrivacyPolicy() }
+        binding.btnDeleteAccount.setOnClickListener { confirmDeleteAccount() }
+    }
+
+    private fun openPrivacyPolicy() {
+        val url = BuildConfig.PRIVACY_POLICY_URL
+        if (url.isBlank()) {
+            Toast.makeText(requireContext(), R.string.account_privacy_missing, Toast.LENGTH_LONG).show()
+            return
+        }
+        runCatching { startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+    }
+
+    private fun confirmDeleteAccount() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.account_delete_title)
+            .setMessage(R.string.account_delete_message)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.account_delete_confirm) { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    val result = AppProviders.authRepository.deleteAccount()
+                    if (_binding == null) return@launch
+                    result.onSuccess {
+                        Toast.makeText(requireContext(), R.string.account_deleted, Toast.LENGTH_LONG).show()
+                        findNavController().navigate(R.id.action_player_to_login)
+                    }.onFailure { e ->
+                        Toast.makeText(requireContext(), e.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
+            .show()
     }
 
     override fun onDestroyView() {

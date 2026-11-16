@@ -11,7 +11,7 @@
         android:id="@+id/tv_dialog_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="✨ Memory restored ✨"
+        android:text="@string/clue_reveal_memory_restored"
         android:textSize="20sp"
         android:textStyle="bold"
         android:textColor="@color/primary_emerald" />

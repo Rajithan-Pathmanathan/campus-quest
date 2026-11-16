@@ -10,18 +10,20 @@ import com.campusquest.R
 import com.campusquest.ui.common.MainActivity
 import com.google.firebase.messaging.FirebaseMessagingService
 import com.google.firebase.messaging.RemoteMessage
+import kotlinx.coroutines.launch
 
 class CampusQuestMessagingService : FirebaseMessagingService() {
 
     override fun onNewToken(token: String) {
         super.onNewToken(token)
-        // Store or forward FCM registration token to user profile in Firestore
+        val app = CampusQuestApplication.instance
+        app.appScope.launch { app.pushNotifications?.onNewToken(token) }
     }
 
     override fun onMessageReceived(message: RemoteMessage) {
         super.onMessageReceived(message)
 
-        val title = message.notification?.title ?: message.data["title"] ?: "New Campus Quest!"
+        val title = message.notification?.title ?: message.data["title"] ?: "A new quest has been hidden on campus!"
         val body = message.notification?.body ?: message.data["body"] ?: "A new quest has been published nearby."
         val gameId = message.data["gameId"]
 

@@ -18,7 +18,7 @@
             android:id="@+id/tv_welcome"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Welcome, Explorer"
+            android:text="@string/dashboard_welcome_default"
             android:fontFamily="serif" android:textSize="26sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
@@ -27,7 +27,7 @@
             android:id="@+id/tv_stats"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Score: 0 pts | Relics Found: 0"
+            android:text="@string/dashboard_stats_default"
             android:textColor="@color/primary_emerald"
             android:textStyle="bold"
             android:layout_marginTop="@dimen/spacing_xs" />
@@ -51,7 +51,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🗺️ Explore Campus Quests"
+                    android:text="@string/dashboard_explore_title"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -59,7 +59,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Discover published quests created by campus clubs and professors."
+                    android:text="@string/dashboard_explore_body"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="@dimen/spacing_xs" />
 
@@ -67,7 +67,7 @@
                     android:id="@+id/btn_browse_quests"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Browse Quests"
+                    android:text="@string/dashboard_browse"
                     android:backgroundTint="@color/primary_emerald"
                     android:layout_marginTop="@dimen/spacing_m" />
             </LinearLayout>
@@ -89,7 +89,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🛠️ Creator Studio"
+                    android:text="@string/dashboard_creator_title"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -97,7 +97,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Design, customize, and publish your own campus quests."
+                    android:text="@string/dashboard_creator_body"
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="@dimen/spacing_xs" />
 
@@ -105,9 +105,56 @@
                     android:id="@+id/btn_switch_creator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Open Creator Studio"
+                    android:text="@string/dashboard_open_creator"
                     style="@style/Widget.Material3.Button.TonalButton"
                     android:layout_marginTop="@dimen/spacing_m" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Account (sign out, delete account, privacy policy) -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_account"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_m"
+            app:cardCornerRadius="@dimen/card_corner_radius">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/spacing_m">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_account_title"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_sign_out"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/account_sign_out"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_marginTop="@dimen/spacing_s" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_privacy_policy"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/account_privacy_policy"
+                    style="@style/Widget.Material3.Button.TextButton" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_delete_account"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/account_delete"
+                    android:textColor="@color/status_closed"
+                    style="@style/Widget.Material3.Button.TextButton" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -159,5 +159,7 @@ class M1FakeAuthRepository : AuthRepository {
 
     override suspend fun signOut() {}
 
+    override suspend fun deleteAccount(): Result<Unit> = Result.success(Unit)
+
     override fun getCurrentUserId(): String? = _currentUser.value?.uid
 }

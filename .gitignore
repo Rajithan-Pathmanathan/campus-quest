@@ -60,3 +60,6 @@ captures/
 # OS specific
 .DS_Store
 Thumbs.db
+
+# Release signing secrets
+keystore.properties

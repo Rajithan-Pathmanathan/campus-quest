@@ -29,4 +29,7 @@ interface PlayerProgressDao {
 
     @Update
     suspend fun updateProgress(progress: PlayerProgressEntity)
+
+    @Query("DELETE FROM player_progress WHERE userId = :userId")
+    suspend fun deleteUserProgress(userId: String)
 }

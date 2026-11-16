@@ -14,5 +14,8 @@ interface AuthRepository {
 
     suspend fun signOut()
 
+    /** Permanently deletes the account and the player's cloud data. */
+    suspend fun deleteAccount(): Result<Unit>
+
     fun getCurrentUserId(): String?
 }

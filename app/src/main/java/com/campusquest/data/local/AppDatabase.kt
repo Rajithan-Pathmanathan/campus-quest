@@ -27,7 +27,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         SyncQueueEntity::class
     ],
     version = 2,
-    exportSchema = false
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {

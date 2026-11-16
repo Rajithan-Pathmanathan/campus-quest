@@ -58,7 +58,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Configured Checkpoints"
+                android:text="@string/create_game_configured_checkpoints"
                 android:textStyle="bold"
                 android:textSize="16sp"
                 android:textColor="@color/text_primary"
@@ -74,7 +74,7 @@
                 android:id="@+id/btn_add_checkpoint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="📍 Add Dynamic Checkpoint"
+                android:text="@string/create_game_add_dynamic_checkpoint"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_marginTop="@dimen/spacing_m" />
 
