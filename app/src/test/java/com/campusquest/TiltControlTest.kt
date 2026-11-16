@@ -34,4 +34,18 @@ class TiltControlTest {
         repeat(30){c.sample(0f,9.66f,0,600+it*20L,1.7f)}
         assertTrue("Use gravity Z too; Y alone barely changes when upright",c.y<-.35f)
     }
+
+    @Test fun `left-right tilt is reported in real degrees and ignores forward tilt`() {
+        val c=TiltControl()
+        // Phone held upright (portrait): gravity along y.
+        settled(c,x=0f,y=9.81f)
+        // Rotate 45 degrees sideways in the screen plane.
+        val g=9.81f; val r=Math.toRadians(45.0)
+        repeat(60){c.sample((g*kotlin.math.sin(r)).toFloat(),(g*kotlin.math.cos(r)).toFloat(),0,1000L+it*20,rawZ=0f)}
+        assertEquals(45f,kotlin.math.abs(c.xDegrees),2f)
+        // Tipping forward/back only (z changes, x stays 0) does not change the sideways angle.
+        val d=TiltControl(); settled(d,x=0f,y=9.81f)
+        repeat(60){d.sample(0f,(g*kotlin.math.cos(r)).toFloat(),0,1000L+it*20,rawZ=(g*kotlin.math.sin(r)).toFloat())}
+        assertEquals(0f,d.xDegrees,2f)
+    }
 }

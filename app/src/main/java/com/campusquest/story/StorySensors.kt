@@ -17,6 +17,8 @@ class StorySensors(context: Context) : SensorEventListener {
     var rotation = Surface.ROTATION_0
     val tilt = TiltControl()
     val tiltX get() = tilt.x
+    /** Left/right tilt in degrees from the start pose (oil jar). */
+    val tiltXDegrees get() = tilt.xDegrees
     val tiltY get() = tilt.y
     var heading: Float? = null; private set
     var headingReliable = true; private set

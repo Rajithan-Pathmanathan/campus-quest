@@ -244,7 +244,8 @@ class StoryGameFragment : Fragment() {
         }
         if(stage=="oil") {
             val game=oilGame ?: LampOilGame().also {oilGame=it}
-            val tilt=maxOf(abs(s.tiltX),abs(s.tiltY))
+            // Left/right only, in real degrees from the upright start pose.
+            val tilt=s.tiltXDegrees
             val turnRate=if(s.hasGyro && now-s.lastTurn<1000)s.turnRate else null
             game.update(tilt,turnRate,dt,arrived && oilStarted && s.tilt.fresh(now))
             oilView?.fill=game.fill;oilView?.tilt=tilt;oilView?.status=game.status
@@ -258,10 +259,10 @@ class StoryGameFragment : Fragment() {
                 !arrived -> "Pouring paused. Return to the checkpoint circle."
                 !oilStarted -> "Hold your phone comfortably, then tap Start pouring."
                 !s.tilt.fresh(now) -> "Waiting for tilt readings. Hold still or tap recalibrate."
-                game.status==OilPourStatus.READY -> "Tilt slowly until the oil starts flowing. Lamp ${Math.round(game.fill*100)}% full."
+                game.status==OilPourStatus.READY -> "Tip the jar left or right to between 30° and 60° to pour. Lamp ${Math.round(game.fill*100)}% full."
                 game.status==OilPourStatus.POURING -> "Good. Keep this angle and move slowly. Lamp ${Math.round(game.fill*100)}% full."
                 game.status==OilPourStatus.TOO_FAST -> "Too fast. Some oil spilled. Slow down."
-                game.status==OilPourStatus.TOO_FAR -> "The bottle is tilted too far. Lift it slightly."
+                game.status==OilPourStatus.TOO_FAR -> "Tipped more than 60° – the oil is spilling. Lift the jar back a little."
                 game.status==OilPourStatus.RETURN_UPRIGHT -> "The lamp is full. Return the phone upright."
                 game.status==OilPourStatus.SEALING -> "Hold still while the lamp is sealed: ${Math.round(game.seal*100)}%."
                 game.status==OilPourStatus.COMPLETE -> "The lamp is ready."

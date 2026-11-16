@@ -36,7 +36,7 @@ class LampOilView(context: Context) : View(context) {
         paint.shader = null
 
         canvas.save()
-        canvas.rotate(tilt * 62f, 88f, 72f)
+        canvas.rotate(tilt.coerceIn(-90f, 90f), 88f, 72f) // tilt is in degrees
         paint.color = Color.rgb(83, 55, 30)
         canvas.drawRoundRect(48f, 35f, 118f, 125f, 12f, 12f, paint)
         paint.color = Color.rgb(246, 207, 103)
