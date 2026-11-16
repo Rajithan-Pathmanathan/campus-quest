@@ -15,6 +15,9 @@
     <string name="nav_campus_map">Campus Map</string>
     <string name="nav_scan_checkpoint">Scan Checkpoint</string>
     <string name="nav_leaderboard">Leaderboard</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_quests">Quests</string>
+    <string name="nav_profile">Profile</string>
 
     <!-- Auth -->
     <string name="login_title">Sign in to Campus Quest</string>
@@ -84,6 +87,10 @@
     <!-- Player dashboard -->
     <string name="dashboard_welcome_default">Welcome, Explorer</string>
     <string name="dashboard_welcome">Welcome, %1$s</string>
+    <string name="home_subtitle">Ready for your next campus adventure?</string>
+    <string name="home_campus_title">University of Kelaniya</string>
+    <string name="home_open_quests">Open campus quests</string>
+    <string name="home_campus_art_description">Illustrated map of the University of Kelaniya campus</string>
     <string name="dashboard_stats_default">Score: 0 pts | Relics Found: 0</string>
     <string name="dashboard_explore_title">Explore Campus Quests</string>
     <string name="dashboard_explore_body">Discover published quests created by campus clubs and professors.</string>
@@ -99,6 +106,9 @@
     <string name="account_delete_message">This permanently deletes your Campus Quest account, your progress and your leaderboard entries. Quests you created stay published. This cannot be undone.</string>
     <string name="account_delete_confirm">Delete permanently</string>
     <string name="account_deleted">Your account has been deleted.</string>
+    <string name="profile_explorer">Explorer</string>
+    <string name="profile_guest_account">Guest account</string>
+    <string name="profile_total_points">Total points earned</string>
     <string name="action_cancel">Cancel</string>
     <!-- Layout texts (moved out of layouts) -->
     <string name="clue_reveal_memory_restored">✨ Memory restored ✨</string>

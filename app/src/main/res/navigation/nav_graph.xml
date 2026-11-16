@@ -77,6 +77,21 @@
     </fragment>
 
     <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.campusquest.ui.player.ProfileFragment"
+        android:label="@string/nav_profile"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_profile_to_creatorDashboard"
+            app:destination="@id/creatorDashboardFragment" />
+        <action
+            android:id="@+id/action_profile_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/nav_graph"
+            app:popUpToInclusive="true" />
+    </fragment>
+
+    <fragment
         android:id="@+id/gameDetailFragment"
         android:name="com.campusquest.ui.player.GameDetailFragment"
         android:label="Quest Details"
@@ -191,7 +206,9 @@
         tools:layout="@layout/fragment_leaderboard">
         <argument
             android:name="gameId"
-            app:argType="string" />
+            android:defaultValue="@null"
+            app:argType="string"
+            app:nullable="true" />
     </fragment>
 
     <fragment android:id="@+id/storyGameFragment" android:name="com.campusquest.story.StoryGameFragment" android:label="Light the Way">

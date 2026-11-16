@@ -40,12 +40,13 @@ class LeaderboardFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        binding.toolbar.navigationIcon = if (gameId.isBlank()) null else binding.toolbar.navigationIcon
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         binding.rvLeaderboard.layoutManager = LinearLayoutManager(requireContext())
         binding.rvLeaderboard.adapter = adapter
-        binding.btnRetry.setOnClickListener { viewModel.load(gameId, force = true) }
+        binding.btnRetry.setOnClickListener { viewModel.load(gameId.ifBlank { null }, force = true) }
 
-        viewModel.load(gameId)
+        viewModel.load(gameId.ifBlank { null })
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -60,6 +61,7 @@ class LeaderboardFragment : Fragment() {
         binding.tvEmpty.isVisible = state.isEmpty
         binding.layoutError.isVisible = state.error != null
         binding.tvErrorMessage.text = state.error
+        binding.tvGameTitle.text = state.gameTitle
         adapter.submit(state.entries)
     }
 
