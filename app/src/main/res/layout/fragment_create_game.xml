@@ -56,6 +56,22 @@
                     android:lines="3" />
             </com.google.android.material.textfield.TextInputLayout>
 
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/til_time_limit"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="Time Limit in Minutes (e.g. 30)"
+                android:layout_marginTop="@dimen/spacing_m"
+                style="@style/Widget.CampusQuest.TextInput">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_time_limit"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:text="30" />
+            </com.google.android.material.textfield.TextInputLayout>
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

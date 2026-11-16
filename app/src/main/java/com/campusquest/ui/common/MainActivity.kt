@@ -4,11 +4,13 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.campusquest.R
 import com.campusquest.databinding.ActivityMainBinding
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
@@ -37,6 +39,21 @@ class MainActivity : AppCompatActivity() {
         binding.bottomNavigation.setupWithNavController(navController)
         navController.addOnDestinationChangedListener { _, destination, _ ->
             binding.bottomNavigation.isVisible = destination.id in MAIN_DESTINATIONS
+        }
+
+        // Observe global countdown timer state
+        lifecycleScope.launch {
+            com.campusquest.domain.timer.GameTimerManager.timerState.collect { state ->
+                when (state) {
+                    is com.campusquest.domain.timer.GameTimerManager.TimerState.Active -> {
+                        binding.tvGlobalGameTimer.isVisible = true
+                        binding.tvGlobalGameTimer.text = state.formattedTime
+                    }
+                    is com.campusquest.domain.timer.GameTimerManager.TimerState.Inactive -> {
+                        binding.tvGlobalGameTimer.isVisible = false
+                    }
+                }
+            }
         }
 
         // Handle the notification only on a fresh launch, not after screen rotation.

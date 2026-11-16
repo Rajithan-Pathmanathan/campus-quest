@@ -91,6 +91,21 @@ android {
         viewBinding = true
         buildConfig = true
     }
+
+    packaging {
+        resources {
+            excludes += listOf(
+                "META-INF/LICENSE.md",
+                "META-INF/LICENSE-notice.md",
+                "META-INF/NOTICE",
+                "META-INF/NOTICE.txt",
+                "META-INF/LICENSE",
+                "META-INF/LICENSE.txt",
+                "META-INF/AL2.0",
+                "META-INF/LGPL2.1"
+            )
+        }
+    }
 }
 
 dependencies {

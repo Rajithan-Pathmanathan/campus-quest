@@ -18,6 +18,7 @@ data class GameEditorUiState(
     val gameId: String? = null,
     val title: String = "",
     val description: String = "",
+    val timeLimitMinutes: Int = 30,
     val titleError: String? = null,
     val descriptionError: String? = null,
     val isSaving: Boolean = false,
@@ -49,7 +50,7 @@ class CreateGameViewModel(
                 _state.update { it.copy(saveError = "This quest could not be loaded.") }
                 return@launch
             }
-            _state.update { it.copy(gameId = game.id, title = game.title, description = game.description) }
+            _state.update { it.copy(gameId = game.id, title = game.title, description = game.description, timeLimitMinutes = game.timeLimitMinutes) }
         }
     }
 
@@ -59,6 +60,10 @@ class CreateGameViewModel(
 
     fun onDescriptionChanged(value: String) {
         _state.update { it.copy(description = value, descriptionError = null) }
+    }
+
+    fun onTimeLimitChanged(minutes: Int) {
+        _state.update { it.copy(timeLimitMinutes = minutes.coerceIn(1, 300)) }
     }
 
     fun saveDraft() {
@@ -87,7 +92,8 @@ class CreateGameViewModel(
                     description = current.description.trim(),
                     creatorId = creatorId,
                     creatorName = currentUserName() ?: "Creator",
-                    status = GameStatus.DRAFT
+                    status = GameStatus.DRAFT,
+                    timeLimitMinutes = current.timeLimitMinutes
                 )
                 repository.createGame(game)
                     .onSuccess { saved ->
