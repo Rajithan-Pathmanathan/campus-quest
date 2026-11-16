@@ -27,7 +27,7 @@ class StorySetupFragment : Fragment() {
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, state: Bundle?): View {
         val body = StoryUi.column(requireContext())
         val scroll = ScrollView(requireContext()).apply { addView(body) }
-        StoryUi.button(body,"Back") { findNavController().navigateUp() }
+        StoryUi.back(body,"Back") { findNavController().navigateUp() }
         StoryUi.text(body,"Light the Way",28f)
         StoryUi.text(body,"Create the three-chapter walk. Your existing games stay saved. Check these places are safe and install the printed card at chapter 2.")
         val defaults = listOf(7.727295 to 81.696698, 7.727241 to 81.696882, (7.727241 + Math.toDegrees(50.0 / 6371000.0)) to 81.696882)
@@ -74,7 +74,7 @@ class StorySetupFragment : Fragment() {
         card=RepairCardArtwork.render(c)
         body.addView(ImageView(requireContext()).apply {setImageBitmap(card);adjustViewBounds=true;contentDescription="Printable repair card. Backup code ${c.backupCode}"},LinearLayout.LayoutParams(-1,-2))
         StoryUi.button(body,"Save printable card") { export.launch("Light-the-Way-Repair-Card.png") }
-        StoryUi.button(body,"Open game") { findNavController().navigate(R.id.gameDetailFragment,Bundle().apply {putString("gameId",c.gameId)}) }
+        StoryUi.button(body,"Open game",secondary=true) { findNavController().navigate(R.id.gameDetailFragment,Bundle().apply {putString("gameId",c.gameId)}) }
     }
 }
 

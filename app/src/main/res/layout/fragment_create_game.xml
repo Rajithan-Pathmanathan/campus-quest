@@ -14,7 +14,8 @@
         android:background="@color/primary_emerald_dark"
         app:title="@string/creator_create_game_title"
         app:titleTextColor="@color/on_primary_emerald"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:titleTextAppearance="@style/TextAppearance.CampusQuest.ToolbarTitle"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -32,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="@string/creator_game_title_hint"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_title"
@@ -46,7 +47,7 @@
                 android:layout_height="wrap_content"
                 android:hint="@string/creator_game_desc_hint"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_desc"
@@ -59,8 +60,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/create_game_configured_checkpoints"
+                android:fontFamily="serif"
                 android:textStyle="bold"
-                android:textSize="16sp"
+                android:textSize="20sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginTop="@dimen/spacing_l" />
 
@@ -75,6 +77,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/create_game_add_dynamic_checkpoint"
+                app:icon="@drawable/ic_pin"
+                app:iconGravity="textStart"
+                app:iconTint="@color/primary_emerald"
+                android:textColor="@color/primary_emerald"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_marginTop="@dimen/spacing_m" />
 

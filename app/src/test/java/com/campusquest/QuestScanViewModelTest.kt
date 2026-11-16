@@ -242,6 +242,50 @@ class QuestScanViewModelTest {
     }
 
     @Test
+    fun `holding the shield after fusion completes the discovery on phones without proximity`() {
+        val vm = vm(clockMs = 99L).openAlpha()
+        location.atRelic()
+        vm.beginScan()
+        signalsAligned(near = false)
+        assertEquals(ScanState.WAITING_FOR_PROXIMITY, vm.uiState.value.scanState)
+
+        vm.onShieldHeld()
+
+        assertEquals(ScanState.REVEALING, vm.uiState.value.scanState)
+        assertEquals(Triple("game-alpha", "cp-alpha-001", 99L), games.recorded.single())
+    }
+
+    @Test
+    fun `holding the shield before the fusion threshold does nothing`() {
+        val vm = vm().openAlpha()
+        location.atRelic()
+        vm.beginScan()
+        sensors.emit(ScanFakeSensorRepository.fusion("game-alpha", "cp-alpha-001", percent = 40))
+        vm.onShieldHeld()
+        assertEquals(ScanState.SCANNING, vm.uiState.value.scanState)
+        // Reaching the threshold later must still wait for a proximity gate.
+        signalsAligned(near = false)
+        assertEquals(ScanState.WAITING_FOR_PROXIMITY, vm.uiState.value.scanState)
+        assertTrue(games.recorded.isEmpty())
+    }
+
+    @Test
+    fun `a held shield does not carry over to another checkpoint`() {
+        val vm = vm().openAlpha()
+        location.atRelic()
+        vm.beginScan()
+        signalsAligned(near = false)
+        vm.onShieldHeld()
+        // That completed the first discovery; the next checkpoint must start with no shield held.
+        games.checkpoints["game-beta"] = listOf(cp("game-beta", "cp-beta-001"))
+        vm.load("game-beta", "cp-beta-001")
+        location.atRelic()
+        vm.beginScan()
+        sensors.emit(ScanFakeSensorRepository.fusion("game-beta", "cp-beta-001", 90, threshold = true, near = false))
+        assertEquals(ScanState.WAITING_FOR_PROXIMITY, vm.uiState.value.scanState)
+    }
+
+    @Test
     fun `proximity near after threshold records the discovery and reveals`() {
         val vm = vm(clockMs = 4242L).openAlpha()
         location.atRelic()

@@ -3,17 +3,19 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@drawable/bg_parchment">
+    android:background="@drawable/bg_parchment"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="@color/primary_emerald_dark"
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:navigationIconTint="@color/on_primary_emerald"
         app:title="Quest Details"
-        app:titleTextColor="@color/on_primary_emerald"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:titleTextAppearance="@style/TextAppearance.CampusQuest.ToolbarTitle"
+        app:titleTextColor="@color/on_primary_emerald" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -49,8 +51,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/spacing_m"
-                android:text="@string/game_detail_retry"
-                android:backgroundTint="@color/primary_emerald" />
+                android:text="@string/game_detail_retry" />
         </LinearLayout>
 
         <androidx.core.widget.NestedScrollView
@@ -63,69 +64,169 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingBottom="@dimen/spacing_l">
 
-                <ImageView android:layout_width="match_parent" android:layout_height="180dp" android:src="@drawable/art_expedition" android:scaleType="centerCrop" android:contentDescription="" android:importantForAccessibility="no" android:layout_marginBottom="20dp"/>
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="190dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/gold_edge"
+                    app:strokeWidth="1.5dp">
+
+                    <ImageView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription=""
+                        android:importantForAccessibility="no"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/art_expedition" />
+                </com.google.android.material.card.MaterialCardView>
+
                 <TextView
                     android:id="@+id/tv_title"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="22sp"
-                    android:textStyle="bold"
-                    android:textColor="@color/text_primary" />
+                    android:layout_marginTop="18dp"
+                    android:accessibilityHeading="true"
+                    android:fontFamily="serif"
+                    android:textColor="@color/text_primary"
+                    android:textSize="28sp"
+                    android:textStyle="bold" />
 
                 <TextView
                     android:id="@+id/tv_creator"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/text_secondary" />
+                    android:layout_marginTop="2dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="14sp" />
 
-                <TextView
-                    android:id="@+id/tv_status"
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/primary_emerald"
-                    android:textStyle="bold" />
+                    android:layout_marginTop="12dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
 
-                <TextView
-                    android:id="@+id/tv_checkpoint_count"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textColor="@color/text_secondary" />
+                    <TextView
+                        android:id="@+id/tv_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/bg_chip_status"
+                        android:paddingBottom="4dp"
+                        android:paddingEnd="12dp"
+                        android:paddingStart="12dp"
+                        android:paddingTop="4dp"
+                        android:textColor="@color/secondary_amber_dark"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tv_checkpoint_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="14dp"
+                        android:drawableStart="@drawable/ic_pin"
+                        android:drawablePadding="6dp"
+                        android:drawableTint="@color/secondary_amber_dark"
+                        android:gravity="center_vertical"
+                        android:textColor="@color/primary_emerald"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tv_description"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_m"
-                    android:textColor="@color/text_primary" />
+                    android:layout_marginTop="16dp"
+                    android:lineSpacingMultiplier="1.15"
+                    android:textColor="@color/text_primary"
+                    android:textSize="16sp" />
+
+                <!-- Rewards -->
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="24dp"
+                    android:fontFamily="serif"
+                    android:text="@string/detail_rewards_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/bg_stat_tile"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_coin" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="@string/detail_reward_points"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/bg_stat_tile"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="14dp">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_trophy"
+                        app:tint="@color/gold_edge" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="@string/detail_reward_leaderboard"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
 
                 <TextView
                     android:id="@+id/tv_join_error"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_m"
-                    android:textColor="@android:color/holo_red_dark"
+                    android:textColor="@color/status_closed"
                     android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_join"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xl"
-                    android:text="@string/game_detail_join_quest"
-                    android:backgroundTint="@color/primary_emerald" />
+                    android:layout_marginTop="28dp"
+                    android:text="@string/game_detail_join_quest" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_start_quest"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/spacing_xl"
+                    android:layout_marginTop="28dp"
                     android:text="@string/game_detail_start_quest_navigation"
-                    android:backgroundTint="@color/primary_emerald"
                     android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
@@ -134,11 +235,16 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_s"
-                    android:text="@string/game_detail_view_quest_leaderboard" />
+                    android:text="@string/game_detail_view_quest_leaderboard"
+                    android:textColor="@color/primary_emerald"
+                    app:icon="@drawable/ic_trophy"
+                    app:iconGravity="textStart"
+                    app:iconTint="@color/primary_emerald"
+                    app:strokeColor="@color/primary_emerald" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_delete_quest"
-                    style="@style/Widget.Material3.Button.TextButton"
+                    style="@style/Widget.CampusQuest.Button.Text"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_s"

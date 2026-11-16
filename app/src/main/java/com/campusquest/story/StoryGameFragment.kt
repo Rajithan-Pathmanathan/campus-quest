@@ -119,19 +119,23 @@ class StoryGameFragment : Fragment() {
         val b=body ?: return
         closeScanner();compass?.stop();compass=null;maze=null;torchButton=null
         b.removeAllViews();live=null;lightHint=null;diagnostics=null;oilView=null;tiltStatus=null
-        StoryUi.button(b,"Back to quest") {findNavController().navigateUp()}
-        StoryUi.text(b,"LIGHT THE WAY",28f)
+        StoryUi.back(b,"Back to quest") {findNavController().navigateUp()}
+        StoryUi.text(b,"Light the Way",28f)
         status=StoryUi.text(b,"")
         if(stage=="loading") {status?.text="Loading your walk…";return}
         if(stage=="error")return
         if(stage=="preflight") {
             StoryUi.text(b,"Can you help light the way?",23f)
             StoryUi.text(b,"The welcome walk starts soon, but the old meeting lamp is not working. Find its key, follow the repair note and bring its light back.")
-            StoryUi.text(b, "Tilt controls: ${if(sensors?.hasTilt==true)"accelerometer available" else "unavailable — required for this game"}\nSmooth movement check: ${if(sensors?.hasGyro==true)"gyroscope available" else "accelerometer-only mode"}",14f)
-            StoryUi.text(b, "Camera: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)} · Flashlight: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)}",14f)
+            StoryUi.checklist(b, listOf(
+                Triple("Tilt controls", sensors?.hasTilt==true, if(sensors?.hasTilt==true)"Ready" else "Needed"),
+                Triple("Direction", sensors?.hasHeading==true, if(sensors?.hasHeading==true)"Compass" else "Map and dial"),
+                Triple("Camera", requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY), if(requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY))"Ready" else "Not found"),
+                Triple("Flashlight", requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH), if(requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH))"Ready" else "Not found")
+            ))
             StoryUi.text(b,"You will tilt the phone to free the key and later pour oil into the lamp. Move slowly so the oil does not spill.")
             live=StoryUi.text(b,"")
-            StoryUi.button(b,"Allow location") {locationAccess.request()}
+            StoryUi.button(b,"Allow location",secondary=true) {locationAccess.request()}
             StoryUi.button(b,"Start / resume the walk") {
                 if(sensors?.hasTilt!=true){status?.text="This game needs an accelerometer for tilt controls. This phone cannot play the key puzzle.";return@button}
                 if(sensors?.tilt?.fresh(SystemClock.elapsedRealtime())!=true){status?.text="Waiting for the tilt sensor. Hold your phone still briefly and try again.";return@button}
@@ -147,12 +151,12 @@ class StoryGameFragment : Fragment() {
         }
         if(cp()==null){stage="ending";draw();return}
         val chapter=index()
-        StoryUi.button(b,"Allow location") {locationAccess.request()}
+        StoryUi.button(b,"Allow location",secondary=true) {locationAccess.request()}
         StoryUi.text(b,"Chapter ${chapter+1} - ${LightTheWay.names[chapter]}",23f)
         StoryUi.text(b,"Inventory: ${if(found.isEmpty())"No items yet" else if(found.size==1)"Key found" else "Key and lamp oil found"}",14f)
         live=StoryUi.text(b,"")
         if(stage=="walk") {
-            val c=TrailCompassView(requireContext());c.setBackgroundResource(R.drawable.bg_expedition);compass=c;b.addView(c,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),300)));if(isResumed)c.start()
+            val c=TrailCompassView(requireContext());c.setBackgroundResource(R.drawable.bg_compass_card);compass=c;b.addView(c,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),300)));if(isResumed)c.start()
             StoryUi.text(b,LightTheWay.clues[chapter])
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
@@ -165,7 +169,7 @@ class StoryGameFragment : Fragment() {
                     }
                 }
             }
-            StoryUi.button(b,"Open map") {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
+            StoryUi.button(b,"Open map",secondary=true) {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
         } else if(stage=="key") {
             StoryUi.text(b,"The key is trapped behind eight barriers. Stop in a safe place. Tilt gently through the alternating gaps to the gold opening at the top right.")
             keyStarted=false
@@ -175,12 +179,12 @@ class StoryGameFragment : Fragment() {
                 sensors?.calibrate();keyStarted=true
                 tiltStatus?.text="Keep still briefly while tilt is calibrated…"
             }
-            StoryUi.button(b,"Restart key puzzle") {maze?.box=KeyBox();keyStarted=false;maze?.invalidate();tiltStatus?.text="Tap Start tilting when you are ready."}
+            StoryUi.button(b,"Restart key puzzle",secondary=true) {maze?.box=KeyBox();keyStarted=false;maze?.invalidate();tiltStatus?.text="Tap Start tilting when you are ready."}
         } else if(stage=="card") {
             StoryUi.text(b,"The repair card is inside the shaded pocket. Point the camera at it. Use the light if it is dark, or enter the code below the card.")
             StoryUi.button(b,"Open camera") {if(cameraGranted())openCamera() else permissions.launch(arrayOf(Manifest.permission.CAMERA))}
             lightHint=StoryUi.text(b, "Use the light if the card is hard to see.",14f)
-            torchButton=StoryUi.button(b,"Light on") {scanner?.toggleTorch() ?: run {status?.text="Open the camera first."}}
+            torchButton=StoryUi.button(b,"Light on",secondary=true) {scanner?.toggleTorch() ?: run {status?.text="Open the camera first."}}
             val code=StoryUi.input(b,"Printed card code")
             StoryUi.button(b,"Check card code") {if(!arrived){status?.text="Return to this checkpoint first."}else if(LightTheWay.matchesCode(code.text.toString(),config!!))award() else status?.text="That code does not match this repair card."}
         } else if(stage=="oil") {
@@ -191,15 +195,15 @@ class StoryGameFragment : Fragment() {
                 sensors?.calibrate();oilStarted=true
                 tiltStatus?.text="Hold still briefly while tilt is calibrated."
             }
-            StoryUi.button(b,"Restart pouring") {
+            StoryUi.button(b,"Restart pouring",secondary=true) {
                 oilGame=LampOilGame();oilStarted=false;lastOilStatus=OilPourStatus.READY
                 oilView?.fill=0f;oilView?.tilt=0f;oilView?.status=OilPourStatus.READY
                 tiltStatus?.text="Hold your phone comfortably, then tap Start pouring."
             }
         }
-        if(stage!="walk")StoryUi.button(b,"Back to navigation") {switch("walk")}
-        val diag=StoryUi.text(b,"");diag.visibility=View.GONE;diagnostics=diag
-        StoryUi.button(b,"Show / hide device readings") {diag.visibility=if(diag.visibility==View.VISIBLE)View.GONE else View.VISIBLE}
+        if(stage!="walk")StoryUi.button(b,"Back to navigation",secondary=true) {switch("walk")}
+        val diag=StoryUi.note(b,"");diag.visibility=View.GONE;diagnostics=diag
+        StoryUi.button(b,"Show / hide device readings",secondary=true) {diag.visibility=if(diag.visibility==View.VISIBLE)View.GONE else View.VISIBLE}
     }
     private fun tick() {
         if(body==null || config==null)return
@@ -217,7 +221,7 @@ class StoryGameFragment : Fragment() {
         live?.text=when {
             arrived -> "You reached the marked area. Stop in a safe place."
             distance!=null && distance<=15f -> "Inside the circle. Wait here for a stable GPS position."
-            distance!=null -> "About ${distance.toInt()} m away. Follow the arrow to the circle."
+            distance!=null -> "About ${StoryUi.distance(distance)} away. Follow the arrow to the circle."
             !loc.servicesEnabled -> "Switch on phone location services to continue."
             loc.accuracyMeters!=null && loc.accuracyMeters>20f -> "GPS accuracy is about ${loc.accuracyMeters.toInt()} m. Step into an open area and wait for a better fix."
             else -> "Waiting for a fresh GPS position. Check location permission."

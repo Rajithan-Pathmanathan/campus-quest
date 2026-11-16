@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Debug builds only: the real scan screen with fake data, to review every state on a phone. -->
+        <activity
+            android:name=".ScanPreviewActivity"
+            android:exported="true"
+            android:label="Scan Preview"
+            android:theme="@style/Theme.CampusQuest">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

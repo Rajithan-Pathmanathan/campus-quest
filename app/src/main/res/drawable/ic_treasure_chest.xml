@@ -1,0 +1,22 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="132dp" android:height="110dp" android:viewportWidth="120" android:viewportHeight="100">
+    <!-- warm glow behind the chest -->
+    <path android:fillColor="#22E9B949" android:pathData="M60,48m-52,0a52,44 0,1 1,104 0a52,44 0,1 1,-104 0"/>
+    <path android:fillColor="#33F2C75C" android:pathData="M60,50m-36,0a36,30 0,1 1,72 0a36,30 0,1 1,-72 0"/>
+    <!-- gold peeking out of the lid -->
+    <path android:fillColor="#F2C75C" android:pathData="M46,32m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"/>
+    <path android:fillColor="#FFD879" android:pathData="M61,26m-7,0a7,7 0,1 1,14 0a7,7 0,1 1,-14 0"/>
+    <path android:fillColor="#F2C75C" android:pathData="M76,31m-6,0a6,6 0,1 1,12 0a6,6 0,1 1,-12 0"/>
+    <!-- lid -->
+    <path android:fillColor="#A06A3C" android:pathData="M18,54C18,34 36,30 60,30S102,34 102,54Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#5A3A1E" android:strokeWidth="1.5" android:pathData="M18,54C18,34 36,30 60,30S102,34 102,54Z"/>
+    <!-- body -->
+    <path android:fillColor="#8A5A33" android:pathData="M18,54H102V88Q102,93 97,93H23Q18,93 18,88Z"/>
+    <path android:fillColor="#00000000" android:strokeColor="#5A3A1E" android:strokeWidth="1.5" android:pathData="M18,54H102V88Q102,93 97,93H23Q18,93 18,88Z"/>
+    <!-- gold bands -->
+    <path android:fillColor="#E9B949" android:pathData="M18,60H102V66H18Z"/>
+    <path android:fillColor="#E9B949" android:pathData="M32,32H40V93H32Z"/>
+    <path android:fillColor="#E9B949" android:pathData="M80,32H88V93H80Z"/>
+    <!-- lock -->
+    <path android:fillColor="#F2C75C" android:pathData="M52,56H68Q70,56 70,58V72Q70,74 68,74H52Q50,74 50,72V58Q50,56 52,56Z"/>
+    <path android:fillColor="#5A3A1E" android:pathData="M60,61m-2.6,0a2.6,2.6 0,1 1,5.2 0a2.6,2.6 0,1 1,-5.2 0M58.7,62H61.3L62,69H58Z"/>
+</vector>
