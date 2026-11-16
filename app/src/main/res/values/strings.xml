@@ -6,6 +6,7 @@
     <string name="onboarding_get_started">Get started</string>
     <string name="onboarding_page_one_description">Welcome, Explorer! Campus Quest turns your campus into an adventure. Follow the map, visit real places, and uncover a story one clue at a time.</string>
     <string name="onboarding_page_two_description">Light the Path. Find the missing key, scan the repair card, and carry the golden oil safely. Complete all three checkpoints to light the meeting lamp.</string>
+    <string name="splash_description">Campus Quest. Explore, discover, win. Every location has a story. Find yours.</string>
 
     <!-- Navigation / General -->
     <string name="nav_player_dashboard">Player Dashboard</string>
