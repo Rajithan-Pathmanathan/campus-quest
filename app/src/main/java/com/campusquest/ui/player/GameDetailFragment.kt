@@ -38,10 +38,6 @@ class GameDetailFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         viewModel.load(gameId)
-        viewLifecycleOwner.lifecycleScope.launch {
-            playable = com.campusquest.story.LightTheWay.isPlayable(com.campusquest.CampusQuestApplication.instance.database, gameId)
-            viewModel.uiState.value.let { render(it) }
-        }
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
         binding.btnRetry.setOnClickListener { viewModel.load(gameId, force = true) }
@@ -55,7 +51,7 @@ class GameDetailFragment : Fragment() {
             val app = com.campusquest.CampusQuestApplication.instance
             if(app.database.storyDao().config(gameId) != null && app.database.gameDao().getGameById(gameId)?.creatorId == com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId()) {
                 val button = com.google.android.material.button.MaterialButton(requireContext()).apply {
-                    text = "View / save instruction card"
+                    text = "View / save repair card"
                     setOnClickListener {findNavController().navigate(R.id.storySetupFragment,Bundle().apply {putString("gameId",gameId)})}
                 }
                 (binding.btnJoin.parent as android.view.ViewGroup).addView(button)
@@ -83,13 +79,10 @@ class GameDetailFragment : Fragment() {
         com.campusquest.CampusQuestApplication.instance.questGeofences.activate(gameId, force = true)
         viewLifecycleOwner.lifecycleScope.launch {
             val story = com.campusquest.CampusQuestApplication.instance.database.storyDao().config(gameId)
-            findNavController().navigate(R.id.storyGameFragment,
+            findNavController().navigate(if (story != null) R.id.storyGameFragment else R.id.campusMapFragment,
                 Bundle().apply {putString("gameId",gameId)})
         }
     }
-
-    /** False for old-format quests (no card or not three stops); checked once per screen. */
-    private var playable = true
 
     private fun render(state: GameDetailUiState) {
         binding.progressBar.isVisible = state.isLoading
@@ -122,19 +115,13 @@ class GameDetailFragment : Fragment() {
                     else -> R.string.join_quest
                 }
             )
-            binding.btnStartQuest.isVisible = joined && playable
+            binding.btnStartQuest.isVisible = joined
             // Only the person who created the quest (guest or email account) sees "Delete quest".
             binding.btnDeleteQuest.isVisible = com.campusquest.ui.creator.QuestDeletion.isCreator(game.creatorId)
         }
 
         binding.tvJoinError.isVisible = state.joinError != null
         binding.tvJoinError.text = state.joinError
-        // Old-format quests (no card or not three stops) can't be joined or started.
-        if (!playable && state.game != null) {
-            binding.btnJoin.isVisible = false
-            binding.tvJoinError.isVisible = true
-            binding.tvJoinError.setText(R.string.quest_needs_update)
-        }
     }
 
     override fun onDestroyView() {

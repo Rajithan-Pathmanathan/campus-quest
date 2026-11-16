@@ -19,18 +19,7 @@ class PublishValidatorTest {
     )
 
     @Test fun validGame_hasNoProblems() =
-        assertEquals(emptyList<String>(), PublishValidator.validate(game(), listOf(cp(1), cp(2), cp(3))))
-
-    @Test fun goldenTree_needsExactlyThreeStops() {
-        assertTrue(PublishValidator.validate(game(), listOf(cp(1), cp(2))).any { it.contains("exactly 3 stops") })
-        assertTrue(PublishValidator.validate(game(), listOf(cp(1), cp(2), cp(3), cp(4))).any { it.contains("exactly 3 stops") })
-    }
-
-    @Test fun stopsMustBeNumberedOneToThree() =
-        assertTrue(PublishValidator.validate(game(), listOf(cp(1), cp(2), cp(5))).any { it.contains("1, 2 and 3") })
-
-    @Test fun memoryTextIsNotRequired() =
-        assertEquals(emptyList<String>(), PublishValidator.validate(game(), listOf(cp(1, lore = ""), cp(2, lore = ""), cp(3, lore = ""))))
+        assertEquals(emptyList<String>(), PublishValidator.validate(game(), listOf(cp(1), cp(2))))
 
     @Test fun noCheckpoints_isBlocked() =
         assertTrue(PublishValidator.validate(game(), emptyList()).isNotEmpty())

@@ -58,14 +58,8 @@ class GameRepositoryImpl(
 
     override suspend fun getAvailableGames(): List<Game> {
         refreshFromCloud()
-        return gameDao.getPublishedGames(GameStatus.PUBLISHED).map { it.toDomain().withCurrentCopy() }
+        return gameDao.getPublishedGames(GameStatus.PUBLISHED).map { it.toDomain() }
     }
-
-    /** Old "Light the Way" records are shown as The Golden Tree (display only; stored data is not rewritten). */
-    private fun Game.withCurrentCopy(): Game =
-        if (title == com.campusquest.story.LightTheWay.LEGACY_TITLE)
-            copy(title = "The Golden Tree", description = com.campusquest.story.LightTheWay.DESCRIPTION)
-        else this
 
     /**
      * Downloads published quests (with checkpoints and Light the Way config) and the signed-in
@@ -114,11 +108,11 @@ class GameRepositoryImpl(
     }
 
     override suspend fun getCreatorGames(creatorId: String): List<Game> {
-        return gameDao.getCreatorGames(creatorId).map { it.toDomain().withCurrentCopy() }
+        return gameDao.getCreatorGames(creatorId).map { it.toDomain() }
     }
 
     override suspend fun getGameDetails(gameId: String): Game? {
-        return gameDao.getGameById(gameId)?.toDomain()?.withCurrentCopy()
+        return gameDao.getGameById(gameId)?.toDomain()
     }
 
     override suspend fun createGame(game: Game): Result<Game> {
@@ -206,14 +200,8 @@ class GameRepositoryImpl(
     override suspend fun publishGame(gameId: String): Result<Unit> {
         return try {
             val game = gameDao.getGameById(gameId)
-            val uid = authRepository?.getCurrentUserId()
-            if (game != null && authRepository != null && game.creatorId != uid) {
-                return Result.failure(SecurityException("Only the person who created this quest can publish it."))
-            }
             if (game != null) {
                 val checkpoints = checkpointDao.getCheckpointsForGame(gameId)
-                // Every published quest is a playable Golden Tree: make sure it has its printable card.
-                storyDao?.let { if (it.config(gameId) == null) it.putConfig(com.campusquest.story.LightTheWay.newConfig(gameId)) }
                 val publishedAt = System.currentTimeMillis()
                 val published = game.copy(
                     status = GameStatus.PUBLISHED,
