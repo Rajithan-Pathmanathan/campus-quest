@@ -25,15 +25,15 @@ interface StoryDao {
 }
 
 object LightTheWay {
-    val names = listOf("The Key in the Box", "The Hidden Repair Card", "Bring Back the Light")
+    val names = listOf("The Key in the Box", "The Hidden Repair Card", "Fill the Meeting Lamp")
     val clues = listOf("Someone left the lamp key near the garden. Follow the arrow to find it.",
         "The key's note points to the covered board. Find the repair card in its shaded pocket.",
-        "Bring the key and cover to the meeting place. The lamp is waiting there.")
+        "The repair card says the lamp is empty. Take the lamp oil to the meeting place.")
     val reveals = listOf(
         "You found the key! A note is tied to it: The lamp needs one more part. Look for my repair card at the covered board.",
-        "You found the missing part! Take the glass cover to the meeting place. Turn the lamp toward the path, then close its cover.",
-        "The light is back! You found the key, followed the repair note and fixed the meeting lamp. The path is ready for the welcome walk. Well done!")
-    const val DESCRIPTION = "The campus welcome walk starts soon, but the meeting lamp is not working. Find its key, follow the repair note and bring its light back. Three places, one small adventure."
+        "The card explains the problem: the lamp is empty. You now have the lamp oil. Take it carefully to the meeting place.",
+        "The light is back! You found the key, followed the repair note and filled the meeting lamp. The path is ready for the welcome walk. Well done!")
+    const val DESCRIPTION = "The campus welcome walk starts soon, but the meeting lamp is not working. Find its key, follow the repair note and fill the lamp. Three places, one small adventure."
     fun qr(c: StoryConfigEntity) = "campusquest:v1:${c.gameId}:REPAIR_CARD:${c.cardId}"
     fun matchesCard(input: String, c: StoryConfigEntity) = input.length <= 256 && input.trim() == qr(c)
     fun matchesCode(input: String, c: StoryConfigEntity) = input.length <= 32 && input.trim().uppercase(java.util.Locale.ROOT) == c.backupCode
