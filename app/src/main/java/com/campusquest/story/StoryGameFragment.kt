@@ -42,6 +42,7 @@ class StoryGameFragment : Fragment() {
     private var oilGame: LampOilGame?=null
     private var oilStarted=false
     private var lastOilStatus=OilPourStatus.READY
+    private var oilLocationUnlocked=false
     private var scanner: CardScanner?=null
     private var cameraPreview: PreviewView?=null
     private var torchButton: Button?=null
@@ -78,7 +79,9 @@ class StoryGameFragment : Fragment() {
                 requireNotNull(config) {"This game has no Light the Way setup"}
                 checkpoints=AppProviders.gameRepository.getGameCheckpoints(gameId).sortedBy {it.order}
                 require(checkpoints.size==3) {"This story needs exactly three checkpoints"}
-                require(AppProviders.gameRepository.getGameDetails(gameId)?.status==GameStatus.PUBLISHED) {"This game is not published"}
+                val gameDetails = AppProviders.gameRepository.getGameDetails(gameId)
+                require(gameDetails?.status==GameStatus.PUBLISHED) {"This game is not published"}
+                com.campusquest.domain.timer.GameTimerManager.startOrResumeTimer(gameId, gameDetails?.timeLimitMinutes ?: 30)
                 AppProviders.gameRepository.joinGame(gameId).getOrThrow()
                found=app.database.playerProgressDao().getProgress(gameId,uid)?.completedCheckpointIds.orEmpty()
                 stage="preflight";draw()
@@ -114,7 +117,7 @@ class StoryGameFragment : Fragment() {
     }
     private fun index()=checkpoints.indexOfFirst {it.id !in found}
     private fun cp()=checkpoints.getOrNull(index())
-    private fun switch(next: String) { closeScanner();stage=next;draw() }
+    private fun switch(next: String) { closeScanner();stage=next;if(next!="oil") oilLocationUnlocked=false;draw() }
     private fun draw() {
         val b=body ?: return
         closeScanner();compass?.stop();compass=null;maze=null;torchButton=null
@@ -144,8 +147,9 @@ class StoryGameFragment : Fragment() {
             return
         }
         if(stage=="ending") {
+            com.campusquest.domain.timer.GameTimerManager.stopTimer()
             StoryUi.text(b,"The light is back!",26f);StoryUi.text(b,LightTheWay.reveals[2])
-            StoryUi.text(b,"Key found · Repair card scanned · Lamp filled\n3 chapters completed · 300 points")
+            StoryUi.text(b,"Key found · Repair card scanned · Lamp filled\n3 chapters completed · 300 base points")
             StoryUi.button(b,"View my results") {findNavController().navigate(R.id.leaderboardFragment,Bundle().apply {putString("gameId",gameId)})}
             return
         }
@@ -160,7 +164,9 @@ class StoryGameFragment : Fragment() {
             StoryUi.text(b,LightTheWay.clues[chapter])
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
-                if(!arrived){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}
+                val isOilStage = CheckpointActivity.fromStored(cp()?.motionType, index()+1) == CheckpointActivity.LAMP_OIL
+                if(!arrived && !(isOilStage && oilLocationUnlocked)){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}
+                if(isOilStage) oilLocationUnlocked=true
                 when(CheckpointActivity.fromStored(cp()?.motionType,index()+1)) {
                     CheckpointActivity.TILT_MAZE -> switch("key")
                     CheckpointActivity.QR_SCAN -> switch("card")
@@ -218,8 +224,11 @@ class StoryGameFragment : Fragment() {
         val wasArrived=arrived
         arrived=arrivalHold.update(distance,loc.accuracyMeters,System.currentTimeMillis()-loc.timestamp,recent,now)
         if(arrived && !wasArrived)status?.text=""
+        if(arrived && (stage=="oil" || CheckpointActivity.fromStored(cp.motionType, index()+1) == CheckpointActivity.LAMP_OIL)) {
+            oilLocationUnlocked=true
+        }
         live?.text=when {
-            arrived -> "You reached the marked area. Stop in a safe place."
+            arrived || (stage=="oil" && oilLocationUnlocked) -> "You reached the marked area. Stop in a safe place."
             distance!=null && distance<=15f -> "Inside the circle. Wait here for a stable GPS position."
             distance!=null -> "About ${StoryUi.distance(distance)} away. Follow the arrow to the circle."
             !loc.servicesEnabled -> "Switch on phone location services to continue."
@@ -243,12 +252,13 @@ class StoryGameFragment : Fragment() {
             if(maze?.active==true)maze?.step(s.tiltX*dt*.65f,s.tiltY*dt*.65f)
         }
         if(stage=="oil") {
+            val effectiveArrived = arrived || oilLocationUnlocked
             val game=oilGame ?: LampOilGame().also {oilGame=it}
             // Left/right only, in real degrees from the upright start pose.
             val tilt=s.tiltXDegrees
             val turnRate=if(s.hasGyro && now-s.lastTurn<1000)s.turnRate else null
-            game.update(tilt,turnRate,dt,arrived && oilStarted && s.tilt.fresh(now))
-            oilView?.fill=game.fill;oilView?.tilt=tilt;oilView?.status=game.status
+            game.update(tilt,turnRate,dt,effectiveArrived && oilStarted && s.tilt.fresh(now))
+            oilView?.fill=game.fill;oilView?.jarFill=game.jarFill;oilView?.tilt=tilt;oilView?.status=game.status
             val justSpilled=game.status != lastOilStatus &&
                 (game.status==OilPourStatus.TOO_FAST || game.status==OilPourStatus.TOO_FAR)
             if(justSpilled) {
@@ -256,14 +266,15 @@ class StoryGameFragment : Fragment() {
             }
             lastOilStatus=game.status
             tiltStatus?.text=when {
-                !arrived -> "Pouring paused. Return to the checkpoint circle."
+                !effectiveArrived -> "Pouring paused. Return to the checkpoint circle."
                 !oilStarted -> "Hold your phone comfortably, then tap Start pouring."
                 !s.tilt.fresh(now) -> "Waiting for tilt readings. Hold still or tap recalibrate."
-                game.status==OilPourStatus.READY -> "Tip the jar left or right to between 30° and 60° to pour. Lamp ${Math.round(game.fill*100)}% full."
-                game.status==OilPourStatus.POURING -> "Good. Keep this angle and move slowly. Lamp ${Math.round(game.fill*100)}% full."
+                game.status==OilPourStatus.FAILED -> "Game Over: Lamp is below 80% fill. Tap Restart pouring to try again."
+                game.status==OilPourStatus.READY -> "Tip the jar clockwise (tilt right) to between 30° and 60° to pour. Lamp ${Math.round(game.fill*100)}% full (min 80%), Jar ${Math.round(game.jarFill*100)}% remaining."
+                game.status==OilPourStatus.POURING -> "Good. Keep this clockwise angle and move slowly. Lamp ${Math.round(game.fill*100)}% full, Jar ${Math.round(game.jarFill*100)}% remaining."
                 game.status==OilPourStatus.TOO_FAST -> "Too fast. Some oil spilled. Slow down."
-                game.status==OilPourStatus.TOO_FAR -> "Tipped more than 60° – the oil is spilling. Lift the jar back a little."
-                game.status==OilPourStatus.RETURN_UPRIGHT -> "The lamp is full. Return the phone upright."
+                game.status==OilPourStatus.TOO_FAR -> "Tipped past 60° – the oil is spilling. Lift the jar back a little."
+                game.status==OilPourStatus.RETURN_UPRIGHT -> "Lamp filled over 80%! Return the phone upright to seal it."
                 game.status==OilPourStatus.SEALING -> "Hold still while the lamp is sealed: ${Math.round(game.seal*100)}%."
                 game.status==OilPourStatus.COMPLETE -> "The lamp is ready."
                 else -> "Pouring paused."
@@ -291,7 +302,8 @@ class StoryGameFragment : Fragment() {
         },{text ->if(stage=="card")status?.text=text}).also {it.start(preview)}
     }
     private fun award() {
-        if(saving || !arrived || cp()==null)return
+        val effectiveArrived = arrived || (stage == "oil" && oilLocationUnlocked)
+        if(saving || !effectiveArrived || cp()==null)return
         saving=true;closeScanner()
         val chapter=index();val checkpoint=cp()!!
         viewLifecycleOwner.lifecycleScope.launch {
@@ -300,11 +312,14 @@ class StoryGameFragment : Fragment() {
                 AppProviders.gameRepository.recordDiscovery(gameId,checkpoint.id,System.currentTimeMillis()).getOrThrow()
                 view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 found=app.database.playerProgressDao().getProgress(gameId,uid)?.completedCheckpointIds.orEmpty()
-                arrived=false;arrivalHold.reset()
+                arrived=false;arrivalHold.reset();oilLocationUnlocked=false
                 val b=body ?: return@launch
                 stage="reveal";b.removeAllViews();maze=null;oilView=null;compass?.stop();compass=null;live=null;diagnostics=null
+                val bonus = if(chapter==2) com.campusquest.domain.timer.GameTimerManager.calculateTimeBonus(gameId) else 0
+                if(chapter==2) com.campusquest.domain.timer.GameTimerManager.stopTimer()
                 StoryUi.text(b,if(chapter==2)"The light is back!" else "Chapter complete",27f)
-                StoryUi.text(b,LightTheWay.reveals[chapter]);StoryUi.text(b,"Saved · +100 points")
+                StoryUi.text(b,LightTheWay.reveals[chapter])
+                StoryUi.text(b,if(bonus > 0) "Saved · +100 level points + $bonus speed bonus!" else "Saved · +100 points")
                 StoryUi.button(b,if(chapter==2)"Complete the quest" else "Next chapter") {switch(if(chapter==2)"ending" else "walk")}
             } catch(e: Exception){status?.text="Could not save: ${e.message}. Your task can be retried.";if(stage=="key")StoryUi.button(body!!,"Retry saving the key") {award()}}
             finally {saving=false}
