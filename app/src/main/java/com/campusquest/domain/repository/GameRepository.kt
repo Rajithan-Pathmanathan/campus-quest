@@ -26,6 +26,12 @@ interface GameRepository {
 
     suspend fun publishGame(gameId: String): Result<Unit>
 
+    /**
+     * Deletes a quest everywhere (this phone and the cloud). Only the player who created it
+     * (guest or email account) may do this; anyone else gets a failure.
+     */
+    suspend fun deleteGame(gameId: String): Result<Unit>
+
     suspend fun joinGame(gameId: String): Result<Unit>
 
     suspend fun getGameCheckpoints(gameId: String): List<Checkpoint>

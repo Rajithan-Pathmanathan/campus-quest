@@ -17,8 +17,10 @@ service cloud.firestore {
     match /games/{gameId} {
       allow read: if signedIn() && (resource.data.status == 'PUBLISHED' || resource.data.creatorId == request.auth.uid);
       allow create: if signedIn() && request.resource.data.creatorId == request.auth.uid;
-      allow update, delete: if signedIn() && resource.data.creatorId == request.auth.uid
-                            && request.resource.data.creatorId == request.auth.uid;
+      allow update: if signedIn() && resource.data.creatorId == request.auth.uid
+                    && request.resource.data.creatorId == request.auth.uid;
+      // Only the creator (guest or email account) can delete their quest.
+      allow delete: if signedIn() && resource.data.creatorId == request.auth.uid;
 
       match /checkpoints/{checkpointId} {
         allow read: if signedIn();
@@ -41,6 +43,9 @@ service cloud.firestore {
     match /leaderboards/{gameId}/entries/{uid} {
       allow read: if signedIn();
       allow write: if isUser(uid);
+      // The quest's creator clears its leaderboard when deleting the quest.
+      allow delete: if signedIn() &&
+        get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid;
     }
   }
 }

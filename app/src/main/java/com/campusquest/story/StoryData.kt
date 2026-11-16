@@ -20,6 +20,8 @@ interface StoryDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putConfig(config: StoryConfigEntity)
     @Query("SELECT * FROM story_session WHERE gameId = :gameId AND userId = :userId") suspend fun session(gameId: String, userId: String): StorySessionEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE) suspend fun putSession(session: StorySessionEntity)
+    @Query("DELETE FROM story_config WHERE gameId = :gameId") suspend fun deleteConfig(gameId: String)
+    @Query("DELETE FROM story_session WHERE gameId = :gameId") suspend fun deleteSessions(gameId: String)
 }
 
 object LightTheWay {

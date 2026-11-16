@@ -57,6 +57,9 @@ class GameDetailFragment : Fragment() {
                 (binding.btnJoin.parent as android.view.ViewGroup).addView(button)
             }
         }
+        binding.btnDeleteQuest.setOnClickListener {
+            com.campusquest.ui.creator.QuestDeletion.confirmAndDelete(this, gameId) { findNavController().navigateUp() }
+        }
         binding.btnViewLeaderboard.setOnClickListener {
             findNavController().navigate(
                 R.id.action_gameDetail_to_leaderboard,
@@ -113,6 +116,8 @@ class GameDetailFragment : Fragment() {
                 }
             )
             binding.btnStartQuest.isVisible = joined
+            // Only the person who created the quest (guest or email account) sees "Delete quest".
+            binding.btnDeleteQuest.isVisible = com.campusquest.ui.creator.QuestDeletion.isCreator(game.creatorId)
         }
 
         binding.tvJoinError.isVisible = state.joinError != null

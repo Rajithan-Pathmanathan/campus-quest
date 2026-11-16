@@ -16,7 +16,9 @@ The code for every integration is in place. This guide lists the **external** st
 ---
 
 ## 1. Firebase project config
-The repo's `app/google-services.json` points to **`campus-quest-17889`** with package `com.campusquest` (debug and release use the same package). If you use another project, add an Android app with package `com.campusquest` and replace the file.
+The repo's `app/google-services.json` points to **`campus-quest-e9398`** with package `com.campusquest` (debug and release use the same package). This project already has Email/Password and Anonymous sign-in, a Firestore database in asia-south1 and the leaderboard index (steps 2-3), but **re-publish `firestore.rules` from this repo** whenever it changes. Teammates who need console access are added under Project settings → Users and permissions.
+
+The earlier team project `campus-quest-17889` is no longer used. To switch projects later, add an Android app with package `com.campusquest` to the new project and replace the file.
 
 ## 2. Sign-in methods
 Firebase Console → **Authentication → Sign-in method** → enable **Email/Password** and **Anonymous**.

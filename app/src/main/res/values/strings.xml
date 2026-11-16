@@ -120,4 +120,10 @@
     <string name="checkpoint_edit">Edit</string>
     <string name="checkpoint_delete">Delete</string>
     <string name="game_card_view_quest">View Quest</string>
+    <!-- Delete quest (creator only) -->
+    <string name="quest_delete">Delete quest</string>
+    <string name="quest_delete_title">Delete this quest?</string>
+    <string name="quest_delete_message">The quest, its checkpoints and its leaderboard will be removed for everyone. This cannot be undone.</string>
+    <string name="quest_delete_confirm">Delete quest</string>
+    <string name="quest_deleted">Quest deleted.</string>
 </resources>

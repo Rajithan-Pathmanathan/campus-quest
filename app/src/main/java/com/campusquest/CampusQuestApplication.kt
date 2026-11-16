@@ -66,8 +66,11 @@ class CampusQuestApplication : Application() {
             AuthRepositoryImpl(
                 auth = FirebaseAuth.getInstance(),
                 onSignedIn = { user ->
-                    firestore?.let { cloud -> runCatching { cloud.saveUserProfile(user) } }
-                    pushNotifications?.onSignedIn(user.uid)
+                    // App scope: the login screen (and its scope) closes right after sign-in.
+                    appScope.launch {
+                        firestore?.let { cloud -> runCatching { cloud.saveUserProfile(user) } }
+                        pushNotifications?.onSignedIn(user.uid)
+                    }
                     SyncWorker.enqueue(this)
                 },
                 deleteUserData = { uid ->

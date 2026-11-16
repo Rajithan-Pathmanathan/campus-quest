@@ -98,6 +98,8 @@ class M1FakeGameRepository : GameRepository {
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint): Result<Unit> =
         Result.success(Unit)
 
+    override suspend fun deleteGame(gameId: String): Result<Unit> = Result.success(Unit)
+
     override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> =
         Result.success(Unit)
 

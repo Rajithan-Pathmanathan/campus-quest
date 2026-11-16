@@ -112,6 +112,9 @@ class M6RepositoryAndSyncTest {
 
         override suspend fun getAllPlayerProgress(userId: String): List<PlayerProgressEntity> =
             progressMap.values.filter { it.userId == userId }
+        override suspend fun deleteGameProgress(gameId: String) {
+            progressMap.entries.removeIf { it.value.gameId == gameId }
+        }
         override suspend fun deleteUserProgress(userId: String) {
             progressMap.entries.removeIf { it.value.userId == userId }
         }
@@ -283,5 +286,33 @@ class M6RepositoryAndSyncTest {
 
         repo.deleteCheckpoint("g1", "cp1")
         assertTrue(repo.getGameCheckpoints("g1").isEmpty())
+    }
+
+    @Test
+    fun onlyTheCreatorCanDeleteAQuest_andTheDeleteIsQueuedForTheCloud() = runBlocking {
+        val gameDao = FakeGameDao()
+        val cpDao = FakeCheckpointDao()
+        val progressDao = FakePlayerProgressDao()
+        val syncDao = FakeSyncQueueDao()
+        val auth = FakeAuthRepository("guest_creator")
+        val repo = GameRepositoryImpl(gameDao, cpDao, progressDao, syncDao, auth)
+
+        repo.createGame(Game("g1", "Mine", "d", "guest_creator", "Guest", GameStatus.PUBLISHED, 1))
+        repo.createCheckpoint("g1", Checkpoint("cp1", "g1", "One", 6.97, 79.91, 15f, LightSignature(0f, 100f), "c", "l", 1))
+        repo.joinGame("g1")
+
+        // Someone else (e.g. an email account on the same phone) cannot delete it.
+        auth.activeUid = "other_player"
+        assertTrue(repo.deleteGame("g1").isFailure)
+        assertNotNull(repo.getGameDetails("g1"))
+
+        // The creator can, whether guest or email account.
+        auth.activeUid = "guest_creator"
+        assertTrue(repo.deleteGame("g1").isSuccess)
+        assertEquals(null, repo.getGameDetails("g1"))
+        assertEquals(null, progressDao.getProgress("g1", "guest_creator"))
+        assertTrue(syncDao.getPendingSyncItems().any {
+            it.operationType == com.campusquest.data.local.entity.SyncOperationType.DELETE_GAME && it.entityId == "g1"
+        })
     }
 }
