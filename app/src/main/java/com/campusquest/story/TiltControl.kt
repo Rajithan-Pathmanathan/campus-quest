@@ -17,11 +17,13 @@ class TiltControl {
     private var lastRotation=0
     private var lastSample:Long?=null
     var x=0f; private set
+    /** Left/right tilt from the calibrated start pose, in real degrees (-90..90). Used by the oil jar. */
+    var xDegrees=0f; private set
     var y=0f; private set
     var calibrated=false; private set
 
-    fun reset() {samples=0;lastSample=null;calibrated=false;pendingCalibration=true;x=0f;y=0f}
-    fun calibrate() {pendingCalibration=true;calibrated=false;x=0f;y=0f}
+    fun reset() {samples=0;lastSample=null;calibrated=false;pendingCalibration=true;x=0f;y=0f;xDegrees=0f}
+    fun calibrate() {pendingCalibration=true;calibrated=false;x=0f;y=0f;xDegrees=0f}
     fun fresh(now:Long)=calibrated && lastSample?.let {now-it in 0..1000}==true
 
     fun sample(rawX:Float,rawY:Float,rotation:Int,now:Long,rawZ:Float=9.81f) {
@@ -41,6 +43,7 @@ class TiltControl {
             return if(abs(value)<.06f)0f else sign(value)*(abs(value)-.06f)/.94f
         }
         x=control(neutralX-roll)
+        xDegrees=Math.toDegrees(atan2(kotlin.math.sin(neutralX-roll),kotlin.math.cos(neutralX-roll)).toDouble()).toFloat()
         y=control(pitch-neutralY)
     }
 }

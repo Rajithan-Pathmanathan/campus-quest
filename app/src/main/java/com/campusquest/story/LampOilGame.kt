@@ -4,6 +4,14 @@ import kotlin.math.abs
 
 enum class OilPourStatus { READY, POURING, TOO_FAST, TOO_FAR, RETURN_UPRIGHT, SEALING, PAUSED, COMPLETE }
 
+/**
+ * Pouring oil from a jar by tilting the phone LEFT or RIGHT (forward/back tilt is ignored).
+ * [update]'s tilt is the sideways angle in degrees from the upright start pose. Measured as the
+ * jar's angle with the horizontal x axis (upright = 90°):
+ *  - more than 60° from horizontal (tipped < 30°): the jar rests, nothing pours;
+ *  - 30°–60° from horizontal (tipped 30°–60°): oil pours into the lamp;
+ *  - less than 30° from horizontal (tipped > 60°): tipped too far, oil spills.
+ */
 class LampOilGame {
     var fill = 0f
         private set
@@ -59,9 +67,9 @@ class LampOilGame {
         private const val POUR_SECONDS = 25f
         private const val SEAL_SECONDS = 2f
         private const val SPILL_SECONDS = 8f
-        private const val MIN_POUR_TILT = .28f
-        private const val MAX_POUR_TILT = .95f
-        private const val UPRIGHT_TILT = .12f
+        const val MIN_POUR_TILT = 30f   // degrees tipped from upright
+        const val MAX_POUR_TILT = 60f
+        const val UPRIGHT_TILT = 10f
         private const val MAX_TURN_RATE = 2.4f
     }
 }

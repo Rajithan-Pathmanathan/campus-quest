@@ -30,15 +30,23 @@ class CreatorDashboardFragment : Fragment() {
         )
     }
 
-    private val adapter = GameCardAdapter { game ->
-        val bundle = Bundle().apply { putString("gameId", game.id) }
-        // Drafts open the quest editor (title, checkpoints, Publish); published quests open their checkpoints.
-        if (game.status == com.campusquest.domain.model.GameStatus.DRAFT) {
-            findNavController().navigate(R.id.action_creator_to_createGame, bundle)
-        } else {
-            findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
+    private val adapter = GameCardAdapter(
+        onOpen = { game ->
+            val bundle = Bundle().apply { putString("gameId", game.id) }
+            // Drafts open the quest editor (title, checkpoints, Publish); published quests open their checkpoints.
+            if (game.status == com.campusquest.domain.model.GameStatus.DRAFT) {
+                findNavController().navigate(R.id.action_creator_to_createGame, bundle)
+            } else {
+                findNavController().navigate(R.id.action_creator_to_checkpointList, bundle)
+            }
+        },
+        onOpenRepairCard = { game ->
+            findNavController().navigate(
+                R.id.storySetupFragment,
+                Bundle().apply { putString("gameId", game.id) }
+            )
         }
-    }
+    )
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -67,6 +75,10 @@ class CreatorDashboardFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { state ->
                     adapter.submitList(state.games)
+                    val storyIds = state.games
+                        .filter { CampusQuestApplication.instance.database.storyDao().config(it.id) != null }
+                        .mapTo(mutableSetOf()) { it.id }
+                    adapter.showRepairCardsFor(storyIds)
                     binding.layoutEmptyAuthored.visibility =
                         if (state.games.isEmpty() && !state.isLoading) View.VISIBLE else View.GONE
                     state.error?.let {

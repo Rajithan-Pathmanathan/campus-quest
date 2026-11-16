@@ -10,8 +10,16 @@ import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.GameStatus
 
 class GameCardAdapter(
-    private val onOpen: (Game) -> Unit
+    private val onOpen: (Game) -> Unit,
+    private val onOpenRepairCard: (Game) -> Unit
 ) : ListAdapter<Game, GameCardAdapter.Holder>(Diff) {
+
+    private var storyGameIds: Set<String> = emptySet()
+
+    fun showRepairCardsFor(gameIds: Set<String>) {
+        storyGameIds = gameIds
+        notifyDataSetChanged()
+    }
 
     class Holder(val binding: ItemGameCardBinding) : RecyclerView.ViewHolder(binding.root)
 
@@ -33,6 +41,8 @@ class GameCardAdapter(
             tvCheckpointCount.text = "📍 ${game.checkpointCount} Checkpoints"
             btnViewDetails.text = if (game.status == GameStatus.DRAFT) "Edit" else "View"
             btnViewDetails.setOnClickListener { onOpen(game) }
+            btnRepairCard.visibility = if (game.id in storyGameIds) android.view.View.VISIBLE else android.view.View.GONE
+            btnRepairCard.setOnClickListener { onOpenRepairCard(game) }
             root.setOnClickListener { onOpen(game) }
         }
     }

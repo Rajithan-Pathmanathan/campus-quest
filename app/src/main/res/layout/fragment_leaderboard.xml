@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/bg_expedition">
+    android:background="@drawable/bg_campus_forest">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -22,11 +22,26 @@
         android:layout_height="0dp"
         android:layout_weight="1">
 
+        <TextView
+            android:id="@+id/tv_game_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#D9102A22"
+            android:gravity="center"
+            android:padding="12dp"
+            android:textColor="@color/secondary_amber"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:text="Campus Trail" />
+
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_leaderboard"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="12dp"
+            android:paddingStart="12dp"
+            android:paddingTop="58dp"
+            android:paddingEnd="12dp"
+            android:paddingBottom="12dp"
             android:clipToPadding="false"
             tools:listitem="@layout/item_leaderboard_entry" />
 

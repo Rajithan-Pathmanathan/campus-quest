@@ -46,6 +46,32 @@ class LeaderboardViewModelTest {
     }
 
     @Test
+    fun `bottom navigation loads the first published quest leaderboard`() {
+        val repo = M1FakeGameRepository().apply {
+            games = listOf(
+                m1Game(id = "draft", status = com.campusquest.domain.model.GameStatus.DRAFT),
+                m1Game(id = "published", title = "Campus Trail")
+            )
+        }
+        val vm = LeaderboardViewModel(repo)
+
+        vm.load(null)
+
+        assertEquals(listOf("published"), repo.leaderboardRequests)
+        assertEquals("Campus Trail", vm.uiState.value.gameTitle)
+    }
+
+    @Test
+    fun `bottom navigation shows an empty state when there are no published quests`() {
+        val vm = LeaderboardViewModel(M1FakeGameRepository())
+
+        vm.load(null)
+
+        assertTrue(vm.uiState.value.isEmpty)
+        assertEquals("No published quests", vm.uiState.value.gameTitle)
+    }
+
+    @Test
     fun `shows loading until the first entries arrive`() {
         val repo = M1FakeGameRepository()
         val source = MutableSharedFlow<List<GameLeaderboardEntry>>(replay = 1)

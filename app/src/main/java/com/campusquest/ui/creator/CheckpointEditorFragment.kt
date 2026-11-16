@@ -50,9 +50,9 @@ class CheckpointEditorFragment : Fragment() {
     private var lastUserLocation: GeoPoint? = null
     private val locationRepository get() = CampusQuestApplication.instance.locationRepository
 
-    private val requestLocation = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
-        startLocation()
-        if (!hasLocationPermission()) PermissionNotice.show(this, AppPermission.LOCATION)
+    /** Permission + the phone's Location switch (asks to turn it on); same helper as the story screens. */
+    private val locationAccess = com.campusquest.story.LocationAccess(this, { startLocation() }) { message ->
+        context?.let { Toast.makeText(it, message, Toast.LENGTH_LONG).show() }
     }
 
     private val viewModel: CheckpointEditorViewModel by viewModels {
@@ -108,7 +108,11 @@ class CheckpointEditorFragment : Fragment() {
         binding.btnUseMyLocation.setOnClickListener {
             val here = lastUserLocation
             if (here != null) setLocation(here)
-            else Toast.makeText(requireContext(), R.string.checkpoint_waiting_location, Toast.LENGTH_SHORT).show()
+            else {
+                // No position yet: make sure permission is granted and Location is switched on.
+                Toast.makeText(requireContext(), R.string.checkpoint_waiting_location, Toast.LENGTH_SHORT).show()
+                locationAccess.request()
+            }
         }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -209,8 +213,7 @@ class CheckpointEditorFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        if (hasLocationPermission()) startLocation()
-        else requestLocation.launch(arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION))
+        if (hasLocationPermission()) startLocation() else locationAccess.request()
     }
 
     override fun onStop() {
@@ -230,6 +233,8 @@ class CheckpointEditorFragment : Fragment() {
     /** "You are here" marker; the first fix also moves the map to the creator's area (if no pin is set yet). */
     private fun showUser(location: LocationState) {
         val map = _binding?.mapPicker ?: return
+        // Only a fix from the current session (tracking restarts with no position).
+        if (!location.isUpdating) return
         val lat = location.smoothedLatitude ?: return
         val lng = location.smoothedLongitude ?: return
         val here = GeoPoint(lat, lng)

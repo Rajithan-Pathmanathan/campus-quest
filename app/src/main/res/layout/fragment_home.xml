@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:scaleType="centerCrop"
+        android:src="@drawable/bg_campus_forest" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80102A22" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <TextView
+            android:id="@+id/tv_welcome"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/dashboard_welcome_default"
+            android:textColor="@color/on_primary_emerald"
+            android:textSize="27sp"
+            android:textStyle="bold"
+            tools:text="Welcome, Explorer" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/home_subtitle"
+            android:textColor="#D9E3DD"
+            android:textSize="15sp" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_campus"
+            style="@style/Widget.CampusQuest.Card"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="24dp"
+            android:layout_marginBottom="12dp"
+            android:layout_weight="1"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:contentDescription="@string/home_open_quests"
+            app:cardCornerRadius="26dp"
+            app:strokeColor="@color/gold_edge"
+            app:strokeWidth="2dp">
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/home_campus_art_description"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/art_kelaniya_campus" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom"
+                    android:background="#E6102A22"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="18dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/home_campus_title"
+                            android:textColor="@color/on_primary_emerald"
+                            android:textSize="21sp"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="3dp"
+                            android:text="@string/home_open_quests"
+                            android:textColor="@color/secondary_amber"
+                            android:textSize="14sp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:contentDescription="@null"
+                        android:importantForAccessibility="no"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="@color/secondary_amber" />
+                </LinearLayout>
+            </FrameLayout>
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+</FrameLayout>

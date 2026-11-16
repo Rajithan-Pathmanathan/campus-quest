@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ImageView android:layout_width="match_parent" android:layout_height="match_parent" android:contentDescription="@null" android:importantForAccessibility="no" android:scaleType="centerCrop" android:src="@drawable/bg_campus_forest" />
+    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#B3102A22" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="20dp">
+
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/nav_profile" android:textColor="@color/on_primary_emerald" android:textSize="27sp" android:textStyle="bold" />
+            <ImageView android:layout_width="88dp" android:layout_height="88dp" android:layout_gravity="center_horizontal" android:layout_marginTop="22dp" android:background="@drawable/bg_rank_gold" android:contentDescription="@null" android:importantForAccessibility="no" android:padding="20dp" android:src="@drawable/ic_profile" app:tint="@color/primary_emerald_dark" />
+            <TextView android:id="@+id/tv_profile_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="10dp" android:textColor="@color/on_primary_emerald" android:textSize="22sp" android:textStyle="bold" tools:text="Explorer" />
+            <TextView android:id="@+id/tv_profile_email" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_gravity="center_horizontal" android:layout_marginTop="3dp" android:textColor="#D9E3DD" tools:text="explorer@example.com" />
+
+            <com.google.android.material.card.MaterialCardView style="@style/Widget.CampusQuest.Card" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="22dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:orientation="horizontal" android:padding="18dp">
+                    <ImageView android:layout_width="42dp" android:layout_height="42dp" android:contentDescription="@null" android:importantForAccessibility="no" android:src="@drawable/ic_coin" />
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="14dp" android:layout_weight="1" android:text="@string/profile_total_points" android:textColor="@color/text_secondary" android:textSize="16sp" />
+                    <TextView android:id="@+id/tv_total_points" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:textColor="@color/primary_emerald" android:textSize="25sp" android:textStyle="bold" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_creator_studio" style="@style/Widget.CampusQuest.Button" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="18dp" android:text="@string/dashboard_creator_title" app:icon="@drawable/ic_tools" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_privacy_policy" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:minHeight="52dp" android:text="@string/account_privacy_policy" app:icon="@drawable/ic_privacy" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_sign_out" style="@style/Widget.Material3.Button.OutlinedButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:minHeight="52dp" android:text="@string/account_sign_out" app:icon="@drawable/ic_sign_out" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btn_delete_account" style="@style/Widget.Material3.Button.TextButton" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:minHeight="52dp" android:text="@string/account_delete" android:textColor="@color/status_closed" app:icon="@drawable/ic_delete" app:iconTint="@color/status_closed" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</FrameLayout>
