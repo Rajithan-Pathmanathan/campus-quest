@@ -66,6 +66,7 @@ private class ScanFakeGameRepository : GameRepository {
     override suspend fun createCheckpoint(gameId: String, checkpoint: Checkpoint) = Result.success(checkpoint)
     override suspend fun updateCheckpoint(gameId: String, checkpoint: Checkpoint) = Result.success(Unit)
     override suspend fun deleteCheckpoint(gameId: String, checkpointId: String) = Result.success(Unit)
+    override suspend fun deleteGame(gameId: String) = Result.success(Unit)
     override suspend fun publishGame(gameId: String) = Result.success(Unit)
     override suspend fun joinGame(gameId: String) = Result.success(Unit)
     override suspend fun getFusionSignature(gameId: String, checkpointId: String) = LightSignature(0f, 1000f)

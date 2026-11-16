@@ -13,6 +13,7 @@ import com.campusquest.domain.model.GameLeaderboardEntry
 import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.PlayerProgress
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FirebaseFirestoreException
 import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.SetOptions
 import kotlinx.coroutines.channels.awaitClose
@@ -43,6 +44,27 @@ class FirestoreServiceImpl(private val db: FirebaseFirestore) : FirestoreService
         checkpoints.forEach { batch.set(checkpoints(game.id).document(it.id), FirestoreCheckpointDto.fromDomain(it)) }
         (remoteIds - checkpoints.map { it.id }.toSet()).forEach { batch.delete(checkpoints(game.id).document(it)) }
         batch.commit().await()
+    }
+
+    override suspend fun deleteGame(gameId: String) {
+        val gameRef = games.document(gameId)
+        // Never uploaded (a draft) or already deleted: the rules refuse reading a missing quest,
+        // so PERMISSION_DENIED here also means "nothing to delete".
+        val exists = try {
+            gameRef.get().await().exists()
+        } catch (e: FirebaseFirestoreException) {
+            if (e.code == FirebaseFirestoreException.Code.PERMISSION_DENIED) false else throw e
+        }
+        if (!exists) return
+        // Children first, while the quest still exists: the rules check its creatorId.
+        val children = checkpoints(gameId).get().await().documents.map { it.reference } +
+            entries(gameId).get().await().documents.map { it.reference }
+        children.chunked(450).forEach { chunk ->
+            val batch = db.batch()
+            chunk.forEach { batch.delete(it) }
+            batch.commit().await()
+        }
+        gameRef.delete().await()
     }
 
     override suspend fun saveProgress(progress: PlayerProgress) {

@@ -72,7 +72,13 @@ class GameRepositoryImpl(
             withTimeoutOrNull(CLOUD_TIMEOUT_MS) {
                 val pendingGameIds = syncQueueDao.getPendingSyncItems()
                     .map { payloadValue(it.payloadJson, "gameId") ?: it.entityId }.toSet()
-                for (remoteGame in cloud.fetchPublishedGames()) {
+                val remoteGames = cloud.fetchPublishedGames()
+                val remoteIds = remoteGames.map { it.game.id }.toSet()
+                // Quests deleted in the cloud by their creator disappear here too (own drafts stay).
+                gameDao.getPublishedGames(GameStatus.PUBLISHED)
+                    .filter { it.id !in remoteIds && it.id !in pendingGameIds && it.creatorId != uid }
+                    .forEach { inTransaction { removeLocally(it.id) } }
+                for (remoteGame in remoteGames) {
                     val game = remoteGame.game
                     if (game.id in pendingGameIds) continue // local edits not uploaded yet win
                     inTransaction {
@@ -219,6 +225,37 @@ class GameRepositoryImpl(
         }
     }
 
+    override suspend fun deleteGame(gameId: String): Result<Unit> {
+        return try {
+            val game = gameDao.getGameById(gameId) ?: return Result.failure(IllegalArgumentException("This quest no longer exists."))
+            val uid = authRepository?.getCurrentUserId()
+            if (uid == null || game.creatorId != uid) {
+                return Result.failure(SecurityException("Only the person who created this quest can delete it."))
+            }
+            inTransaction {
+                removeLocally(gameId)
+                enqueue(SyncQueueEntity(
+                    operationType = SyncOperationType.DELETE_GAME,
+                    entityId = gameId,
+                    payloadJson = """{"gameId":"$gameId","creatorId":"$uid"}"""
+                ))
+            }
+            Result.success(Unit)
+        } catch (e: kotlinx.coroutines.CancellationException) {
+            throw e
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /** Quest, its checkpoints (cascade), every player's progress on it and its Light the Way config. */
+    private suspend fun removeLocally(gameId: String) {
+        gameDao.deleteGame(gameId)
+        playerProgressDao.deleteGameProgress(gameId)
+        storyDao?.deleteConfig(gameId)
+        storyDao?.deleteSessions(gameId)
+    }
+
     override suspend fun joinGame(gameId: String): Result<Unit> {
         return try {
             val userId = currentUserId()
@@ -333,6 +370,12 @@ class GameRepositoryImpl(
     private suspend fun upload(cloud: FirestoreService, item: SyncQueueEntity): Boolean {
         val uid = authRepository?.getCurrentUserId() ?: return false // wait until signed in
         return when (item.operationType) {
+            SyncOperationType.DELETE_GAME -> {
+                // Only the creator's account can delete it in the cloud; otherwise wait for them to sign in.
+                if (payloadValue(item.payloadJson, "creatorId") != uid) return false
+                cloud.deleteGame(payloadValue(item.payloadJson, "gameId") ?: item.entityId)
+                true
+            }
             SyncOperationType.CREATE_GAME, SyncOperationType.CREATE_CHECKPOINT,
             SyncOperationType.UPDATE_CHECKPOINT, SyncOperationType.DELETE_CHECKPOINT,
             SyncOperationType.PUBLISH_GAME -> {

@@ -51,6 +51,12 @@ class FakeGameRepository : GameRepository {
         return Result.success(Unit)
     }
 
+    override suspend fun deleteGame(gameId: String): Result<Unit> {
+        games.removeAll { it.id == gameId }
+        checkpoints.removeAll { it.gameId == gameId }
+        return Result.success(Unit)
+    }
+
     override suspend fun deleteCheckpoint(gameId: String, checkpointId: String): Result<Unit> {
         checkpoints.removeAll { it.gameId == gameId && it.id == checkpointId }
         return Result.success(Unit)

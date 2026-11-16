@@ -135,6 +135,16 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/spacing_s"
                     android:text="@string/game_detail_view_quest_leaderboard" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_delete_quest"
+                    style="@style/Widget.Material3.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_s"
+                    android:text="@string/quest_delete"
+                    android:textColor="@color/status_closed"
+                    android:visibility="gone" />
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
     </FrameLayout>

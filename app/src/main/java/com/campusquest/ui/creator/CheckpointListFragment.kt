@@ -64,6 +64,12 @@ class CheckpointListFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         binding.toolbar.setNavigationOnClickListener { findNavController().navigateUp() }
+        // Only the quest's creator ever reaches this screen (Creator Studio lists their own quests),
+        // and the repository checks again before deleting.
+        binding.toolbar.menu.add(R.string.quest_delete).setOnMenuItemClickListener {
+            QuestDeletion.confirmAndDelete(this, gameId) { findNavController().navigateUp() }
+            true
+        }
         binding.rvCheckpoints.layoutManager = LinearLayoutManager(requireContext())
         binding.rvCheckpoints.adapter = adapter
         binding.btnAddCheckpoint.setOnClickListener { openEditor(null) }

@@ -25,6 +25,8 @@ interface FirestoreService {
     suspend fun fetchPublishedGames(): List<RemoteGame>
     /** Writes the game, all its checkpoints and (optionally) the story config in one batch; removes deleted checkpoints. */
     suspend fun publishGame(game: Game, checkpoints: List<Checkpoint>, story: FirestoreStoryConfigDto?)
+    /** Removes a quest: its checkpoints and leaderboard first, then the quest itself. Creator only (rules). */
+    suspend fun deleteGame(gameId: String)
     suspend fun saveProgress(progress: PlayerProgress)
     suspend fun fetchProgress(userId: String): List<PlayerProgress>
     suspend fun submitLeaderboardEntry(gameId: String, entry: GameLeaderboardEntry)
