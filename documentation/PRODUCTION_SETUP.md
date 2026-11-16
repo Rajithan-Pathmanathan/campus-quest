@@ -1,4 +1,6 @@
-# Campus Quest: production setup (what you need to provide)
+# Campus Quest: setup (what you need to provide)
+
+> Campus Quest is an **academic project and will not be published on Google Play**. Steps marked *(Play only)* can be skipped; the debug APK is fine for demos.
 
 The code for every integration is in place. This guide lists the **external** steps (consoles, keys and accounts) that the code needs. Each step says what stops working if it is skipped.
 
@@ -8,10 +10,9 @@ The code for every integration is in place. This guide lists the **external** st
 | 2 | Sign-in methods enabled | M5 | Email / guest sign-in fail |
 | 3 | Firestore database + rules + index | M5 | No shared quests, progress or leaderboard (app works offline only) |
 | 4 | Notification server (Vercel) + `NEW_QUEST_NOTIFY_URL` | M5 | No "new quest" push (everything else works) |
-| 5 | Privacy policy URL (`PRIVACY_POLICY_URL`) | Team | Dashboard says "not configured"; Google Play rejects the app |
-| 6 | Release keystore (`keystore.properties`) | Project owner | Release APK/AAB is unsigned (can't upload to Play) |
+| 6 | Release keystore *(Play only)* | Project owner | Only needed for a Play upload; the debug APK works for demos |
 | 7 | App Check + Crashlytics in the console | M5 | Crash reports / abuse protection inactive |
-| 8 | Google Play declarations | Project owner | Play review rejects background location |
+| 8 | Google Play declarations *(Play only)* | — | Not needed: the app is not published |
 
 ---
 
@@ -47,9 +48,9 @@ An Android app cannot send to a topic itself, so `server/notify-new-quest` conta
 The function checks the caller's Firebase ID token, checks that the quest is published and owned by the caller, and sends once per quest. Phones subscribe to the topic `new_games` automatically after sign-in.
 
 ## 5. Privacy policy
-Host `documentation/PRIVACY_POLICY.md` (for example on GitHub Pages or Google Sites), then add `PRIVACY_POLICY_URL=<url>` to `local.properties`. The dashboard's **Privacy policy** button opens it.
+The policy is built into the app (login screen link and Dashboard → Account → Privacy policy), so nothing needs hosting. Edit the text in `app/src/main/res/values/privacy_policy.xml` and keep `documentation/PRIVACY_POLICY.md` in sync.
 
-## 6. Release signing
+## 6. Release signing *(Play only)*
 ```bash
 keytool -genkeypair -v -keystore release.jks -alias campusquest -keyalg RSA -keysize 2048 -validity 10000
 ```
@@ -60,7 +61,7 @@ Create `keystore.properties` at the project root (git-ignored) with `storeFile`,
 - **App Check:** Firebase → App Check → register the Android app with **Play Integrity** (needs the release SHA-256). Debug builds print a debug token in Logcat; add it under *Manage debug tokens*. Turn on **Enforce** for Firestore only after both are registered.
 - **Restrict the API key:** Google Cloud Console → Credentials → the Android key → restrict to package `com.campusquest` + your SHA-1 fingerprints.
 
-## 8. Google Play
+## 8. Google Play *(Play only, not needed for this project)*
 - **Data safety form:** location (precise, background), email, user ID, crash logs.
 - **Background location declaration** with a short video showing: Start quest → the explanation dialog → "Allow all the time" → the "you're close" alert.
 - **Account deletion:** in-app at Dashboard → Account → *Delete my account*. Play also asks for a web link; point it to your privacy policy's deletion section.

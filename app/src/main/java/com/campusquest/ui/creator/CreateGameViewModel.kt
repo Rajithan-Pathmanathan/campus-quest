@@ -34,6 +34,25 @@ class CreateGameViewModel(
     private val _state = MutableStateFlow(GameEditorUiState())
     val state: StateFlow<GameEditorUiState> = _state.asStateFlow()
 
+    /** Opens an existing draft so it can be edited, given checkpoints and published. */
+    fun loadExisting(gameId: String) {
+        if (_state.value.gameId == gameId) return
+        viewModelScope.launch {
+            val game = try {
+                repository.getGameDetails(gameId)
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                null
+            }
+            if (game == null) {
+                _state.update { it.copy(saveError = "This quest could not be loaded.") }
+                return@launch
+            }
+            _state.update { it.copy(gameId = game.id, title = game.title, description = game.description) }
+        }
+    }
+
     fun onTitleChanged(value: String) {
         _state.update { it.copy(title = value, titleError = null) }
     }

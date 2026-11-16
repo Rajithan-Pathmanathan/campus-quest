@@ -176,4 +176,12 @@
     <fragment android:id="@+id/storySetupFragment" android:name="com.campusquest.story.StorySetupFragment" android:label="Story setup">
         <argument android:name="gameId" app:argType="string" app:nullable="true" android:defaultValue="@null" />
     </fragment>
+    <!-- Privacy policy (reachable from login and the dashboard) -->
+    <fragment
+        android:id="@+id/privacyPolicyFragment"
+        android:name="com.campusquest.ui.common.PrivacyPolicyFragment"
+        android:label="@string/privacy_title" />
+    <action
+        android:id="@+id/action_global_privacyPolicy"
+        app:destination="@id/privacyPolicyFragment" />
 </navigation>

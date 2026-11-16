@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- In-app privacy policy. Keep in sync with documentation/PRIVACY_POLICY.md. -->
+<resources>
+    <string name="privacy_title">Privacy Policy</string>
+    <string name="privacy_updated">Last updated: 16 November 2026</string>
+    <string name="privacy_accept_hint">By continuing, you agree to the Privacy Policy.</string>
+
+    <string name="privacy_policy_html"><![CDATA[
+<b>About Campus Quest</b><br>
+Campus Quest is a location-based campus exploration game built by a student team for academic coursework. It is not a commercial product, shows no advertising and is not sold. This policy explains what the app collects, why, and the choices you have.<br><br>
+
+<b>1. Your account</b><br>
+• <b>Email sign-in:</b> your email address and the display name you choose.<br>
+• <b>Guest sign-in:</b> a random guest ID only; no email or name is needed.<br>
+These are handled by Firebase Authentication so you can sign in and keep your progress. Your display name appears on quest leaderboards.<br><br>
+
+<b>2. Location</b><br>
+• <b>While you play or create quests</b>, the app uses your precise location to show you on the map, measure your distance to the next checkpoint, decide when a relic appears and help creators place checkpoints.<br>
+• Your location is processed <b>on your phone</b>. It is not uploaded and no location history is kept.<br>
+• <b>Background location (optional):</b> if you choose “Allow all the time”, Android checks whether you are near the next checkpoint so the app can alert you while it is closed. This also runs on your phone.<br>
+• <b>Exception:</b> the coordinates of checkpoints that <i>you place</i> in a quest you publish are uploaded, because other players need them to play.<br><br>
+
+<b>3. Phone sensors and camera</b><br>
+• The light, motion, proximity and compass sensors are read only during a quest and never leave your phone.<br>
+• The camera is used only in Light the Way to scan the repair card. Images are processed on the phone and are not stored or uploaded.<br><br>
+
+<b>4. Game data stored in the cloud</b><br>
+• Quests you publish: title, description, checkpoints and your display name as creator.<br>
+• Your progress in each quest (checkpoints found, score, start and finish time).<br>
+• Leaderboard entries: your display name, score and completion time, visible to other players of that quest.<br>
+• A notification token, so the app can tell you about new quests.<br><br>
+
+<b>5. Crash reports and app quality</b><br>
+Firebase Crashlytics and Analytics collect technical information such as your phone model, Android version and crash details, so we can fix bugs. Firebase App Check confirms requests come from the genuine app. These do not include your email or your location history.<br><br>
+
+<b>6. Where data is stored and who sees it</b><br>
+Cloud data is stored with Google Firebase (Cloud Firestore, Mumbai region, asia-south1), which processes it on our behalf. We do not sell or share your data with anyone else. Other players can see only your display name, scores and the quests you publish. Security rules allow each player to read and change only their own private data, and data is encrypted in transit.<br><br>
+
+<b>7. How long we keep it</b><br>
+Your data is kept while your account exists. Guest accounts belong to that guest session on the phone: after a guest signs out, that guest account and its quests can no longer be accessed from the app.<br><br>
+
+<b>8. Your choices</b><br>
+• <b>Permissions:</b> you can decline location, background location, camera or notifications. The app explains what will not work without them, and you can change them later in your phone’s Settings.<br>
+• <b>Delete a quest:</b> creators can delete their own quests at any time (Quest details or Creator Studio → Delete quest).<br>
+• <b>Delete your account:</b> Dashboard → Account → Delete my account permanently removes your account, your progress and your leaderboard entries. Delete any quests you published first if you want them removed too.<br>
+• <b>Sign out</b> at any time from the dashboard.<br><br>
+
+<b>9. Children</b><br>
+Campus Quest is intended for university students and is not directed at children under 13.<br><br>
+
+<b>10. Changes and contact</b><br>
+If the app’s use of data changes, this policy will be updated and the date above will change. For questions or data requests, contact the Campus Quest project team.
+]]></string>
+</resources>

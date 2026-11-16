@@ -49,7 +49,7 @@
     <string name="map_no_remaining">No remaining checkpoints</string>
     <string name="map_load_failed">Unable to load checkpoints</string>
     <string name="map_you">You</string>
-    <string name="checkpoint_map_picker_hint">Type the latitude and longitude, or tap the map to place the checkpoint (drag the pin to adjust).</string>
+    <string name="checkpoint_map_picker_hint">Type the latitude and longitude, use your current location, or tap the map to place the checkpoint (drag the pin to adjust). The map opens where you are.</string>
     <string name="checkpoint_map_picker_description">Map for choosing the checkpoint location</string>
     <string name="geofence_alert_title">Something stirs nearby…</string>
     <string name="geofence_alert_body">You\'re close to %1$s. Open Campus Quest and follow the warmth.</string>
@@ -88,7 +88,6 @@
     <string name="dashboard_account_title">Account</string>
     <string name="account_sign_out">Sign out</string>
     <string name="account_privacy_policy">Privacy policy</string>
-    <string name="account_privacy_missing">The privacy policy link has not been configured yet.</string>
     <string name="account_delete">Delete my account</string>
     <string name="account_delete_title">Delete your account?</string>
     <string name="account_delete_message">This permanently deletes your Campus Quest account, your progress and your leaderboard entries. Quests you created stay published. This cannot be undone.</string>
@@ -126,4 +125,7 @@
     <string name="quest_delete_message">The quest, its checkpoints and its leaderboard will be removed for everyone. This cannot be undone.</string>
     <string name="quest_delete_confirm">Delete quest</string>
     <string name="quest_deleted">Quest deleted.</string>
+    <string name="checkpoint_use_my_location">📍 Use my current location</string>
+    <string name="checkpoint_waiting_location">Still finding your location… make sure Location is on.</string>
+    <string name="creator_edit_quest_title">Edit Quest</string>
 </resources>
