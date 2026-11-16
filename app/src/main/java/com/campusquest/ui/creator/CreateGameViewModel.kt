@@ -22,7 +22,9 @@ data class GameEditorUiState(
     val descriptionError: String? = null,
     val isSaving: Boolean = false,
     val saveError: String? = null,
-    val savedGameId: String? = null
+    val savedGameId: String? = null,
+    /** Status of the loaded quest; saving a published quest keeps it published. */
+    val status: GameStatus = GameStatus.DRAFT
 )
 
 class CreateGameViewModel(
@@ -31,7 +33,9 @@ class CreateGameViewModel(
     private val currentUserName: () -> String?
 ) : ViewModel() {
 
-    private val _state = MutableStateFlow(GameEditorUiState())
+    private val _state = MutableStateFlow(
+        GameEditorUiState(title = "The Golden Tree", description = com.campusquest.story.LightTheWay.DESCRIPTION)
+    )
     val state: StateFlow<GameEditorUiState> = _state.asStateFlow()
 
     /** Opens an existing draft so it can be edited, given checkpoints and published. */
@@ -49,7 +53,11 @@ class CreateGameViewModel(
                 _state.update { it.copy(saveError = "This quest could not be loaded.") }
                 return@launch
             }
-            _state.update { it.copy(gameId = game.id, title = game.title, description = game.description) }
+            if (game.creatorId != currentUserId()) {
+                _state.update { it.copy(saveError = "Only the person who created this quest can edit it.") }
+                return@launch
+            }
+            _state.update { it.copy(gameId = game.id, title = game.title, description = game.description, status = game.status) }
         }
     }
 
@@ -87,7 +95,7 @@ class CreateGameViewModel(
                     description = current.description.trim(),
                     creatorId = creatorId,
                     creatorName = currentUserName() ?: "Creator",
-                    status = GameStatus.DRAFT
+                    status = current.status
                 )
                 repository.createGame(game)
                     .onSuccess { saved ->

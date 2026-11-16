@@ -2,7 +2,6 @@ package com.campusquest.story
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.hardware.GeomagneticField
 import android.os.*
 import android.view.*
 import android.widget.*
@@ -18,7 +17,6 @@ import com.campusquest.device.location.HaversineDistanceCalculator
 import com.campusquest.domain.model.*
 import com.campusquest.ui.common.AppProviders
 import com.campusquest.ui.quest.TrailCompassView
-import com.campusquest.ui.quest.TrailGuidance
 import kotlinx.coroutines.*
 import kotlin.math.abs
 
@@ -28,7 +26,6 @@ class StoryGameFragment : Fragment() {
     private val gameId get() = arguments?.getString("gameId").orEmpty()
     private var uid=""
     private var config: StoryConfigEntity?=null
-    private var session: StorySessionEntity?=null
     private var checkpoints: List<Checkpoint> = emptyList()
     private var found: List<String> = emptyList()
     private var sensors: StorySensors?=null
@@ -41,20 +38,18 @@ class StoryGameFragment : Fragment() {
     private var maze: KeyBoxView?=null
     private var keyStarted=false
     private var tiltStatus: TextView?=null
-    private var lamp: LampView?=null
+    private var jug: GoldenWaterView?=null
+    private var water = GoldenWater()
+    private var waterStarted = false
     private var scanner: CardScanner?=null
     private var cameraPreview: PreviewView?=null
     private var torchButton: Button?=null
     private var stage="loading"
-    private var useRelative=false
     private var arrived=false
     private var saving=false
-    private var coverPressed=false
     private var lastTick=0L
     private var cardErrorAt=0L
     private val arrivalHold=StoryArrival()
-    private val alignHold=ContinuousHold(2000)
-    private val coverHold=ContinuousHold(1000)
     private val locationAccess = LocationAccess(this, { refreshLocation() }, { status?.text=it })
     private val permissions=registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
         refreshLocation()
@@ -79,15 +74,12 @@ class StoryGameFragment : Fragment() {
             try {
                 uid=requireNotNull(AppProviders.authRepository.getCurrentUserId()) {"Please sign in to play"}
                 config=app.database.storyDao().config(gameId)
-                requireNotNull(config) {"This game has no Light the Way setup"}
+                requireNotNull(config) {"This older game needs a Golden Tree setup. Ask its creator to create the new three-stop adventure."}
                 checkpoints=AppProviders.gameRepository.getGameCheckpoints(gameId).sortedBy {it.order}
                 require(checkpoints.size==3) {"This story needs exactly three checkpoints"}
                 require(AppProviders.gameRepository.getGameDetails(gameId)?.status==GameStatus.PUBLISHED) {"This game is not published"}
                 AppProviders.gameRepository.joinGame(gameId).getOrThrow()
                found=app.database.playerProgressDao().getProgress(gameId,uid)?.completedCheckpointIds.orEmpty()
-                session=app.database.storyDao().session(gameId,uid) ?: StorySessionEntity(gameId,uid,
-                    motionFallback=false, coverFallback=sensors?.hasProximity!=true)
-                session=session?.copy(motionFallback=false)
                 stage="preflight";draw()
             } catch(e: Exception) {stage="error";draw();status?.text=e.message ?: "Could not load story"}
         }
@@ -104,8 +96,8 @@ class StoryGameFragment : Fragment() {
     }
     override fun onPause() {
         closeScanner();sensors?.stop();compass?.stop();app.locationRepository.stopTracking()
-        keyStarted=false
-        alignHold.reset();coverHold.reset();arrivalHold.reset();arrived=false;coverPressed=false
+        keyStarted=false;waterStarted=false
+        arrivalHold.reset();arrived=false
         super.onPause()
     }
     override fun onDestroyView() {
@@ -121,55 +113,50 @@ class StoryGameFragment : Fragment() {
     }
     private fun index()=checkpoints.indexOfFirst {it.id !in found}
     private fun cp()=checkpoints.getOrNull(index())
-    private fun saveSession() {
-        val s=session ?: return
-        viewLifecycleOwner.lifecycleScope.launch {runCatching {app.database.storyDao().putSession(s)}.onFailure {status?.text="Could not save controls. Try again."}}
-    }
     private fun switch(next: String) { closeScanner();stage=next;draw() }
     private fun draw() {
         val b=body ?: return
         closeScanner();compass?.stop();compass=null;maze=null;torchButton=null
-        b.removeAllViews();live=null;lightHint=null;diagnostics=null;lamp=null;tiltStatus=null
+        b.removeAllViews();live=null;lightHint=null;diagnostics=null;jug=null;tiltStatus=null
         StoryUi.button(b,"Back to quest") {findNavController().navigateUp()}
-        StoryUi.text(b,"LIGHT THE WAY",28f)
+        StoryUi.text(b,"THE GOLDEN TREE",28f)
         status=StoryUi.text(b,"")
         if(stage=="loading") {status?.text="Loading your walk…";return}
         if(stage=="error")return
         if(stage=="preflight") {
-            StoryUi.text(b,"Can you help light the way?",23f)
-            StoryUi.text(b,"The welcome walk starts soon, but the old meeting lamp is not working. Find its key, follow the repair note and bring its light back.")
-            StoryUi.text(b, "Tilt controls: ${if(sensors?.hasTilt==true)"accelerometer available" else "unavailable — required for this game"}\nDirection guidance: ${if(sensors?.hasHeading==true)"available" else "map and dial alternative"}\nLamp cover: ${if(session?.coverFallback==true)"slide control" else "hand-cover check"}",14f)
-            StoryUi.text(b, "Camera: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_ANY)} · Flashlight: ${requireContext().packageManager.hasSystemFeature(PackageManager.FEATURE_CAMERA_FLASH)}",14f)
-            StoryUi.text(b,"Cover the top front of your phone, then move your hand away. If the cover sensor does not respond, choose the slide control. Tilting is required for the key puzzle.")
-            live=StoryUi.text(b,"")
-            StoryUi.button(b,"Use slide control for the cover") {session=session?.copy(coverFallback=true);saveSession();status?.text="Lamp cover will use a slide control."}
+            StoryUi.text(b,"Bring the golden tree back to life",23f)
+            StoryUi.text(b,LightTheWay.DESCRIPTION)
+            StoryUi.text(b,"1. Tilt the key out of its box.\n2. Scan the keeper's printed card.\n3. Balance the golden water for 60 seconds.")
+            StoryUi.text(b,"Walk to each marked place. Stop somewhere safe to play. The box, jug and tree are on your screen; only the card at stop 2 is a real object.")
             StoryUi.button(b,"Allow location") {locationAccess.request()}
             StoryUi.button(b,"Start / resume the walk") {
                 if(sensors?.hasTilt!=true){status?.text="This game needs an accelerometer for tilt controls. This phone cannot play the key puzzle.";return@button}
                 if(sensors?.tilt?.fresh(SystemClock.elapsedRealtime())!=true){status?.text="Waiting for the tilt sensor. Hold your phone still briefly and try again.";return@button}
-                if(sensors?.sawFar!=true || sensors?.sawNear!=true)session=session?.copy(coverFallback=true)
-                saveSession();switch(if(index()<0)"ending" else "walk")
+
+                switch(if(index()<0)"ending" else "walk")
             }
             return
         }
         if(stage=="ending") {
-            StoryUi.text(b,"The light is back!",26f);StoryUi.text(b,LightTheWay.reveals[2])
-            StoryUi.text(b,"Key found · Cover found · Lamp repaired\n3 chapters completed · 300 points")
+            StoryUi.text(b,"The golden tree is shining!",26f);StoryUi.text(b,LightTheWay.reveals[2])
+            StoryUi.text(b,"Key found · Card read · Golden water delivered\n3 chapters completed · 300 points")
             StoryUi.button(b,"View my results") {findNavController().navigate(R.id.leaderboardFragment,Bundle().apply {putString("gameId",gameId)})}
             return
         }
         val cp=cp() ?: run {stage="ending";draw();return}
         StoryUi.button(b,"Allow location") {locationAccess.request()}
-        StoryUi.text(b,cp.name,23f)
-        StoryUi.text(b,"Inventory: ${if(found.isEmpty())"No items yet" else if(found.size==1)"Key found" else "Key and glass cover found"}",14f)
+        StoryUi.text(b,"Stop ${index()+1} of 3 — ${LightTheWay.names[index()]}",23f)
+        StoryUi.text(b,"Inventory: ${if(found.isEmpty())"No items yet" else if(found.size==1)"Key found" else "Key and golden water collected"}",14f)
         live=StoryUi.text(b,"")
         if(stage=="walk") {
             val c=TrailCompassView(requireContext());c.setBackgroundResource(R.drawable.bg_expedition);compass=c;b.addView(c,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),300)));if(isResumed)c.start()
-            StoryUi.text(b,cp.clue)
+            StoryUi.text(b,LightTheWay.clues[index()])
+            // The creator's description of the real place (stop 2: where the printed card is).
+            cp()?.clue?.trim()?.takeIf { it.isNotEmpty() && it !in LightTheWay.clues }?.let { StoryUi.text(b,"Where: $it") }
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
                 if(!arrived){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}
-                when(index()){0 -> switch("key");1 -> switch("card");else -> switch("parts")}
+                when(index()){0 -> switch("key");1 -> switch("card");else -> switch("water")}
             }
             StoryUi.button(b,"Open map") {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
         } else if(stage=="key") {
@@ -183,68 +170,35 @@ class StoryGameFragment : Fragment() {
             }
             StoryUi.button(b,"Restart key puzzle") {maze?.box=KeyBox();keyStarted=false;maze?.invalidate();tiltStatus?.text="Tap Start tilting when you are ready."}
         } else if(stage=="card") {
-            StoryUi.text(b,"The repair card is inside the shaded pocket. Point the camera at it. Use the light if it is dark, or enter the code below the card.")
+            StoryUi.text(b,"Find the keeper’s printed QR card at this stop. Tap Open camera and place the QR code inside the camera view. If it is dark, turn on the flashlight. You can also enter the code printed on the card.")
             StoryUi.button(b,"Open camera") {if(cameraGranted())openCamera() else permissions.launch(arrayOf(Manifest.permission.CAMERA))}
             lightHint=StoryUi.text(b, "Use the light if the card is hard to see.",14f)
             torchButton=StoryUi.button(b,"Light on") {scanner?.toggleTorch() ?: run {status?.text="Open the camera first."}}
             val code=StoryUi.input(b,"Printed card code")
-            StoryUi.button(b,"Check card code") {if(!arrived){status?.text="Return to this checkpoint first."}else if(LightTheWay.matchesCode(code.text.toString(),config!!))award() else status?.text="That code does not match this repair card."}
-        } else if(stage=="parts") {
-            lamp=LampView(requireContext()).also {b.addView(it,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),180)))}
-            StoryUi.text(b,"You have the key and glass cover. Put them back so the meeting lamp can work again.")
-            StoryUi.button(b,"Use key and fit the glass cover") {if(arrived)switch(if(session?.aligned==true)"cover" else "aim") else status?.text="Return to the marked area."}
-        } else if(stage=="aim") {
-            lamp=LampView(requireContext()).also {b.addView(it,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),180)))}
-            StoryUi.text(b,"Hold your phone level. Turn slowly until the arrow lines up with the path, then hold still for two seconds.")
-            compass=TrailCompassView(requireContext()).also {it.setBackgroundResource(R.drawable.bg_expedition);b.addView(it,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),280)));if(isResumed)it.start()}
-            val dial=SeekBar(requireContext()).apply {max=360;progress=180;contentDescription="Turn the lamp until its two marks line up"}
-            b.addView(dial)
-            var touchAngle=180f
-            dial.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean) {touchAngle=value.toFloat();dial.tag=touchAngle}
-                override fun onStartTrackingTouch(s: SeekBar?){}
-                override fun onStopTrackingTouch(s: SeekBar?){}
-            });dial.tag=touchAngle
-            dial.id=View.generateViewId();alignmentDial=dial
-            StoryUi.button(b,"Use the lamp dial instead") {useDial=true;alignHold.reset();status?.text="Slide the dial to 0° / 360° so the two marks line up. Hold for two seconds."}
-            if(sensors?.hasGyro==true)StoryUi.button(b,"Use relative turning") {
-                sensors?.calibrate();useRelative=true;useDial=false;alignHold.reset()
-                status?.text="Turn the phone a quarter turn until the marks line up."
+            StoryUi.button(b,"Check card code") {if(!arrived){status?.text="Return to this checkpoint first."}else if(LightTheWay.matchesCode(code.text.toString(),config!!))award() else status?.text="That code does not match this instruction card."}
+        } else if(stage=="water") {
+            StoryUi.text(b,"Keep the golden water safe",23f)
+            StoryUi.text(b,"Stand still in a safe place. Your character will carry the jug on screen. Hold your phone facing up and tap Start. Gently tilt to keep the water in the middle for 60 seconds. Small spills are allowed; an empty jug means trying again.")
+            jug=GoldenWaterView(requireContext()).also { it.water=water;b.addView(it,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),320))) }
+            StoryUi.button(b,"Start / resume balancing") {
+                sensors?.calibrate();waterStarted=true;lastTick=0
+                status?.text="Hold still briefly while the phone gets ready."
             }
-            if(sensors?.hasHeading!=true) {
-                if(sensors?.hasGyro==true){useRelative=true;sensors?.calibrate()}else useDial=true
+            StoryUi.button(b,"Refill jug and restart") {
+                water=GoldenWater();jug?.water=water;waterStarted=false;jug?.invalidate()
+                status?.text="Jug refilled. Tap Start when you are ready."
             }
-        } else if(stage=="cover") {
-            lamp=LampView(requireContext()).also {b.addView(it,LinearLayout.LayoutParams(-1,StoryUi.pixels(requireContext(),180)))}
-            StoryUi.text(b,if(session?.coverFallback==true)"Slide the glass cover down. Hold the latch closed for one second." else "Place your hand over the top front of your phone. Hold it there until the latch clicks.")
-            val slide=SeekBar(requireContext()).apply {max=100;contentDescription="Slide lamp cover closed"};b.addView(slide)
-            slide.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(s: SeekBar?, value: Int, fromUser: Boolean){coverSlide=value>=95}
-                override fun onStartTrackingTouch(s: SeekBar?){}
-                override fun onStopTrackingTouch(s: SeekBar?){}
-            })
-            StoryUi.button(b,"Use slide and hold control") {session=session?.copy(coverFallback=true);saveSession();status?.text="Slide the cover fully down, then hold the latch button."}
-            val latch=StoryUi.button(b,"Hold latch closed") {}
-            latch.setOnTouchListener {v,event ->
-                coverPressed=event.actionMasked==MotionEvent.ACTION_DOWN || event.actionMasked==MotionEvent.ACTION_MOVE
-                if(event.actionMasked==MotionEvent.ACTION_UP)v.performClick()
-                true
-            }
-            coverSlide=false;coverPressed=false
         }
         if(stage!="walk")StoryUi.button(b,"Back to navigation") {switch("walk")}
         val diag=StoryUi.text(b,"");diag.visibility=View.GONE;diagnostics=diag
         StoryUi.button(b,"Show / hide device readings") {diag.visibility=if(diag.visibility==View.VISIBLE)View.GONE else View.VISIBLE}
     }
-    private var alignmentDial: SeekBar?=null
-    private var useDial=false
-    private var coverSlide=false
     private fun tick() {
         if(body==null || config==null)return
         val s=sensors ?: return
         s.rotation=view?.display?.rotation ?: Surface.ROTATION_0
         val now=SystemClock.elapsedRealtime()
-        if(stage=="preflight"){live?.text="Cover check: ${if(s.sawFar&&s.sawNear)"ready" else "not verified — slide alternative available"}";return}
+        if(stage=="preflight")return
         val cp=cp() ?: return
         val loc=app.locationRepository.locationState.value
         val recent=loc.isUpdating && loc.servicesEnabled && loc.hasValidFix && loc.accuracyMeters!=null && loc.accuracyMeters<=20f && System.currentTimeMillis()-loc.timestamp in 0..15000
@@ -261,8 +215,8 @@ class StoryGameFragment : Fragment() {
             else -> "Waiting for a fresh GPS position. Check location permission."
         }
         val target=if(recent)HaversineDistanceCalculator().calculateBearingDegrees(loc.smoothedLatitude!!,loc.smoothedLongitude!!,cp.lat,cp.lng)else null
-        compass?.update(if(stage=="aim")config!!.targetBearing else target,distance,loc.smoothedLatitude,loc.smoothedLongitude)
-        diagnostics?.text="${s.summary()}\nGPS accuracy: ${loc.accuracyMeters}; arrived: $arrived\nLight: ${s.lux}; gyro turn rate: ${s.turnRate}\nCover: ${s.near}; compass: ${s.heading}\nTilt: ${s.tiltX}, ${s.tiltY}\nControls: tilt only, cover slide=${session?.coverFallback}"
+        compass?.update(target,distance,loc.smoothedLatitude,loc.smoothedLongitude)
+        diagnostics?.text="${s.summary()}\nGPS accuracy: ${loc.accuracyMeters}; arrived: $arrived\nLight: ${s.lux}\nTilt: ${s.tiltX}, ${s.tiltY}"
         val dt=if(lastTick==0L)0f else ((now-lastTick)/1000f).coerceAtMost(.1f);lastTick=now
         maze?.active=arrived && !saving && keyStarted && s.tilt.fresh(now)
         if(stage=="key") {
@@ -276,32 +230,18 @@ class StoryGameFragment : Fragment() {
             }
             if(maze?.active==true)maze?.step(s.tiltX*dt*.65f,s.tiltY*dt*.65f)
         }
-        if(stage=="aim") {
-            val declination=if(recent)GeomagneticField(loc.smoothedLatitude!!.toFloat(),loc.smoothedLongitude!!.toFloat(),0f,System.currentTimeMillis()).declination else 0f
-            val angle=if(useRelative && !useDial)s.relativeTurn else if(useDial)(alignmentDial?.tag as? Float) ?: 180f else s.heading?.plus(declination)
-            val error=angle?.let {abs(TrailGuidance.relativeAngle(if(useDial)0f else if(useRelative)90f else config!!.targetBearing,it))}
-            lamp?.beamAngle=error ?: 90f
-            val reliable=useDial || if(useRelative)now-s.lastTurn<1000 else (s.headingReliable && now-s.lastHeading<1000)
-            val fraction=alignHold.update(arrived && reliable && error!=null && error<=15,now)
-            status?.text=if(error==null || !reliable)"Compass unavailable or unreliable. Use the lamp dial." else "${if(useDial)"Dial" else "Lamp"}: ${error.toInt()}° from target · hold ${(fraction*100).toInt()}%"
-            if(fraction>=1 && !saving){
-                saving=true
-                viewLifecycleOwner.lifecycleScope.launch {
-                    try {
-                        session=session?.copy(aligned=true)
-                        app.database.storyDao().putSession(session!!)
-                        alignHold.reset();switch("cover")
-                    } catch(e: Exception){status?.text="Could not save alignment. Try again.";alignHold.reset()}
-                    finally {saving=false}
-                }
+        if(stage=="water") {
+            val ready=arrived && waterStarted && s.tilt.fresh(now) && !saving
+            if(ready)water.step(s.tiltX,s.tiltY,dt)
+            jug?.invalidate()
+            status?.text=when {
+                water.empty -> "The jug is empty. Tap Refill jug and restart."
+                !arrived -> "Paused. Return to the marked area and wait for location."
+                !waterStarted -> "Tap Start, then gently tilt to keep the water in the middle."
+                !s.tilt.fresh(now) -> "Hold still briefly. Waiting for the phone to be ready."
+                else -> "${(60-water.elapsed).toInt().coerceAtLeast(0)} seconds left · ${(water.remaining*100).toInt()}% water left"
             }
-        }
-        if(stage=="cover") {
-            val near=if(session?.coverFallback==true)coverSlide&&coverPressed else s.sawFar && s.near==true
-            val fraction=coverHold.update(arrived && near,now)
-            lamp?.cover=fraction
-            status?.text="Cover closing: ${(fraction*100).toInt()}%"
-            if(fraction>=1)award()
+            if(water.complete && ready)award()
         }
         lightHint?.text=when {
             scanner?.torchOn==true -> "The light is on. Keep the card inside the camera view."
@@ -333,12 +273,12 @@ class StoryGameFragment : Fragment() {
                 AppProviders.gameRepository.recordDiscovery(gameId,checkpoint.id,System.currentTimeMillis()).getOrThrow()
                 view?.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
                 found=app.database.playerProgressDao().getProgress(gameId,uid)?.completedCheckpointIds.orEmpty()
-                arrived=false;arrivalHold.reset();coverHold.reset()
+                arrived=false;arrivalHold.reset()
                 val b=body ?: return@launch
                 stage="reveal";b.removeAllViews();maze=null;compass?.stop();compass=null;live=null;diagnostics=null
-                StoryUi.text(b,if(chapter==2)"The light is back!" else "Chapter complete",27f)
+                StoryUi.text(b,if(chapter==2)"The golden tree is shining!" else "Chapter complete",27f)
                 StoryUi.text(b,LightTheWay.reveals[chapter]);StoryUi.text(b,"Saved · +100 points")
-                StoryUi.button(b,if(chapter==2)"Complete the quest" else "Next chapter") {switch(if(chapter==2)"ending" else "walk")}
+                StoryUi.button(b,if(chapter==2)"Finish adventure" else "Go to stop ${chapter+2}") {switch(if(chapter==2)"ending" else "walk")}
             } catch(e: Exception){status?.text="Could not save: ${e.message}. Your task can be retried.";if(stage=="key")StoryUi.button(body!!,"Retry saving the key") {award()}}
             finally {saving=false}
         }

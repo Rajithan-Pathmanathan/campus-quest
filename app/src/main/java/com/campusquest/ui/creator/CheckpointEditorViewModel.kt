@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import com.campusquest.ui.creator.validation.CreatorLimits
 
 data class CheckpointEditorUiState(
     val checkpointId: String? = null,
@@ -20,7 +21,7 @@ data class CheckpointEditorUiState(
     val name: String = "",
     val lat: String = "",
     val lng: String = "",
-    val radiusM: String = "20",
+    val radiusM: String = CreatorLimits.DEFAULT_RADIUS_M,
     val minLux: String = "0",
     val maxLux: String = "1000",
     val clue: String = "",
@@ -45,6 +46,11 @@ class CheckpointEditorViewModel(
 
     init {
         if (editingCheckpointId != null) loadExisting(gameId, editingCheckpointId)
+        else viewModelScope.launch {
+            // New stop: next number in the quest (1, 2, 3).
+            val count = runCatching { repository.getGameCheckpoints(gameId).size }.getOrDefault(0)
+            _state.update { it.copy(order = (count + 1).toString()) }
+        }
     }
 
     private fun loadExisting(gameId: String, checkpointId: String) {
@@ -103,6 +109,10 @@ class CheckpointEditorViewModel(
         _state.update { it.copy(isSaving = true, saveError = null) }
         viewModelScope.launch {
             try {
+                if (s.checkpointId == null && repository.getGameCheckpoints(s.gameId).size >= CreatorLimits.MAX_CHECKPOINTS) {
+                    _state.update { it.copy(isSaving = false, saveError = "The Golden Tree has exactly ${CreatorLimits.MAX_CHECKPOINTS} stops. Edit an existing stop instead.") }
+                    return@launch
+                }
                 // Safe now: everything was validated, so conversions and LightSignature cannot fail.
                 val checkpoint = Checkpoint(
                     id = s.checkpointId ?: UUID.randomUUID().toString(),
