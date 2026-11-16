@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
         val data = tapIntent ?: return
         val gameId = data.getStringExtra(EXTRA_GAME_ID)?.trim()
         if (gameId.isNullOrEmpty()) return
+        if (navController.currentDestination?.id == R.id.onboardingFragment) return
 
         // Consume the extra so it is not handled twice.
         data.removeExtra(EXTRA_GAME_ID)
@@ -60,6 +61,8 @@ class MainActivity : AppCompatActivity() {
             )
         }
     }
+
+    internal fun handlePendingNotification() = handleNotificationIntent(intent)
 
     override fun onSupportNavigateUp(): Boolean {
         return navController.navigateUp() || super.onSupportNavigateUp()

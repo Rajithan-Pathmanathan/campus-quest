@@ -1,6 +1,11 @@
 <resources>
     <string name="app_name">Campus Quest</string>
     <string name="tagline">Explore, Discover, and Master Your Campus</string>
+    <string name="onboarding_title">Welcome to Campus Quest</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get started</string>
+    <string name="onboarding_page_one_description">Welcome, Explorer! Campus Quest turns your campus into an adventure. Follow the map, visit real places, and uncover a story one clue at a time.</string>
+    <string name="onboarding_page_two_description">Light the Path. Find the missing key, scan the repair card, and carry the golden oil safely. Complete all three checkpoints to light the meeting lamp.</string>
 
     <!-- Navigation / General -->
     <string name="nav_player_dashboard">Player Dashboard</string>
