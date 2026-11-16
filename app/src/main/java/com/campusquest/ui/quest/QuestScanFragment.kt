@@ -9,7 +9,9 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.annotation.VisibleForTesting
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavOptions
@@ -29,7 +31,7 @@ class QuestScanFragment : Fragment() {
     private var _binding: FragmentQuestScanBinding? = null
     private val binding get() = _binding!!
 
-    private val viewModel: QuestScanViewModel by viewModels { QuestScanViewModel.Factory() }
+    private val viewModel: QuestScanViewModel by viewModels { viewModelFactoryOverride ?: QuestScanViewModel.Factory() }
 
     private var haptics: HeartbeatHaptics? = null
     private var revealDialog: AlertDialog? = null
@@ -56,6 +58,7 @@ class QuestScanFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         haptics = HeartbeatHaptics(requireContext(), viewLifecycleOwner.lifecycleScope)
+        binding.ivBack.setOnClickListener { findNavController().navigateUp() }
 
         // No default ids: a missing argument shows "Checkpoint unavailable" instead of a made-up checkpoint.
         viewModel.load(
@@ -117,29 +120,30 @@ class QuestScanFragment : Fragment() {
         b.tvHeadline.text = state.headline
         b.progressLoading.visibility = if (state.scanState == ScanState.LOADING) View.VISIBLE else View.GONE
 
+        // The compass already prints the distance once it knows it; the words cover the time before that.
         b.tvDistance.setTextOrHide(if (state.navigationDistance == null) state.distanceText else null)
         b.tvWarmth.setTextOrHide(null)
+        bindSignals(b, state)
         b.tvLightHint.setTextOrHide(state.lightHint)
         b.tvTrialHint.setTextOrHide(state.trialHint)
         b.tvShieldHint.setTextOrHide(state.shieldHint)
-        // Proximity fallback: press and hold the hint if covering the sensor does nothing.
+        // Proximity fallback for phones whose proximity sensor does nothing: press and hold the button.
+        b.btnShield.visibility = if (state.shieldHint != null) View.VISIBLE else View.GONE
+        b.btnShield.setOnLongClickListener { viewModel.onShieldHeld(); true }
         b.tvShieldHint.setOnLongClickListener { viewModel.onShieldHeld(); true }
         b.tvErrorMessage.setTextOrHide(state.error?.message)
-
-        val glow = state.glow
-        b.pbEmber.visibility = if (glow != null) View.VISIBLE else View.GONE
-        if (glow != null) {
-            b.pbEmber.progress = glow.ordinal
-            b.pbEmber.contentDescription = glow.label
-        }
+        // The tip card only appears while it has something to say.
+        b.panelHints.visibility =
+            if (listOf(b.tvTrialHint, b.tvLightHint, b.tvShieldHint, b.tvErrorMessage).any { it.visibility == View.VISIBLE })
+                View.VISIBLE else View.GONE
 
         haptics?.update(state.heartbeatIntervalMs)
 
         val label = when (state.primaryAction) {
-            ScanAction.BEGIN_SCAN -> "Wake the Resonator"
-            ScanAction.GRANT_LOCATION -> "Allow location"
-            ScanAction.RETRY -> "Try again"
-            ScanAction.BACK -> "Back to the quest"
+            ScanAction.BEGIN_SCAN -> getString(R.string.scan_action_begin)
+            ScanAction.GRANT_LOCATION -> getString(R.string.scan_action_allow_location)
+            ScanAction.RETRY -> getString(R.string.scan_action_retry)
+            ScanAction.BACK -> getString(R.string.scan_action_back)
             ScanAction.NONE -> null
         }
         b.btnPrimary.visibility = if (label == null) View.GONE else View.VISIBLE
@@ -174,19 +178,53 @@ class QuestScanFragment : Fragment() {
         val dialogBinding = DialogClueRevealBinding.inflate(layoutInflater)
         dialogBinding.tvDialogCpName.text = reveal.checkpointName
         dialogBinding.tvDialogRarity.text = reveal.rarity
-        dialogBinding.tvDialogClue.text = reveal.clue
-        dialogBinding.tvDialogLore.text = reveal.lore
-        revealDialog = MaterialAlertDialogBuilder(requireContext())
+        dialogBinding.tvDialogClue.setTextOrHide(reveal.clue)
+        dialogBinding.tvDialogLore.setTextOrHide(reveal.lore)
+        dialogBinding.tvDialogPoints.text = getString(R.string.scan_reveal_points, reveal.points)
+        dialogBinding.btnDialogNext.text =
+            getString(if (reveal.isFinalCheckpoint) R.string.scan_reveal_complete_quest else R.string.scan_reveal_next_chapter)
+        val dialog = MaterialAlertDialogBuilder(requireContext())
             .setView(dialogBinding.root)
             .setCancelable(false)
-            .setPositiveButton(if (reveal.isFinalCheckpoint) "Complete the quest" else "Next chapter") { _, _ ->
-                viewModel.onRevealDismissed()
-            }
-            .show()
+            .create()
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialogBinding.btnDialogNext.setOnClickListener {
+            dialog.dismiss()
+            viewModel.onRevealDismissed()
+        }
+        revealDialog = dialog
+        dialog.show()
+    }
+
+    /** GPS, light and motion as a word and a colour: gold when matched, cream when close, muted while waiting. */
+    private fun bindSignals(b: FragmentQuestScanBinding, state: QuestScanUiState) {
+        b.rowSignals.visibility = if (state.showSignals) View.VISIBLE else View.GONE
+        fun paint(icon: android.widget.ImageView, text: android.widget.TextView, chip: SignalChip) {
+            val color = androidx.core.content.ContextCompat.getColor(
+                requireContext(),
+                when (chip.level) {
+                    SignalLevel.MATCHED -> R.color.secondary_amber
+                    SignalLevel.CLOSE -> R.color.on_primary_emerald
+                    SignalLevel.WAITING -> R.color.text_hint
+                }
+            )
+            text.text = chip.status
+            text.setTextColor(color)
+            icon.setColorFilter(color)
+        }
+        paint(b.ivGps, b.tvGpsState, state.gps)
+        paint(b.ivLight, b.tvLightState, state.light)
+        paint(b.ivMotion, b.tvMotionState, state.motion)
     }
 
     private fun android.widget.TextView.setTextOrHide(value: String?) {
         text = value
         visibility = if (value.isNullOrBlank()) View.GONE else View.VISIBLE
+    }
+
+    companion object {
+        /** Instrumented tests inject a ViewModel built from fake repositories here. */
+        @VisibleForTesting
+        var viewModelFactoryOverride: ViewModelProvider.Factory? = null
     }
 }

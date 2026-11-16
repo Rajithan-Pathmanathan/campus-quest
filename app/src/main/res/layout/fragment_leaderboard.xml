@@ -5,16 +5,17 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/bg_parchment">
+    android:background="@drawable/bg_expedition">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary_emerald_dark"
+        android:background="@android:color/transparent"
         app:title="@string/nav_leaderboard"
         app:titleTextColor="@color/on_primary_emerald"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:titleTextAppearance="@style/TextAppearance.CampusQuest.ToolbarTitle"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -25,7 +26,7 @@
             android:id="@+id/rv_leaderboard"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="@dimen/spacing_s"
+            android:padding="12dp"
             android:clipToPadding="false"
             tools:listitem="@layout/item_leaderboard_entry" />
 
@@ -42,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:text="@string/leaderboard_no_players_on_this"
-            android:textColor="@color/text_secondary"
+            android:textColor="#C8D2BB"
             android:visibility="gone" />
 
         <LinearLayout
@@ -60,7 +61,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center"
-                android:textColor="@color/text_secondary" />
+                android:textColor="#C8D2BB" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_retry"

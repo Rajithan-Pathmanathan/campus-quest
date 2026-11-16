@@ -3,12 +3,15 @@ package com.campusquest
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.FusionResult
 import com.campusquest.domain.model.LightSignature
+import com.campusquest.domain.model.SensorState
+import com.campusquest.domain.model.TrialStatus
 import com.campusquest.domain.quest.QuestZone
 import com.campusquest.ui.quest.NextCheckpointResolver
 import com.campusquest.ui.quest.QuestScanUiState
 import com.campusquest.ui.quest.ScanAction
 import com.campusquest.ui.quest.ScanNarrator
 import com.campusquest.ui.quest.ScanState
+import com.campusquest.ui.quest.SignalLevel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -93,5 +96,48 @@ class QuestScanProgressionTest {
                 .joinToString(" ")
             assertFalse("$state: $text", text.contains('%'))
         }
+    }
+
+    private fun signals(zone: QuestZone, distance: Float?, sensor: SensorState?, motion: String = "SHAKE") =
+        ScanNarrator.signals(
+            QuestScanUiState(scanState = ScanState.SCANNING, zone = zone),
+            cp("a", 1, motion), distance, sensor
+        )
+
+    @Test
+    fun `gps chip goes from searching to nearby to locked`() {
+        assertEquals("Searching", signals(QuestZone.FAR, null, null).first.status)
+        assertEquals("Far", signals(QuestZone.FAR, 500f, null).first.status)
+        assertEquals("Nearby", signals(QuestZone.MIDDLE, 60f, null).first.status)
+        val locked = signals(QuestZone.RELIC, 3f, null).first
+        assertEquals("Locked", locked.status)
+        assertEquals(SignalLevel.MATCHED, locked.level)
+    }
+
+    @Test
+    fun `light chip uses words for the checkpoint's light range`() {
+        // checkpoint light range is 0..1000 lux
+        assertEquals("Waiting", signals(QuestZone.RELIC, 3f, SensorState(currentLux = null)).second.status)
+        assertEquals("Match", signals(QuestZone.RELIC, 3f, SensorState(currentLux = 400f)).second.status)
+        assertEquals("Off", signals(QuestZone.RELIC, 3f, SensorState(currentLux = 90_000f)).second.status)
+    }
+
+    @Test
+    fun `motion chip follows the trial`() {
+        assertEquals("Ready", signals(QuestZone.RELIC, 3f, SensorState(trialStatus = TrialStatus(remaining = 3))).third.status)
+        assertEquals("In progress", signals(QuestZone.RELIC, 3f, SensorState(trialStatus = TrialStatus(remaining = 2))).third.status)
+        assertEquals("Done", signals(QuestZone.RELIC, 3f, SensorState(trialStatus = TrialStatus(completed = true))).third.status)
+        // a tilt trial counts as in progress once the player has started holding steady
+        assertEquals(
+            "In progress",
+            signals(QuestZone.RELIC, 3f, SensorState(trialStatus = TrialStatus(started = true)), motion = "TILT").third.status
+        )
+    }
+
+    @Test
+    fun `signal chips are hidden while loading or on error`() {
+        assertFalse(hud(ScanState.LOADING).showSignals)
+        assertFalse(hud(ScanState.ERROR).showSignals)
+        assertTrue(hud(ScanState.SCANNING, QuestZone.RELIC).showSignals)
     }
 }

@@ -86,7 +86,7 @@ class TrailCompassView @JvmOverloads constructor(context: Context, attrs: Attrib
             canvas.restore()
         } else text("✦", 160f, 145f, 48f, gold)
         text(when { distance == null -> "FINDING YOUR POSITION"; rotation == null -> "COMPASS UNAVAILABLE"; !reliable -> "MOVE PHONE IN A FIGURE 8"; heading == null -> "HOLD PHONE LEVEL"; else -> "FOLLOW THE GOLD ARROW" },160f, 266f, 11f,gold)
-        text(distance?.let { "~${it.roundToInt()} m  ·  ${TrailGuidance.warmth(it)}" } ?: "Waiting for GPS",160f,296f,22f)
+        text(distance?.let { "~${if (it >= 1000f) "${(it / 1000f).roundToInt()} km" else "${it.roundToInt()} m"}  ·  ${TrailGuidance.warmth(it)}" } ?: "Waiting for GPS",160f,296f,22f)
         for (i in 0..19) {
             paint.color = if ((i + 1) / 20f <= heat) accent else Color.rgb(49, 70, 58)
             canvas.drawRoundRect(20f+i*14f,312f,30f+i*14f,321f,3f,3f,paint)

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Primary Emerald Theme -->
-    <color name="primary_emerald">#72502D</color>
+    <color name="primary_emerald">#7C4F2A</color>
     <color name="primary_emerald_dark">#102A22</color>
     <color name="primary_emerald_light">#B78648</color>
     <color name="primary_emerald_container">#F2DFB8</color>
@@ -13,6 +13,9 @@
     <color name="secondary_amber_light">#FFE2A3</color>
     <color name="secondary_amber_container">#F6E5BE</color>
     <color name="on_secondary_amber">#30281A</color>
+
+    <!-- Leather-and-gold buttons, as in the treasure-hunt reference -->
+    <color name="gold_edge">#D9A441</color>
 
     <!-- Semantic / Status Colors -->
     <color name="rarity_common">#9CA3AF</color>

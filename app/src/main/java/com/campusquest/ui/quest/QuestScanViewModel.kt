@@ -58,6 +58,8 @@ class QuestScanViewModel(
     private var sessionRunning = false
     private var screenVisible = false
     private var permissionGranted = false
+    /** Proximity fallback: the player held the shield (only counts once fusion is reached). */
+    private var shieldHeld = false
 
     private var lastDistanceM: Float? = null
     private var lastFusion: FusionResult? = null
@@ -75,6 +77,7 @@ class QuestScanViewModel(
         loadedKey = key
         checkpoint = null
         scanStarted = false
+        shieldHeld = false
         discoveryRequested = false
         pendingFoundAt = null
         zone = QuestZone.FAR
@@ -134,8 +137,6 @@ class QuestScanViewModel(
     }
 
     /** Screen is in the foreground: start/resume M3 collection. */
-    private var shieldHeld = false
-
     fun onScreenStarted() {
         screenVisible = true
         startSession()
@@ -147,6 +148,7 @@ class QuestScanViewModel(
         stopSession()
         if (ScanStateMachine.isActive(_uiState.value.scanState)) {
             scanStarted = false
+            shieldHeld = false
             recompute()
         }
     }
@@ -182,7 +184,6 @@ class QuestScanViewModel(
         }
     }
 
-    /** The reveal was dismissed. */
     /** Proximity fallback: the player pressed and held the shield (only matters once fusion is reached). */
     fun onShieldHeld() {
         if (_uiState.value.scanState != ScanState.WAITING_FOR_PROXIMITY) return
@@ -190,6 +191,7 @@ class QuestScanViewModel(
         recompute()
     }
 
+    /** The reveal was dismissed. */
     fun onRevealDismissed() {
         if (_uiState.value.scanState == ScanState.REVEALING) setState(ScanState.COMPLETED)
     }

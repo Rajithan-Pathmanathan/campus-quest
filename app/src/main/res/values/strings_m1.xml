@@ -11,8 +11,8 @@
     <string name="quest_details_creator">Created by: %1$s</string>
 
     <plurals name="quest_details_checkpoints">
-        <item quantity="one">📍 %1$d Checkpoint</item>
-        <item quantity="other">📍 %1$d Checkpoints</item>
+        <item quantity="one">%1$d Checkpoint</item>
+        <item quantity="other">%1$d Checkpoints</item>
     </plurals>
 
     <string name="login_display_name_hint">Your name</string>

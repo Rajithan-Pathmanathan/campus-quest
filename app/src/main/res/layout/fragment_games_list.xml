@@ -5,15 +5,16 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="@drawable/bg_parchment">
+    android:background="@drawable/bg_expedition">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/primary_emerald_dark"
+        android:background="@android:color/transparent"
         app:title="@string/nav_explore_games"
-        app:titleTextColor="@color/on_primary_emerald" />
+        app:titleTextColor="@color/on_primary_emerald"
+        app:titleTextAppearance="@style/TextAppearance.CampusQuest.ToolbarTitle" />
 
     <FrameLayout
         android:layout_width="match_parent"
@@ -24,7 +25,7 @@
             android:id="@+id/rv_games"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:padding="@dimen/spacing_s"
+            android:padding="12dp"
             android:clipToPadding="false"
             android:visibility="gone"
             tools:listitem="@layout/item_game_card" />
@@ -51,13 +52,13 @@
                 android:text="@string/games_empty_title"
                 android:textSize="16sp"
                 android:textStyle="bold"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/on_primary_emerald" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/games_empty_subtitle"
-                android:textColor="@color/text_secondary"
+                android:textColor="#C8D2BB"
                 android:layout_marginTop="@dimen/spacing_xs"
                 android:gravity="center" />
         </LinearLayout>
@@ -76,7 +77,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/games_error_title"
-                android:textColor="@color/text_primary"
+                android:textColor="@color/on_primary_emerald"
                 android:gravity="center" />
 
             <com.google.android.material.button.MaterialButton

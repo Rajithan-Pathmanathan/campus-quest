@@ -24,7 +24,7 @@
     <string name="creator_game_desc_hint">Quest Description and Lore</string>
     <string name="creator_add_checkpoint">Add Dynamic Checkpoint</string>
     <string name="creator_save_draft">Save Draft</string>
-    <string name="creator_publish_quest">Publish Quest to Campus</string>
+    <string name="creator_publish_quest">Publish Quest</string>
 
     <!-- Gameplay & HUD -->
     <string name="hud_radar_searching">Calibrating Environmental Sensors…</string>
@@ -79,10 +79,10 @@
     <string name="dashboard_welcome_default">Welcome, Explorer</string>
     <string name="dashboard_welcome">Welcome, %1$s</string>
     <string name="dashboard_stats_default">Score: 0 pts | Relics Found: 0</string>
-    <string name="dashboard_explore_title">🗺️ Explore Campus Quests</string>
+    <string name="dashboard_explore_title">Explore Campus Quests</string>
     <string name="dashboard_explore_body">Discover published quests created by campus clubs and professors.</string>
     <string name="dashboard_browse">Browse Quests</string>
-    <string name="dashboard_creator_title">🛠️ Creator Studio</string>
+    <string name="dashboard_creator_title">Creator Studio</string>
     <string name="dashboard_creator_body">Design, customize, and publish your own campus quests.</string>
     <string name="dashboard_open_creator">Open Creator Studio</string>
     <string name="dashboard_account_title">Account</string>
@@ -101,8 +101,8 @@
     <string name="checkpoint_list_no_checkpoints_yet_n">No checkpoints yet.\n\nAdd your first checkpoint to begin building the quest.</string>
     <string name="checkpoint_list_add_checkpoint">+ Add Checkpoint</string>
     <string name="create_game_configured_checkpoints">Configured Checkpoints</string>
-    <string name="create_game_add_dynamic_checkpoint">📍 Add Dynamic Checkpoint</string>
-    <string name="creator_dashboard_create_new_quest">➕ Create New Quest</string>
+    <string name="create_game_add_dynamic_checkpoint">Add Dynamic Checkpoint</string>
+    <string name="creator_dashboard_create_new_quest">Create New Quest</string>
     <string name="creator_dashboard_create_light_the_way">Create Light the Way story</string>
     <string name="creator_dashboard_your_authored_quests_and">Your Authored Quests &amp; Drafts</string>
     <string name="creator_dashboard_switch_to_player_mode">Switch to Player Mode</string>
@@ -125,7 +125,30 @@
     <string name="quest_delete_message">The quest, its checkpoints and its leaderboard will be removed for everyone. This cannot be undone.</string>
     <string name="quest_delete_confirm">Delete quest</string>
     <string name="quest_deleted">Quest deleted.</string>
-    <string name="checkpoint_use_my_location">📍 Use my current location</string>
+    <string name="checkpoint_use_my_location">Use my current location</string>
     <string name="checkpoint_waiting_location">Still finding your location… make sure Location is on.</string>
     <string name="creator_edit_quest_title">Edit Quest</string>
+    <!-- Scan screen (M4) -->
+    <string name="scan_action_begin">Wake the Resonator</string>
+    <string name="scan_action_allow_location">Allow location</string>
+    <string name="scan_action_retry">Try again</string>
+    <string name="scan_action_back">Back to the quest</string>
+    <string name="scan_back">Back</string>
+    <string name="scan_subtitle">Use your phone’s senses to find the hidden relic.</string>
+    <string name="scan_signal_gps">GPS</string>
+    <string name="scan_signal_light">Light</string>
+    <string name="scan_signal_motion">Motion</string>
+    <string name="scan_reveal_title">Clue found!</string>
+    <string name="scan_reveal_points">+%1$d points</string>
+    <string name="scan_shield_hold">Press and hold to shield the ember</string>
+    <string name="scan_reveal_next_chapter">Next chapter</string>
+    <string name="scan_reveal_complete_quest">Complete the quest</string>
+    <string name="dashboard_stat_score">Score</string>
+    <string name="dashboard_stat_relics">Relics found</string>
+    <string name="detail_rewards_title">Rewards</string>
+    <string name="detail_reward_points">100 points for every checkpoint</string>
+    <string name="detail_reward_leaderboard">A place on this quest’s leaderboard</string>
+    <string name="leaderboard_you">You</string>
+    <string name="creator_empty_title">No quests yet</string>
+    <string name="creator_empty_body">Create your first quest and it will appear here, ready to edit or publish.</string>
 </resources>

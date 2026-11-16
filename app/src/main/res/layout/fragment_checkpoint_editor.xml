@@ -14,7 +14,8 @@
         android:background="@color/primary_emerald_dark"
         app:title="Edit Checkpoint"
         app:titleTextColor="@color/on_primary_emerald"
-        app:navigationIcon="@android:drawable/ic_menu_revert" />
+        app:titleTextAppearance="@style/TextAppearance.CampusQuest.ToolbarTitle"
+        app:navigationIcon="@drawable/ic_arrow_back" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -32,7 +33,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:hint="Checkpoint Landmark Name"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_cp_name"
@@ -53,7 +54,7 @@
                     android:layout_weight="1"
                     android:hint="Latitude"
                     android:layout_marginEnd="@dimen/spacing_xs"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.CampusQuest.TextInput">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_lat"
@@ -69,7 +70,7 @@
                     android:layout_weight="1"
                     android:hint="Longitude"
                     android:layout_marginStart="@dimen/spacing_xs"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.CampusQuest.TextInput">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_lng"
@@ -107,7 +108,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Geofence Radius (meters)"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_radius"
@@ -129,7 +130,7 @@
                     android:layout_weight="1"
                     android:hint="Min ambient lux"
                     android:layout_marginEnd="@dimen/spacing_xs"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.CampusQuest.TextInput">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_min_lux"
@@ -145,7 +146,7 @@
                     android:layout_weight="1"
                     android:hint="Max ambient lux"
                     android:layout_marginStart="@dimen/spacing_xs"
-                    style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                    style="@style/Widget.CampusQuest.TextInput">
 
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/et_max_lux"
@@ -161,7 +162,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Riddle / Exploration Clue"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_clue"
@@ -176,7 +177,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Unlocked Lore &amp; Educational Story"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_lore"
@@ -191,7 +192,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Order in the quest (1, 2, 3...)"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
+                style="@style/Widget.CampusQuest.TextInput">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/et_order"
@@ -206,7 +207,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Motion type"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                style="@style/Widget.CampusQuest.TextInput.Dropdown">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/act_motion"
@@ -221,7 +222,7 @@
                 android:layout_height="wrap_content"
                 android:hint="Rarity"
                 android:layout_marginTop="@dimen/spacing_m"
-                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
+                style="@style/Widget.CampusQuest.TextInput.Dropdown">
 
                 <com.google.android.material.textfield.MaterialAutoCompleteTextView
                     android:id="@+id/act_rarity"
