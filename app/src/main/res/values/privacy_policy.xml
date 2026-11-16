@@ -22,7 +22,7 @@ These are handled by Firebase Authentication so you can sign in and keep your pr
 
 <b>3. Phone sensors and camera</b><br>
 • The light, motion, proximity and compass sensors are read only during a quest and never leave your phone.<br>
-• The camera is used only in Light the Way to scan the repair card. Images are processed on the phone and are not stored or uploaded.<br><br>
+• The camera is used only in The Golden Tree to scan the instruction card. Images are processed on the phone and are not stored or uploaded.<br><br>
 
 <b>4. Game data stored in the cloud</b><br>
 • Quests you publish: title, description, checkpoints and your display name as creator.<br>

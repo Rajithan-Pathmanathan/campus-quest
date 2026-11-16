@@ -47,7 +47,7 @@ class CardScanner(private val fragment: Fragment, private val onCard: (String) -
                 camera!!.cameraInfo.torchState.observe(fragment.viewLifecycleOwner) { state ->
                     if (current == generation) { torchOn = state == TorchState.ON; onState(if (torchOn) "Light is on" else "Light is off") }
                 }
-                onState(if (hasFlash) "Point at the repair card. Use Light on if it is dark." else "No flashlight available. Use available light or enter the code.")
+                onState(if (hasFlash) "Point at the instruction card. Use Light on if it is dark." else "No flashlight available. Use available light or enter the code.")
             } catch (_: Exception) { onState("Camera unavailable. Enter the code printed under the card.") }
         },ContextCompat.getMainExecutor(context))
     }

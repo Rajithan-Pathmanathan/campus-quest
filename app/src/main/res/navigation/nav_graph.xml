@@ -148,8 +148,8 @@
     <!-- Live Quest & Scan Gameplay (M4) -->
     <fragment
         android:id="@+id/questScanFragment"
-        android:name="com.campusquest.ui.quest.QuestScanFragment"
-        android:label="Scan HUD"
+        android:name="com.campusquest.story.StoryGameFragment"
+        android:label="The Golden Tree"
         tools:layout="@layout/fragment_quest_scan">
         <argument
             android:name="gameId"

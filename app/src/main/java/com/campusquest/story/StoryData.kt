@@ -25,15 +25,15 @@ interface StoryDao {
 }
 
 object LightTheWay {
-    val names = listOf("The Key in the Box", "The Hidden Repair Card", "Bring Back the Light")
-    val clues = listOf("Someone left the lamp key near the garden. Follow the arrow to find it.",
-        "The key's note points to the covered board. Find the repair card in its shaded pocket.",
-        "Bring the key and cover to the meeting place. The lamp is waiting there.")
+    val names = listOf("Find the Key", "Find the Instruction Card", "Bring the Golden Water")
+    val clues = listOf("Follow the arrow to the first stop. Open the key box on your screen when you arrive.",
+        "Follow the arrow to the second stop. Look for the keeper's printed QR card there.",
+        "Follow the arrow to the final stop. Stop somewhere safe before balancing the golden water.")
     val reveals = listOf(
-        "You found the key! A note is tied to it: The lamp needs one more part. Look for my repair card at the covered board.",
-        "You found the missing part! Take the glass cover to the meeting place. Turn the lamp toward the path, then close its cover.",
-        "The light is back! You found the key, followed the repair note and fixed the meeting lamp. The path is ready for the welcome walk. Well done!")
-    const val DESCRIPTION = "The campus welcome walk starts soon, but the meeting lamp is not working. Find its key, follow the repair note and bring its light back. Three places, one small adventure."
+        "You found the key! Inside the box is a note: Find my instruction card at the next stop. Next: follow the arrow to stop 2.",
+        "The key unlocks the keeper's supplies. You collected a jug of golden water! The card says: Bring this water to the golden tree at the final stop. Next: follow the arrow to stop 3.",
+        "You brought the golden tree back to life! You found the key, followed the keeper's note and delivered the golden water. Adventure complete!")
+    const val DESCRIPTION = "The golden tree has lost its light. Find the key, read the keeper's card and bring golden water to the tree. Visit three real places and complete the puzzles on your screen."
     fun qr(c: StoryConfigEntity) = "campusquest:v1:${c.gameId}:REPAIR_CARD:${c.cardId}"
     fun matchesCard(input: String, c: StoryConfigEntity) = input.length <= 256 && input.trim() == qr(c)
     fun matchesCode(input: String, c: StoryConfigEntity) = input.length <= 32 && input.trim().uppercase(java.util.Locale.ROOT) == c.backupCode
@@ -45,7 +45,7 @@ object LightTheWay {
         val id = "LIGHT_" + UUID.randomUUID().toString()
         val token = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(java.util.Locale.ROOT)
         db.withTransaction {
-            db.gameDao().insertGame(GameEntity.fromDomain(Game(id, "Light the Way", DESCRIPTION, uid, name, GameStatus.PUBLISHED, 3, publishedAt = System.currentTimeMillis())))
+            db.gameDao().insertGame(GameEntity.fromDomain(Game(id, "The Golden Tree", DESCRIPTION, uid, name, GameStatus.PUBLISHED, 3, publishedAt = System.currentTimeMillis())))
             db.checkpointDao().insertCheckpoints(points.mapIndexed { i, p ->
                 CheckpointEntity.fromDomain(Checkpoint("${id}_CP${i + 1}", id, "Chapter ${i + 1} - ${names[i]}", p.first, p.second,
                     radiusM = 15f, lightSignature = LightSignature(0f, 100000f), clue = clues[i], lore = reveals[i], order = i + 1))

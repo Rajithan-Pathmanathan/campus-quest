@@ -51,7 +51,7 @@ class GameDetailFragment : Fragment() {
             val app = com.campusquest.CampusQuestApplication.instance
             if(app.database.storyDao().config(gameId) != null && app.database.gameDao().getGameById(gameId)?.creatorId == com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId()) {
                 val button = com.google.android.material.button.MaterialButton(requireContext()).apply {
-                    text = "View / save repair card"
+                    text = "View / save instruction card"
                     setOnClickListener {findNavController().navigate(R.id.storySetupFragment,Bundle().apply {putString("gameId",gameId)})}
                 }
                 (binding.btnJoin.parent as android.view.ViewGroup).addView(button)
@@ -79,7 +79,7 @@ class GameDetailFragment : Fragment() {
         com.campusquest.CampusQuestApplication.instance.questGeofences.activate(gameId, force = true)
         viewLifecycleOwner.lifecycleScope.launch {
             val story = com.campusquest.CampusQuestApplication.instance.database.storyDao().config(gameId)
-            findNavController().navigate(if (story != null) R.id.storyGameFragment else R.id.campusMapFragment,
+            findNavController().navigate(R.id.storyGameFragment,
                 Bundle().apply {putString("gameId",gameId)})
         }
     }
