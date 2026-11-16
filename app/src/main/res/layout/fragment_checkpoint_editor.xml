@@ -204,7 +204,7 @@
                 android:id="@+id/til_motion"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Motion type"
+                android:hint="Checkpoint activity"
                 android:layout_marginTop="@dimen/spacing_m"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu">
 

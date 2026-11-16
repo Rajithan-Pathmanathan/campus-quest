@@ -5,6 +5,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class StoryRulesTest {
+    @Test fun `new story config creates a bounded QR token`() {
+        val c = LightTheWay.newConfig("g")
+        assertEquals("g", c.gameId)
+        assertEquals(c.cardId, c.backupCode)
+        assertTrue(c.cardId.matches(Regex("[A-Z0-9]{8}")))
+    }
+
     @Test fun `card input is scoped versioned and bounded`() {
         val c = StoryConfigEntity("g", "card", "AB12CD34", 0f)
         assertTrue(LightTheWay.matchesCard(LightTheWay.qr(c), c))

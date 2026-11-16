@@ -157,9 +157,13 @@ class StoryGameFragment : Fragment() {
             StoryUi.text(b,"Follow safe paths. The arrow points directly toward the place.",14f)
             StoryUi.button(b,"Begin this chapter") {
                 if(!arrived){status?.text="Reach the marked area and wait for an accurate GPS fix.";return@button}
-                when(index()){0 -> switch("key");1 -> switch("card");else -> {
-                    oilGame=LampOilGame();oilStarted=false;lastOilStatus=OilPourStatus.READY;switch("oil")
-                }}
+                when(CheckpointActivity.fromStored(cp()?.motionType,index()+1)) {
+                    CheckpointActivity.TILT_MAZE -> switch("key")
+                    CheckpointActivity.QR_SCAN -> switch("card")
+                    CheckpointActivity.LAMP_OIL -> {
+                        oilGame=LampOilGame();oilStarted=false;lastOilStatus=OilPourStatus.READY;switch("oil")
+                    }
+                }
             }
             StoryUi.button(b,"Open map") {findNavController().navigate(R.id.campusMapFragment,Bundle().apply {putString("gameId",gameId)})}
         } else if(stage=="key") {

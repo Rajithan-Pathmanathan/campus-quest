@@ -21,6 +21,7 @@ import com.campusquest.data.remote.FirestoreService
 import com.campusquest.data.remote.dto.FirestoreStoryConfigDto
 import com.campusquest.story.StoryConfigEntity
 import com.campusquest.story.StoryDao
+import com.campusquest.story.LightTheWay
 import android.util.Log
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -208,14 +209,17 @@ class GameRepositoryImpl(
                     checkpointCount = if (checkpoints.isNotEmpty()) checkpoints.size else game.checkpointCount,
                     publishedAt = publishedAt
                 )
-                gameDao.updateGame(published)
-                enqueue(
-                    SyncQueueEntity(
-                        operationType = SyncOperationType.PUBLISH_GAME,
-                        entityId = gameId,
-                        payloadJson = """{"gameId":"$gameId","publishedAt":$publishedAt}"""
+                inTransaction {
+                    if (storyDao?.config(gameId) == null) storyDao?.putConfig(LightTheWay.newConfig(gameId))
+                    gameDao.updateGame(published)
+                    enqueue(
+                        SyncQueueEntity(
+                            operationType = SyncOperationType.PUBLISH_GAME,
+                            entityId = gameId,
+                            payloadJson = """{"gameId":"$gameId","publishedAt":$publishedAt}"""
+                        )
                     )
-                )
+                }
                 Result.success(Unit)
             } else {
                 Result.failure(IllegalArgumentException("Game $gameId not found"))

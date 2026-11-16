@@ -37,20 +37,24 @@ object LightTheWay {
     fun qr(c: StoryConfigEntity) = "campusquest:v1:${c.gameId}:REPAIR_CARD:${c.cardId}"
     fun matchesCard(input: String, c: StoryConfigEntity) = input.length <= 256 && input.trim() == qr(c)
     fun matchesCode(input: String, c: StoryConfigEntity) = input.length <= 32 && input.trim().uppercase(java.util.Locale.ROOT) == c.backupCode
+    fun newConfig(gameId: String): StoryConfigEntity {
+        val token = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(java.util.Locale.ROOT)
+        return StoryConfigEntity(gameId, token, token, 0f)
+    }
 
     suspend fun create(db: AppDatabase, uid: String, name: String, points: List<Pair<Double, Double>>, bearing: Float): String {
         require(uid.isNotBlank() && points.size == 3)
         require(points.all { it.first.isFinite() && it.second.isFinite() && it.first in -90.0..90.0 && it.second in -180.0..180.0 })
         require(bearing.isFinite() && bearing in 0f..359.99f)
         val id = "LIGHT_" + UUID.randomUUID().toString()
-        val token = UUID.randomUUID().toString().replace("-", "").take(8).uppercase(java.util.Locale.ROOT)
         db.withTransaction {
             db.gameDao().insertGame(GameEntity.fromDomain(Game(id, "Light the Way", DESCRIPTION, uid, name, GameStatus.PUBLISHED, 3, publishedAt = System.currentTimeMillis())))
             db.checkpointDao().insertCheckpoints(points.mapIndexed { i, p ->
                 CheckpointEntity.fromDomain(Checkpoint("${id}_CP${i + 1}", id, "Chapter ${i + 1} - ${names[i]}", p.first, p.second,
-                    radiusM = 15f, lightSignature = LightSignature(0f, 100000f), clue = clues[i], lore = reveals[i], order = i + 1))
+                    radiusM = 15f, lightSignature = LightSignature(0f, 100000f), clue = clues[i], lore = reveals[i], order = i + 1,
+                    motionType = CheckpointActivity.forOrder(i + 1).name))
             })
-            db.storyDao().putConfig(StoryConfigEntity(id, token, token, bearing))
+            db.storyDao().putConfig(newConfig(id).copy(targetBearing = bearing))
             // Upload to the cloud (game + checkpoints + card config) so other phones can play it.
             db.syncQueueDao().enqueue(com.campusquest.data.local.entity.SyncQueueEntity(
                 operationType = com.campusquest.data.local.entity.SyncOperationType.PUBLISH_GAME,

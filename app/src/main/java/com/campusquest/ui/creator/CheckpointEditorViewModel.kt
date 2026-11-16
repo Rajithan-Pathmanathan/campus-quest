@@ -3,6 +3,7 @@ package com.campusquest.ui.creator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.campusquest.domain.model.Checkpoint
+import com.campusquest.domain.model.CheckpointActivity
 import com.campusquest.domain.model.LightSignature
 import com.campusquest.domain.repository.GameRepository
 import com.campusquest.ui.creator.validation.CheckpointValidator
@@ -26,7 +27,7 @@ data class CheckpointEditorUiState(
     val clue: String = "",
     val lore: String = "",
     val order: String = "1",
-    val motionType: String = "SWEEP",
+    val motionType: String = CheckpointActivity.TILT_MAZE.name,
     val rarity: String = "COMMON",
     val isSaving: Boolean = false,
     val errors: Map<String, String> = emptyMap(),
@@ -61,7 +62,7 @@ class CheckpointEditorViewModel(
                             minLux = cp.lightSignature.minLux.toString(),
                             maxLux = cp.lightSignature.maxLux.toString(),
                             clue = cp.clue, lore = cp.lore, order = cp.order.toString(),
-                            motionType = cp.motionType, rarity = cp.rarity
+                            motionType = CheckpointActivity.fromStored(cp.motionType, cp.order).name, rarity = cp.rarity
                         )
                     }
                 }
@@ -86,6 +87,7 @@ class CheckpointEditorViewModel(
         CheckpointValidator.validateRadius(s.radiusM)?.let { e["radius"] = it }
         CheckpointValidator.validateLux(s.minLux, s.maxLux)?.let { e["lux"] = it }
         CheckpointValidator.validateClue(s.clue, forPublish = false)?.let { e["clue"] = it }
+        CheckpointValidator.validateActivity(s.motionType)?.let { e["activity"] = it }
         CheckpointValidator.validateRarity(s.rarity)?.let { e["rarity"] = it }
         val order = s.order.trim().toIntOrNull()
         if (order == null || order < 1) e["order"] = "Order must be a whole number from 1"

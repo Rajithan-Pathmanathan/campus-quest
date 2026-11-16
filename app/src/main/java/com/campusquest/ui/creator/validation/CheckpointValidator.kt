@@ -1,5 +1,7 @@
 package com.campusquest.ui.creator.validation
 
+import com.campusquest.domain.model.CheckpointActivity
+
 object CheckpointValidator {
 
     fun validateName(input: String): String? {
@@ -56,4 +58,7 @@ object CheckpointValidator {
 
     fun validateRarity(input: String): String? =
         if (input in CreatorLimits.RARITIES) null else "Choose a valid rarity"
+
+    fun validateActivity(input: String): String? =
+        if (CheckpointActivity.entries.any { it.name == input }) null else "Choose a valid checkpoint activity"
 }

@@ -15,6 +15,9 @@ import com.campusquest.domain.model.Game
 import com.campusquest.domain.model.GameStatus
 import com.campusquest.domain.model.LightSignature
 import com.campusquest.domain.repository.AuthRepository
+import com.campusquest.story.StoryConfigEntity
+import com.campusquest.story.StoryDao
+import com.campusquest.story.StorySessionEntity
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -160,6 +163,17 @@ class M6RepositoryAndSyncTest {
         }
     }
 
+    private class FakeStoryDao : StoryDao {
+        private val configs = mutableMapOf<String, StoryConfigEntity>()
+        private val sessions = mutableMapOf<Pair<String, String>, StorySessionEntity>()
+        override suspend fun config(gameId: String) = configs[gameId]
+        override suspend fun putConfig(config: StoryConfigEntity) { configs[config.gameId] = config }
+        override suspend fun session(gameId: String, userId: String) = sessions[gameId to userId]
+        override suspend fun putSession(session: StorySessionEntity) { sessions[session.gameId to session.userId] = session }
+        override suspend fun deleteConfig(gameId: String) { configs.remove(gameId) }
+        override suspend fun deleteSessions(gameId: String) { sessions.keys.removeIf { it.first == gameId } }
+    }
+
     private class FakeAuthRepository(var activeUid: String? = "user_alpha") : AuthRepository {
         private val state = MutableStateFlow<AuthUser?>(null)
         override val currentUserState: StateFlow<AuthUser?> = state
@@ -202,6 +216,20 @@ class M6RepositoryAndSyncTest {
         val creatorGames = repo.getCreatorGames("creator_1")
         assertEquals(1, creatorGames.size)
         assertEquals("Updated Quest Title", creatorGames.first().title)
+    }
+
+    @Test
+    fun publishingCreatorGameAddsItsQrStoryConfig() = runBlocking {
+        val gameDao = FakeGameDao()
+        val storyDao = FakeStoryDao()
+        val repo = GameRepositoryImpl(
+            gameDao, FakeCheckpointDao(), FakePlayerProgressDao(), FakeSyncQueueDao(),
+            storyDao = storyDao
+        )
+        repo.createGame(Game("g1", "Quest", "Description", "creator", "Creator", GameStatus.DRAFT))
+
+        assertTrue(repo.publishGame("g1").isSuccess)
+        assertNotNull(storyDao.config("g1"))
     }
 
     @Test
