@@ -13,7 +13,7 @@ Each task has a **Done when** line. Do them roughly in order; Part A unblocks th
 
 ## Part A — Firebase Console setup (no code, ~1 hour) 🔴 do first
 
-Project: **`campus-quest-17889`** (the team project in `app/google-services.json`).
+Project: **`campus-quest-e9398`** (in `app/google-services.json` since 2026-11-16; it replaces the unused `campus-quest-17889`). Sign-in methods, Firestore and the leaderboard index are already set up there. Ask M3 for console access.
 
 - [ ] **A1. Fix debug builds.** Debug builds use package `com.campusquest.debug` (`app/build.gradle.kts:40`), but `google-services.json` only has `com.campusquest`, so `assembleDebug` fails for everyone.
   Console → Project settings → **Add app → Android** → package `com.campusquest.debug` → download the new `google-services.json` → replace `app/google-services.json` → commit.
