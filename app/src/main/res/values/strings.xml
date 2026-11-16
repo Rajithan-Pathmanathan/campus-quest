@@ -88,7 +88,6 @@
     <string name="dashboard_account_title">Account</string>
     <string name="account_sign_out">Sign out</string>
     <string name="account_privacy_policy">Privacy policy</string>
-    <string name="account_privacy_missing">The privacy policy link has not been configured yet.</string>
     <string name="account_delete">Delete my account</string>
     <string name="account_delete_title">Delete your account?</string>
     <string name="account_delete_message">This permanently deletes your Campus Quest account, your progress and your leaderboard entries. Quests you created stay published. This cannot be undone.</string>

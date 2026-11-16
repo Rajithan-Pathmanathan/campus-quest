@@ -51,6 +51,7 @@ class LoginFragment : Fragment() {
         }
         binding.btnGuestLogin.setOnClickListener { viewModel.continueAsGuest() }
         binding.btnToggleMode.setOnClickListener { viewModel.toggleMode() }
+        binding.btnPrivacyPolicy.setOnClickListener { findNavController().navigate(R.id.action_global_privacyPolicy) }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {

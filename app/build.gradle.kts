@@ -36,7 +36,6 @@ android {
 
         // External integrations; blank values simply switch the feature off.
         buildConfigField("String", "NEW_QUEST_NOTIFY_URL", "\"${localProp("NEW_QUEST_NOTIFY_URL")}\"")
-        buildConfigField("String", "PRIVACY_POLICY_URL", "\"${localProp("PRIVACY_POLICY_URL")}\"")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

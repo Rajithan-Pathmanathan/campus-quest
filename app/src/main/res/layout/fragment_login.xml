@@ -119,6 +119,15 @@
             android:layout_marginTop="@dimen/spacing_s"
             android:text="@string/login_toggle_to_register" />
 
+        <!-- Privacy policy, readable before signing in -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_privacy_policy"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/privacy_accept_hint"
+            android:textSize="12sp" />
+
         <ProgressBar
             android:id="@+id/progress_bar"
             android:layout_width="wrap_content"
