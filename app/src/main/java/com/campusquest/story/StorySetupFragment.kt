@@ -28,16 +28,17 @@ class StorySetupFragment : Fragment() {
         val body = StoryUi.column(requireContext())
         val scroll = ScrollView(requireContext()).apply { addView(body) }
         StoryUi.button(body,"Back") { findNavController().navigateUp() }
-        StoryUi.text(body,"The Golden Tree",28f)
-        StoryUi.text(body,"Instruction card for this quest. Print it and place it at stop 2, where your stop description says. Players scan it, or type the backup code.")
+        StoryUi.text(body,"Light the Way",28f)
+        StoryUi.text(body,"Create the three-chapter walk. Your existing games stay saved. Check these places are safe and install the printed card at chapter 2.")
         val defaults = listOf(7.727295 to 81.696698, 7.727241 to 81.696882, (7.727241 + Math.toDegrees(50.0 / 6371000.0)) to 81.696882)
         val fields = defaults.mapIndexed { i,p ->
             StoryUi.text(body,"${i+1}. ${LightTheWay.names[i]}",21f)
             StoryUi.input(body,"Latitude",p.first.toString()) to StoryUi.input(body,"Longitude",p.second.toString())
         }
-        val bearing = EditText(requireContext()).apply { setText("0") }
+        val bearing = StoryUi.input(body,"Lamp direction in degrees (0 = north)","0")
+        StoryUi.text(body,"Checkpoint 3 starts about 50 metres north of checkpoint 2. Arrival radius: 15 metres.",14f)
         val message=StoryUi.text(body,"")
-        val create=StoryUi.button(body,"Create The Golden Tree") {}
+        val create=StoryUi.button(body,"Create Light the Way") {}
         create.setOnClickListener {
             val points = fields.map { (lat,lng) -> lat.text.toString().toDoubleOrNull() to lng.text.toString().toDoubleOrNull() }
             val heading = bearing.text.toString().toFloatOrNull()
@@ -56,9 +57,6 @@ class StorySetupFragment : Fragment() {
                 } catch (e: Exception) { message.text=e.message ?: "Could not create game";create.isEnabled=true }
             }
         }
-        // Quests are created in Creator Studio (Create a Golden Tree quest); this screen only shows the card.
-        create.visibility=View.GONE
-        if (arguments?.getString("gameId") == null) message.text="Open a quest's instruction card from Creator Studio."
         arguments?.getString("gameId")?.let { id ->
             create.visibility=View.GONE
             viewLifecycleOwnerLiveData.observe(this) { owner -> if(owner!=null) owner.lifecycleScope.launch {
@@ -66,10 +64,8 @@ class StorySetupFragment : Fragment() {
                 val game=db.gameDao().getGameById(id)
                 if(game?.creatorId == AppProviders.authRepository.getCurrentUserId()) {
                     db.checkpointDao().getCheckpointsForGame(id).forEachIndexed { i,cp -> if(i<fields.size){fields[i].first.setText(cp.lat.toString());fields[i].second.setText(cp.lng.toString())} }
-                    val config=db.storyDao().config(id)
-                    if (config == null) message.text="This quest has no card yet. Give it three stops and publish it in Creator Studio."
-                    else { bearing.setText(config.targetBearing.toString());showCard(body,config) }
-                } else message.text="Only the creator can view the instruction card."
+                    db.storyDao().config(id)?.let { bearing.setText(it.targetBearing.toString());showCard(body,it) }
+                } else message.text="Only the creator can view the repair card."
                 fields.forEach { it.first.isEnabled=false;it.second.isEnabled=false };bearing.isEnabled=false
             } }
         }
@@ -78,8 +74,8 @@ class StorySetupFragment : Fragment() {
     private fun showCard(body: LinearLayout, c: StoryConfigEntity) {
         config=c
         card=RepairCardArtwork.render(c)
-        body.addView(ImageView(requireContext()).apply {setImageBitmap(card);adjustViewBounds=true;contentDescription="Printable instruction card. Backup code ${c.backupCode}"},LinearLayout.LayoutParams(-1,-2))
-        StoryUi.button(body,"Save printable card") { export.launch("Golden-Tree-Instruction-Card.png") }
+        body.addView(ImageView(requireContext()).apply {setImageBitmap(card);adjustViewBounds=true;contentDescription="Printable repair card. Backup code ${c.backupCode}"},LinearLayout.LayoutParams(-1,-2))
+        StoryUi.button(body,"Save printable card") { export.launch("Light-the-Way-Repair-Card.png") }
         StoryUi.button(body,"Open game") { findNavController().navigate(R.id.gameDetailFragment,Bundle().apply {putString("gameId",c.gameId)}) }
     }
 }

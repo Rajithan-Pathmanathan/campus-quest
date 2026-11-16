@@ -27,13 +27,19 @@
     <string name="creator_publish_quest">Publish Quest to Campus</string>
 
     <!-- Gameplay & HUD -->
+    <string name="hud_radar_searching">Calibrating Environmental Sensors…</string>
+    <string name="hud_radar_locked">Checkpoint Geofence Locked</string>
+    <string name="hud_sensor_shake_prompt">Perform physical motion scan to resonate relic</string>
+    <string name="hud_sensor_lux_prompt">Match ambient light signature</string>
+    <string name="hud_sensor_proximity_prompt">Align device near landmark marker</string>
     <string name="checkpoint_unlocked_title">Checkpoint Discovered!</string>
+    <string name="checkpoint_unlocked_btn">Claim Relic &amp; Continue</string>
 
     <!-- Error Messages -->
     <string name="error_location_permission_required">Location permission is required to detect campus checkpoints.</string>
     <string name="error_camera_permission_required">Camera permission is required for the AR discovery HUD.</string>
     <string name="error_network_offline">Operating in Offline Mode. Actions queued for sync.</string>
-    <string name="player_progress_stats">Score: %1$d pts | Stops completed: %2$d</string>
+    <string name="player_progress_stats">Score: %1$d pts | Relics Found: %2$d</string>
     <string name="map_target">Target: %1$s</string>
     <string name="map_clue">Clue: %1$s</string>
     <string name="map_distance">Distance: %1$d m remaining</string>
@@ -60,7 +66,7 @@
     <string name="perm_location_impact">Campus Quest uses your location to guide you to each checkpoint, show your position on the map and confirm when you have reached a place. Without it, the map cannot show where you are, distance guidance will not appear and checkpoints cannot be discovered. The game will not work properly.</string>
     <string name="perm_location_how">Settings → Apps → Campus Quest → Permissions → Location → “Allow only while using the app”, and switch on “Use precise location”.</string>
     <string name="perm_camera_title">Camera permission is required</string>
-    <string name="perm_camera_impact">Use the camera to scan the Golden Tree instruction card. If you cannot use the camera, enter the code printed on the card.</string>
+    <string name="perm_camera_impact">The camera is used to scan the repair card in the Light the Way quest. Without it, the card step cannot be completed and the quest cannot be finished.</string>
     <string name="perm_camera_how">Settings → Apps → Campus Quest → Permissions → Camera → “Allow only while using the app”.</string>
     <string name="perm_notifications_title">Notifications are turned off</string>
     <string name="perm_notifications_impact">Notifications tell you when you are near the next checkpoint and when new quests are published. Without them you will not receive these alerts. The game itself will still work.</string>
@@ -72,7 +78,7 @@
     <!-- Player dashboard -->
     <string name="dashboard_welcome_default">Welcome, Explorer</string>
     <string name="dashboard_welcome">Welcome, %1$s</string>
-    <string name="dashboard_stats_default">Score: 0 pts | Stops completed: 0</string>
+    <string name="dashboard_stats_default">Score: 0 pts | Relics Found: 0</string>
     <string name="dashboard_explore_title">🗺️ Explore Campus Quests</string>
     <string name="dashboard_explore_body">Discover published quests created by campus clubs and professors.</string>
     <string name="dashboard_browse">Browse Quests</string>
@@ -96,8 +102,8 @@
     <string name="checkpoint_list_add_checkpoint">+ Add Checkpoint</string>
     <string name="create_game_configured_checkpoints">Configured Checkpoints</string>
     <string name="create_game_add_dynamic_checkpoint">📍 Add Dynamic Checkpoint</string>
-    <string name="creator_dashboard_create_new_quest">➕ Create a Golden Tree quest</string>
-    <string name="creator_dashboard_create_light_the_way">Create The Golden Tree story</string>
+    <string name="creator_dashboard_create_new_quest">➕ Create New Quest</string>
+    <string name="creator_dashboard_create_light_the_way">Create Light the Way story</string>
     <string name="creator_dashboard_your_authored_quests_and">Your Authored Quests &amp; Drafts</string>
     <string name="creator_dashboard_switch_to_player_mode">Switch to Player Mode</string>
     <string name="game_detail_retry">Retry</string>
@@ -122,10 +128,4 @@
     <string name="checkpoint_use_my_location">📍 Use my current location</string>
     <string name="checkpoint_waiting_location">Still finding your location… make sure Location is on.</string>
     <string name="creator_edit_quest_title">Edit Quest</string>
-    <string name="checkpoint_where_hint">Where exactly is this stop? (stop 2: where the printed card is placed)</string>
-    <string name="checkpoint_name_hint">Stop name (for you, e.g. Library steps)</string>
-    <string name="creator_publish_confirm">Players will see this quest and walk to its three stops. By publishing you confirm all three places are safe, publicly accessible and suitable for standing still while playing.</string>
-    <string name="creator_published_card">Quest published. Save and print the instruction card for stop 2.</string>
-    <string name="quest_instruction_card">Instruction card</string>
-    <string name="quest_needs_update">This quest uses an older format and can\'t be played. Its creator needs to open it in Creator Studio, give it three stops and publish it again.</string>
 </resources>

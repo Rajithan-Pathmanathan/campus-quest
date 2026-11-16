@@ -24,11 +24,6 @@ class TiltHardwareTest {
                 maze.layout(0,0,1000,1000);maze.draw(android.graphics.Canvas(bitmap))
                 java.io.File(activity.getExternalFilesDir(null),"tilt-maze-preview.png").outputStream().use {bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
                 bitmap.recycle()
-                val jug=GoldenWaterView(activity).apply {layout(0,0,1000,1000)}
-                val jugBitmap=android.graphics.Bitmap.createBitmap(1000,1000,android.graphics.Bitmap.Config.ARGB_8888)
-                jug.draw(android.graphics.Canvas(jugBitmap))
-                java.io.File(activity.getExternalFilesDir(null),"golden-water-preview.png").outputStream().use {jugBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,it)}
-                jugBitmap.recycle()
                 val x=maze.box.x;val y=maze.box.y
                 for((action,px,py) in listOf(Triple(MotionEvent.ACTION_DOWN,50f,450f),Triple(MotionEvent.ACTION_MOVE,300f,100f),Triple(MotionEvent.ACTION_UP,300f,100f))){
                     val event=MotionEvent.obtain(0,0,action,px,py,0)

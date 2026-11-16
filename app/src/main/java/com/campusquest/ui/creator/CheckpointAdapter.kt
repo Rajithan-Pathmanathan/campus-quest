@@ -24,7 +24,8 @@ class CheckpointAdapter(
         val cp = getItem(position)
         with(holder.binding) {
             tvCpTitle.text = "${position + 1}. ${cp.name}"
-            tvCpDetails.text = "Arrival radius: ${cp.radiusM.toInt()} m" + cp.clue.takeIf { it.isNotBlank() }?.let { "  |  Where: $it" }.orEmpty()
+            tvCpDetails.text = "Radius: ${cp.radiusM.toInt()} m  |  Light: " +
+                    "${cp.lightSignature.minLux.toInt()}-${cp.lightSignature.maxLux.toInt()} lux  |  ${cp.rarity}"
             btnUp.isEnabled = position > 0
             btnDown.isEnabled = position < itemCount - 1
             btnUp.setOnClickListener { onUp(cp) }

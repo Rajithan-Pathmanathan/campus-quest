@@ -104,12 +104,6 @@ class CheckpointEditorFragment : Fragment() {
         }
 
         binding.btnSaveCheckpoint.setOnClickListener { viewModel.save() }
-        // The Golden Tree's puzzles are fixed by the story; light, motion, rarity and memory text
-        // from the old quest format don't apply (stored with defaults for compatibility).
-        listOf(binding.tilMinLux, binding.tilMaxLux, binding.tilLore, binding.tilMotion, binding.tilRarity)
-            .forEach { it.visibility = View.GONE }
-        binding.tilClue.hint = getString(R.string.checkpoint_where_hint)
-        binding.tilCpName.hint = getString(R.string.checkpoint_name_hint)
         setupMapPicker()
         binding.btnUseMyLocation.setOnClickListener {
             val here = lastUserLocation

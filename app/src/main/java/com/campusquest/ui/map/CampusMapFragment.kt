@@ -108,7 +108,7 @@ class CampusMapFragment : Fragment() {
                     putString("checkpointId", nextId)
                 }
                 val story = CampusQuestApplication.instance.database.storyDao().config(gameId)
-                findNavController().navigate(R.id.storyGameFragment, bundle)
+                findNavController().navigate(if(story != null) R.id.storyGameFragment else R.id.questScanFragment, bundle)
             }
         }
     }

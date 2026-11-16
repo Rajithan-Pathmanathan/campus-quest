@@ -15,11 +15,8 @@ object CreatorLimits {
     const val MAX_RADIUS_M = 500f
     const val MAX_LUX = 100_000f
 
-    /** The Golden Tree has exactly three stops (key, instruction card, golden water). */
-    const val MIN_CHECKPOINTS_TO_PUBLISH = 3
-    const val MAX_CHECKPOINTS = 3
-    /** Default arrival radius for a stop (SRS 3.2). */
-    const val DEFAULT_RADIUS_M = "15"
+    /** A quest needs at least one place to visit. */
+    const val MIN_CHECKPOINTS_TO_PUBLISH = 1
 
     val RARITIES = listOf("COMMON", "RARE", "EPIC", "LEGENDARY")
 }

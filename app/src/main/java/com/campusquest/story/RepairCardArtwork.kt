@@ -12,7 +12,7 @@ object RepairCardArtwork {
         return Bitmap.createBitmap(800,950,Bitmap.Config.ARGB_8888).also { bitmap ->
             val canvas=Canvas(bitmap);canvas.drawColor(Color.WHITE)
             val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply {color=Color.BLACK;textSize=32f;textAlign=Paint.Align.CENTER}
-            canvas.drawText("The Golden Tree — Instruction Card",400f,65f,paint)
+            canvas.drawText("Light the Way — Repair Card",400f,65f,paint)
             canvas.drawBitmap(qr,100f,100f,paint)
             canvas.drawText("Backup code: ${c.backupCode}",400f,775f,paint)
             paint.textSize=24f;canvas.drawText("Scan this card in Campus Quest",400f,835f,paint)

@@ -3,6 +3,7 @@ package com.campusquest.device.location.geofence
 import com.campusquest.domain.model.Checkpoint
 import com.campusquest.domain.model.GeofenceState
 import com.campusquest.domain.model.LocationState
+import com.campusquest.domain.quest.QuestZones
 import com.campusquest.domain.repository.GameRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -69,15 +70,14 @@ class QuestGeofenceCoordinator(
     }
 
     companion object {
-        /** Android geofences are unreliable below ~100 m; arrival itself is decided in-app. */
-        const val MIN_FENCE_RADIUS_M = 100f
-
         /**
-         * The next unfound checkpoint (by order), widened to [MIN_FENCE_RADIUS_M].
+         * The next unfound checkpoint (by order), widened to the story's "middle ring":
+         * Android geofences are unreliable below ~100 m, and the relic itself is still
+         * decided in-app by the zones (10 m).
          */
         fun fenceFor(checkpoints: List<Checkpoint>, found: Set<String>): Checkpoint? =
             checkpoints.sortedBy { it.order }
                 .firstOrNull { it.id !in found }
-                ?.let { it.copy(radiusM = maxOf(it.radiusM, MIN_FENCE_RADIUS_M)) }
+                ?.let { it.copy(radiusM = maxOf(it.radiusM, QuestZones.MIDDLE_RING_M)) }
     }
 }

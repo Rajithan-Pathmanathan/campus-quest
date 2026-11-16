@@ -35,7 +35,6 @@ class CreateGameViewModelTest {
     @Test
     fun blankTitle_showsErrorAndDoesNotSave() {
         val vm = vm()
-        vm.onTitleChanged("") // new quests start with the story title; the creator cleared it
         vm.saveDraft()
         assertNotNull(vm.state.value.titleError)
         assertEquals(0, repo.games.size)

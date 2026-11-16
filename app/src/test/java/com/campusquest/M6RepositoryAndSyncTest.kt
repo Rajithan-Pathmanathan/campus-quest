@@ -315,47 +315,4 @@ class M6RepositoryAndSyncTest {
             it.operationType == com.campusquest.data.local.entity.SyncOperationType.DELETE_GAME && it.entityId == "g1"
         })
     }
-
-    private class FakeStoryDao : com.campusquest.story.StoryDao {
-        val configs = mutableMapOf<String, com.campusquest.story.StoryConfigEntity>()
-        override suspend fun config(gameId: String) = configs[gameId]
-        override suspend fun putConfig(config: com.campusquest.story.StoryConfigEntity) { configs[config.gameId] = config }
-        override suspend fun session(gameId: String, userId: String): com.campusquest.story.StorySessionEntity? = null
-        override suspend fun putSession(session: com.campusquest.story.StorySessionEntity) {}
-        override suspend fun deleteConfig(gameId: String) { configs.remove(gameId) }
-        override suspend fun deleteSessions(gameId: String) {}
-    }
-
-    @Test
-    fun publishing_createsTheInstructionCard_andOnlyTheCreatorCanPublish() = runBlocking {
-        val stories = FakeStoryDao()
-        val auth = FakeAuthRepository("creator")
-        val repo = GameRepositoryImpl(FakeGameDao(), FakeCheckpointDao(), FakePlayerProgressDao(), FakeSyncQueueDao(), auth,
-            storyDao = stories)
-        repo.createGame(Game("g1", "The Golden Tree", "d", "creator", "C", GameStatus.DRAFT))
-
-        auth.activeUid = "someone_else"
-        assertTrue(repo.publishGame("g1").isFailure)
-        assertEquals(null, stories.configs["g1"])
-
-        auth.activeUid = "creator"
-        assertTrue(repo.publishGame("g1").isSuccess)
-        val card = stories.configs["g1"]
-        assertNotNull(card)
-        assertEquals(8, card!!.cardId.length)
-
-        // Re-publishing keeps the same printed card.
-        repo.publishGame("g1")
-        assertEquals(card, stories.configs["g1"])
-    }
-
-    @Test
-    fun oldLightTheWayRecords_showTheGoldenTreeCopy_withoutRewritingThem() = runBlocking {
-        val gameDao = FakeGameDao()
-        val repo = GameRepositoryImpl(gameDao, FakeCheckpointDao(), FakePlayerProgressDao(), FakeSyncQueueDao())
-        repo.createGame(Game("old", com.campusquest.story.LightTheWay.LEGACY_TITLE, "old text", "c", "C", GameStatus.PUBLISHED))
-
-        assertEquals("The Golden Tree", repo.getGameDetails("old")!!.title)
-        assertEquals(com.campusquest.story.LightTheWay.LEGACY_TITLE, gameDao.getGameById("old")!!.title)
-    }
 }

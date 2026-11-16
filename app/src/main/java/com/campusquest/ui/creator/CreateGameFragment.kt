@@ -128,18 +128,16 @@ class CreateGameFragment : Fragment() {
             is PublishUiState.ReadyToConfirm -> {
                 AlertDialog.Builder(requireContext())
                     .setTitle("Publish Game?")
-                    .setMessage(R.string.creator_publish_confirm)
+                    .setMessage("Once published, players will be able to discover and join this game.")
                     .setNegativeButton("Cancel") { _, _ -> publishViewModel.dismiss() }
                     .setPositiveButton("Publish") { _, _ -> publishViewModel.confirmPublish() }
                     .setOnCancelListener { publishViewModel.dismiss() }
                     .show()
             }
             is PublishUiState.Success -> {
-                Toast.makeText(requireContext(), R.string.creator_published_card, Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Game published. It is now available to players.", Toast.LENGTH_LONG).show()
                 publishViewModel.dismiss()
-                val id = viewModel.state.value.gameId
                 findNavController().navigateUp()
-                if (id != null) findNavController().navigate(R.id.storySetupFragment, Bundle().apply { putString("gameId", id) })
             }
             is PublishUiState.Error -> {
                 Toast.makeText(requireContext(), s.message, Toast.LENGTH_LONG).show()
