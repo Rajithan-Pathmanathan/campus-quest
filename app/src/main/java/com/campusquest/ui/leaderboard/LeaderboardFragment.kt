@@ -26,7 +26,7 @@ class LeaderboardFragment : Fragment() {
 
     private val viewModel: LeaderboardViewModel by viewModels()
     private val gameId: String get() = arguments?.getString("gameId").orEmpty()
-    private val adapter = LeaderboardAdapter()
+    private val adapter = LeaderboardAdapter { com.campusquest.ui.common.AppProviders.authRepository.getCurrentUserId() }
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -68,7 +68,9 @@ class LeaderboardFragment : Fragment() {
         _binding = null
     }
 
-    private class LeaderboardAdapter : RecyclerView.Adapter<LeaderboardAdapter.ViewHolder>() {
+    private class LeaderboardAdapter(
+        private val currentUserId: () -> String?
+    ) : RecyclerView.Adapter<LeaderboardAdapter.ViewHolder>() {
 
         private var items: List<GameLeaderboardEntry> = emptyList()
 
@@ -78,6 +80,7 @@ class LeaderboardFragment : Fragment() {
         }
 
         class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+            val card: com.google.android.material.card.MaterialCardView = view.findViewById(R.id.card_entry)
             val tvRank: TextView = view.findViewById(R.id.tv_rank)
             val tvPlayerName: TextView = view.findViewById(R.id.tv_player_name)
             val tvTimeScore: TextView = view.findViewById(R.id.tv_time_score)
@@ -92,8 +95,22 @@ class LeaderboardFragment : Fragment() {
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
             val entry = items[position]
-            holder.tvRank.text = "#${position + 1}"
-            holder.tvPlayerName.text = entry.userName
+            val ctx = holder.itemView.context
+            holder.tvRank.text = (position + 1).toString()
+            holder.tvRank.setBackgroundResource(
+                when (position) {
+                    0 -> R.drawable.bg_rank_gold
+                    1 -> R.drawable.bg_rank_silver
+                    2 -> R.drawable.bg_rank_bronze
+                    else -> R.drawable.bg_rank_other
+                }
+            )
+            val mine = entry.userId.isNotBlank() && entry.userId == currentUserId()
+            holder.tvPlayerName.text =
+                if (mine) "${entry.userName} · ${ctx.getString(R.string.leaderboard_you)}" else entry.userName
+            // the player's own row stands out with a gold edge
+            holder.card.strokeWidth = if (mine) (2 * ctx.resources.displayMetrics.density).toInt() else 0
+            holder.card.strokeColor = androidx.core.content.ContextCompat.getColor(ctx, R.color.gold_edge)
             val mins = entry.completionTimeSeconds / 60
             val secs = entry.completionTimeSeconds % 60
             holder.tvTimeScore.text = "Completed in ${mins}m ${secs}s"

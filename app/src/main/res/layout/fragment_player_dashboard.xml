@@ -23,14 +23,95 @@
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
 
-        <TextView
-            android:id="@+id/tv_stats"
-            android:layout_width="wrap_content"
+        <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_m"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:text="@string/dashboard_stats_default"
-            android:textColor="@color/primary_emerald"
-            android:textStyle="bold"
-            android:layout_marginTop="@dimen/spacing_xs" />
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_stat_tile"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_coin" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_score_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="serif"
+                    android:text="0"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_stat_score"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/bg_stat_tile"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="14dp">
+
+            <ImageView
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_trophy"
+                app:tint="@color/gold_edge" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="10dp"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/tv_relics_value"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="serif"
+                    android:text="0"
+                    android:textColor="@color/text_primary"
+                    android:textSize="22sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_stat_relics"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
 
         <!-- Quick Action Cards -->
         <com.google.android.material.card.MaterialCardView
@@ -51,7 +132,11 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/dashboard_explore_title"
+                    android:drawableStart="@drawable/ic_map_fold"
+                android:drawablePadding="10dp"
+                android:drawableTint="@color/primary_emerald"
+                android:gravity="center_vertical"
+                android:text="@string/dashboard_explore_title"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -89,7 +174,11 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/dashboard_creator_title"
+                    android:drawableStart="@drawable/ic_tools"
+                android:drawablePadding="10dp"
+                android:drawableTint="@color/primary_emerald"
+                android:gravity="center_vertical"
+                android:text="@string/dashboard_creator_title"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
@@ -146,7 +235,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="@string/account_privacy_policy"
-                    style="@style/Widget.Material3.Button.TextButton" />
+                    style="@style/Widget.CampusQuest.Button.Text" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_delete_account"
@@ -154,7 +243,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/account_delete"
                     android:textColor="@color/status_closed"
-                    style="@style/Widget.Material3.Button.TextButton" />
+                    style="@style/Widget.CampusQuest.Button.Text" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

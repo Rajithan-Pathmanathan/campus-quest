@@ -4,67 +4,97 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="@dimen/spacing_xs"
-    app:cardCornerRadius="@dimen/card_corner_radius"
-    app:cardElevation="@dimen/elevation_standard">
+    android:layout_marginHorizontal="@dimen/spacing_s"
+    android:layout_marginVertical="6dp"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="0dp">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="@dimen/spacing_m">
+        android:orientation="horizontal"
+        android:padding="14dp">
 
-        <TextView
-            android:id="@+id/tv_game_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="18sp"
-            android:textStyle="bold"
-            android:textColor="@color/text_primary" />
+        <!-- Quest badge -->
+        <FrameLayout
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:background="@drawable/bg_quest_badge">
 
-        <TextView
-            android:id="@+id/tv_game_creator"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textSize="12sp"
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="2dp" />
-
-        <TextView
-            android:id="@+id/tv_game_description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text=""
-            android:textColor="@color/text_secondary"
-            android:layout_marginTop="@dimen/spacing_s"
-            android:maxLines="2"
-            android:ellipsize="end" />
+            <ImageView
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_explorer_compass" />
+        </FrameLayout>
 
         <LinearLayout
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginTop="@dimen/spacing_m"
-            android:gravity="center_vertical">
+            android:layout_marginStart="14dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
 
             <TextView
-                android:id="@+id/tv_checkpoint_count"
-                android:layout_width="0dp"
+                android:id="@+id/tv_game_title"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text=""
-                android:textColor="@color/primary_emerald"
+                android:ellipsize="end"
+                android:fontFamily="serif"
+                android:maxLines="1"
+                android:textColor="@color/text_primary"
+                android:textSize="19sp"
                 android:textStyle="bold" />
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_view_details"
-                android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/tv_game_creator"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/game_card_view_quest"
-                android:backgroundTint="@color/primary_emerald" />
-        </LinearLayout>
+                android:layout_marginTop="1dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
+            <TextView
+                android:id="@+id/tv_game_description"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tv_checkpoint_count"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:drawableStart="@drawable/ic_pin"
+                    android:drawablePadding="6dp"
+                    android:drawableTint="@color/secondary_amber_dark"
+                    android:gravity="center_vertical"
+                    android:textColor="@color/primary_emerald"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_details"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:minHeight="44dp"
+                    android:paddingEnd="18dp"
+                    android:paddingStart="18dp"
+                    android:text="@string/game_card_view_quest"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

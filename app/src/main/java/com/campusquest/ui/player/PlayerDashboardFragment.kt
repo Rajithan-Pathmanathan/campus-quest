@@ -52,7 +52,8 @@ class PlayerDashboardFragment : Fragment() {
                     CampusQuestApplication.instance.database.playerProgressDao().observeUserProgress(uid).collect { rows ->
                         val score = rows.sumOf { it.score }
                         val relics = rows.sumOf { it.completedCheckpointIds.size }
-                        binding.tvStats.text = getString(R.string.player_progress_stats, score, relics)
+                        binding.tvScoreValue.text = score.toString()
+                        binding.tvRelicsValue.text = relics.toString()
                     }
                 }
             }

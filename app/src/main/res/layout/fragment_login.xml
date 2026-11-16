@@ -43,7 +43,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_display_name"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.CampusQuest.TextInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/spacing_m"
@@ -59,7 +59,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_email"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.CampusQuest.TextInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="@string/login_email_hint">
@@ -73,7 +73,7 @@
 
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/til_password"
-            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            style="@style/Widget.CampusQuest.TextInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_m"
@@ -92,7 +92,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/spacing_s"
-            android:textColor="@android:color/holo_red_dark"
+            android:textColor="@color/status_closed"
             android:visibility="gone" />
 
         <com.google.android.material.button.MaterialButton

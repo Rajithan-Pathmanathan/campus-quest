@@ -67,6 +67,8 @@ class CreatorDashboardFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect { state ->
                     adapter.submitList(state.games)
+                    binding.layoutEmptyAuthored.visibility =
+                        if (state.games.isEmpty() && !state.isLoading) View.VISIBLE else View.GONE
                     state.error?.let {
                         Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
                     }
