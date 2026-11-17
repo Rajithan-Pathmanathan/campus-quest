@@ -57,6 +57,10 @@ class CreateGameFragment : Fragment() {
 
         binding.etTitle.doAfterTextChanged { viewModel.onTitleChanged(it?.toString().orEmpty()) }
         binding.etDesc.doAfterTextChanged { viewModel.onDescriptionChanged(it?.toString().orEmpty()) }
+        binding.etTimeLimit.doAfterTextChanged {
+            val limit = it?.toString()?.toIntOrNull() ?: 30
+            viewModel.onTimeLimitChanged(limit)
+        }
 
         binding.btnSaveDraft.setOnClickListener { viewModel.saveDraft() }
 
@@ -84,6 +88,7 @@ class CreateGameFragment : Fragment() {
                 viewModel.state.collect { state ->
                     if (binding.etTitle.text?.toString() != state.title) binding.etTitle.setText(state.title)
                     if (binding.etDesc.text?.toString() != state.description) binding.etDesc.setText(state.description)
+                    if (binding.etTimeLimit.text?.toString() != state.timeLimitMinutes.toString()) binding.etTimeLimit.setText(state.timeLimitMinutes.toString())
                     binding.tilTitle.error = state.titleError
                     binding.tilDesc.error = state.descriptionError
                     binding.btnSaveDraft.isEnabled = !state.isSaving

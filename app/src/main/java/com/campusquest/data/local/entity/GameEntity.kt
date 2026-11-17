@@ -16,7 +16,8 @@ data class GameEntity(
     val status: GameStatus,
     val checkpointCount: Int,
     val createdAt: Long,
-    val publishedAt: Long?
+    val publishedAt: Long?,
+    val timeLimitMinutes: Int = 30
 ) {
     fun toDomain(): Game = Game(
         id = id,
@@ -27,7 +28,8 @@ data class GameEntity(
         status = status,
         checkpointCount = checkpointCount,
         createdAt = createdAt,
-        publishedAt = publishedAt
+        publishedAt = publishedAt,
+        timeLimitMinutes = timeLimitMinutes
     )
 
     companion object {
@@ -40,7 +42,8 @@ data class GameEntity(
             status = game.status,
             checkpointCount = game.checkpointCount,
             createdAt = game.createdAt,
-            publishedAt = game.publishedAt
+            publishedAt = game.publishedAt,
+            timeLimitMinutes = game.timeLimitMinutes
         )
     }
 }

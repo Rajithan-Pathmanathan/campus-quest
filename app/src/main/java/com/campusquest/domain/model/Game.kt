@@ -9,5 +9,6 @@ data class Game(
     val status: GameStatus = GameStatus.DRAFT,
     val checkpointCount: Int = 0,
     val createdAt: Long = System.currentTimeMillis(),
-    val publishedAt: Long? = null
+    val publishedAt: Long? = null,
+    val timeLimitMinutes: Int = 30
 )
