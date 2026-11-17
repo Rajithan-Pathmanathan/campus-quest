@@ -9,8 +9,7 @@ service cloud.firestore {
 
     // Player profiles (display name, FCM token).
     match /users/{uid} {
-      allow read: if signedIn();
-      allow create, update, delete: if isUser(uid);
+      allow read, create, update, delete: if isUser(uid);
     }
 
     // Quests: anyone signed in reads published quests; only the creator writes.
@@ -23,7 +22,10 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.creatorId == request.auth.uid;
 
       match /checkpoints/{checkpointId} {
-        allow read: if signedIn();
+        allow read: if signedIn() && (
+          get(/databases/$(database)/documents/games/$(gameId)).data.status == 'PUBLISHED'
+          || get(/databases/$(database)/documents/games/$(gameId)).data.creatorId == request.auth.uid
+        );
         // getAfter(): the game and its checkpoints are written in ONE batch on publish,
         // so get() would still see "no game" and reject the batch.
         allow write: if signedIn() &&

@@ -112,6 +112,16 @@ class GameRepositoryImpl(
     }
 
     override suspend fun getGameDetails(gameId: String): Game? {
+        if (gameId.isBlank()) return null
+
+        val localGame = gameDao.getGameById(gameId)
+        if (localGame != null) {
+            return localGame.toDomain()
+        }
+
+        // Download quests when this phone does not have the requested one yet.
+        refreshFromCloud()
+
         return gameDao.getGameById(gameId)?.toDomain()
     }
 
