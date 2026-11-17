@@ -48,7 +48,12 @@ module.exports = async (req, res) => {
       title: "A new quest has been hidden on campus!",
       body: `${game.get("title")} by ${game.get("creatorName") || "a fellow explorer"}`,
     },
-    data: { gameId, title: "A new quest has been hidden on campus!", body: String(game.get("title") || "") },
+    data: {
+      gameId,
+      EXTRA_GAME_ID: gameId,
+      title: "A new quest has been hidden on campus!",
+      body: String(game.get("title") || ""),
+    },
     android: { priority: "high" },
   });
   return res.status(200).json({ status: "sent" });
