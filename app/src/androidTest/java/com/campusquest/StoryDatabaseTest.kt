@@ -67,12 +67,14 @@ class StoryDatabaseTest {
         db.close()
         val raw=android.database.sqlite.SQLiteDatabase.openDatabase(context.getDatabasePath(name).path,null,0)
         raw.execSQL("DROP TABLE story_config");raw.execSQL("DROP TABLE story_session");raw.version=1;raw.close()
-        db=Room.databaseBuilder(context,AppDatabase::class.java,name).addMigrations(AppDatabase.STORY_MIGRATION).build()
+        db=Room.databaseBuilder(context,AppDatabase::class.java,name)
+            .addMigrations(AppDatabase.STORY_MIGRATION, AppDatabase.MIGRATION_2_3).build()
         try {
             assertNotNull(db.gameDao().getGameById(id))
             assertEquals(3,db.checkpointDao().getCheckpointsForGame(id).size)
             assertNotNull(db.playerProgressDao().getProgress(id,"player"))
             assertNull(db.storyDao().config(id))
+            assertEquals(30, db.gameDao().getGameById(id)?.timeLimitMinutes)
         } finally {db.close();context.deleteDatabase(name)}
     }
 }

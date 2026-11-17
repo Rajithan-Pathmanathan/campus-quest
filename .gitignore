@@ -63,3 +63,9 @@ Thumbs.db
 
 # Release signing secrets
 keystore.properties
+
+# Local agent, editor, worktree, and extracted reference files
+.claude/
+.vscode/
+.install-main/
+tmp/

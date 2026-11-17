@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 2,
-    "identityHash": "f0dc35c369ae9fc1c548911581b739ad",
+    "identityHash": "b751af58d934303571ca75acd824cebc",
     "entities": [
       {
         "tableName": "games",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `creatorId` TEXT NOT NULL, `creatorName` TEXT NOT NULL, `status` TEXT NOT NULL, `checkpointCount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `publishedAt` INTEGER, `timeLimitMinutes` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `title` TEXT NOT NULL, `description` TEXT NOT NULL, `creatorId` TEXT NOT NULL, `creatorName` TEXT NOT NULL, `status` TEXT NOT NULL, `checkpointCount` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `publishedAt` INTEGER, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -61,12 +61,6 @@
             "columnName": "publishedAt",
             "affinity": "INTEGER",
             "notNull": false
-          },
-          {
-            "fieldPath": "timeLimitMinutes",
-            "columnName": "timeLimitMinutes",
-            "affinity": "INTEGER",
-            "notNull": true
           }
         ],
         "primaryKey": {
@@ -392,7 +386,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'f0dc35c369ae9fc1c548911581b739ad')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b751af58d934303571ca75acd824cebc')"
     ]
   }
 }
