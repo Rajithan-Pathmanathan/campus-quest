@@ -51,7 +51,19 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("ALTER TABLE games ADD COLUMN timeLimitMinutes INTEGER NOT NULL DEFAULT 30")
+                var alreadyAdded = false
+                db.query("PRAGMA table_info(`games`)").use { cursor ->
+                    val nameColumn = cursor.getColumnIndexOrThrow("name")
+                    while (cursor.moveToNext()) {
+                        if (cursor.getString(nameColumn) == "timeLimitMinutes") {
+                            alreadyAdded = true
+                            break
+                        }
+                    }
+                }
+                if (!alreadyAdded) {
+                    db.execSQL("ALTER TABLE games ADD COLUMN timeLimitMinutes INTEGER NOT NULL DEFAULT 30")
+                }
             }
         }
 
@@ -63,7 +75,6 @@ abstract class AppDatabase : RoomDatabase() {
                     "campus_quest_db"
                 )
                     .addMigrations(STORY_MIGRATION, MIGRATION_2_3)
-                    .fallbackToDestructiveMigration()
                     .build()
                 INSTANCE = instance
 
